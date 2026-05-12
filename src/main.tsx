@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from '@/shared/context/AuthContext';
 import { OrgProvider } from '@/shared/context/OrgContext';
+import { SearchProvider } from '@/shared/context/SearchContext';
 import App from './App.tsx';
 
 import '@mantine/core/styles.css';
@@ -25,9 +27,13 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <MantineProvider defaultColorScheme="light">
         <BrowserRouter>
-          <OrgProvider>
-            <App />
-          </OrgProvider>
+          <AuthProvider>
+            <OrgProvider>
+              <SearchProvider>
+                <App />
+              </SearchProvider>
+            </OrgProvider>
+          </AuthProvider>
         </BrowserRouter>
       </MantineProvider>
     </QueryClientProvider>

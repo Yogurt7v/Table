@@ -1,8 +1,27 @@
 import { pb } from './client.ts';
-import type { IOrganization, IBankAccount, IAccountingObject, IInvoice } from '@/shared/types';
+import type {
+  IOrganization,
+  IBankAccount,
+  IAccountingObject,
+  IInvoice,
+  IUser,
+  IOrganizationUser,
+} from '@/shared/types';
 
 export function getOrganizations() {
-  return pb.collection('organizations').getFullList<IOrganization>();
+  return pb.collection('organizations').getFullList<IOrganization>({ sort: 'created' });
+}
+
+export function createOrganization(name: string, color: string) {
+  return pb.collection('organizations').create<IOrganization>({ name, color });
+}
+
+export function updateOrganization(id: string, name: string, color: string) {
+  return pb.collection('organizations').update<IOrganization>(id, { name, color });
+}
+
+export function deleteOrganization(id: string) {
+  return pb.collection('organizations').delete(id);
 }
 
 export function getBankAccounts(orgId: string) {
@@ -23,5 +42,64 @@ export function getInvoices(orgId: string, date: string) {
     .getFullList<IInvoice>({
       filter: `organization_id = "${orgId}" && date = "${date}"`,
       sort: 'seq',
+    });
+}
+
+// --- Users ---
+export function getUsers() {
+  return pb.collection('users').getFullList<IUser>({
+    sort: 'created',
+  });
+}
+
+export function createUser(login: string, password: string, name: string) {
+  return pb.collection('users').create<IUser>({
+    login,
+    email: `${login}@local.host`,
+    password,
+    passwordConfirm: password,
+    name,
+    emailVisibility: false,
+  });
+}
+
+export function deleteUser(id: string) {
+  return pb.collection('users').delete(id);
+}
+
+// --- Organization Users ---
+export function getOrganizationUsers() {
+  return pb.collection('organization_users').getFullList<IOrganizationUser>({
+    expand: 'user_id,organization_id',
+    sort: 'created',
+  });
+}
+
+export function createOrganizationUser(
+  userId: string,
+  organizationId: string,
+  role: IOrganizationUser['role'],
+) {
+  return pb.collection('organization_users').create<IOrganizationUser>({
+    user_id: userId,
+    organization_id: organizationId,
+    role,
+  });
+}
+
+export function updateOrganizationUserRole(id: string, role: IOrganizationUser['role']) {
+  return pb.collection('organization_users').update<IOrganizationUser>(id, { role });
+}
+
+export function deleteOrganizationUser(id: string) {
+  return pb.collection('organization_users').delete(id);
+}
+
+export function searchAllInvoices(orgId: string, text: string) {
+  return pb
+    .collection('invoices')
+    .getFullList<IInvoice>({
+      filter: `organization_id = "${orgId}" && (counterparty ~ "${text}" || purpose ~ "${text}" || contract_no ~ "${text}" || invoice_no ~ "${text}" || comment ~ "${text}")`,
+      sort: '-date',
     });
 }

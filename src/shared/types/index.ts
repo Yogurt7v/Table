@@ -46,4 +46,19 @@ export interface IOrganizationUser {
   user_id: string;
   organization_id: string;
   role: 'admin' | 'moderator' | 'user' | 'guest';
+  expand?: {
+    user_id?: IUser;
+    organization_id?: IOrganization;
+  };
+}
+
+export interface IUser {
+  id: string;
+  email: string;
+  login: string;
+  name: string;
+  avatar: string;
+  verified: boolean;
+  created: string;
+  updated: string;
 }
