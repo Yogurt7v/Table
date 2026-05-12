@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "seed": "tsx scripts/seed.ts",
     "format": "prettier --check .",
     "format:write": "prettier --write ."
   },
@@ -26,6 +27,7 @@
     "@tanstack/react-query-devtools": "^5.100.10",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.20",
+    "dotenv": "^17.4.2",
     "mantine-react-table": "^2.0.0-beta.9",
     "pocketbase": "^0.26.9",
     "react": "^19.2.6",
@@ -46,6 +48,7 @@
     "globals": "^17.6.0",
     "jsdom": "^26.1.0",
     "prettier": "^3.5.3",
+    "tsx": "^4.21.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
