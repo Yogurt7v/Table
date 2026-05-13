@@ -49,15 +49,15 @@ export function CreateUserModal({ opened, onClose }: CreateUserModalProps) {
 
   const addAssignment = () => {
     if (availableOrgs.length === 0) return;
-    setAssignments([...assignments, { orgId: availableOrgs[0].id, role: 'user' }]);
+    setAssignments([...assignments, { orgId: availableOrgs[0]!.id, role: 'guest' }]);
   };
 
   const updateAssignment = (index: number, field: keyof Assignment, value: string) => {
     const next = [...assignments];
     if (field === 'orgId') {
-      next[index] = { ...next[index], orgId: value };
+      next[index] = { ...next[index], orgId: value } as Assignment;
     } else {
-      next[index] = { ...next[index], role: value as IOrganizationUser['role'] };
+      next[index] = { ...next[index], role: value as IOrganizationUser['role'] } as Assignment;
     }
     setAssignments(next);
   };
@@ -75,14 +75,15 @@ export function CreateUserModal({ opened, onClose }: CreateUserModalProps) {
       return;
     }
 
+    if (password.length < 8) {
+      setError('Пароль должен быть не менее 8 символов');
+      return;
+    }
+
     setLoading(true);
     try {
       const user = await createUser(login, password, name);
-      await Promise.all(
-        assignments.map((a) =>
-          createOrganizationUser(user.id, a.orgId, a.role),
-        ),
-      );
+      await Promise.all(assignments.map((a) => createOrganizationUser(user.id, a.orgId, a.role)));
       qc.resetQueries({ queryKey: ['users'] });
       qc.resetQueries({ queryKey: ['organization_users'] });
       setLogin('');
@@ -148,11 +149,7 @@ export function CreateUserModal({ opened, onClose }: CreateUserModalProps) {
                 w={160}
                 required
               />
-              <ActionIcon
-                color="red"
-                variant="subtle"
-                onClick={() => removeAssignment(i)}
-              >
+              <ActionIcon color="red" variant="subtle" onClick={() => removeAssignment(i)}>
                 <IconTrash size={14} />
               </ActionIcon>
             </Group>

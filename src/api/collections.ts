@@ -24,10 +24,29 @@ export function deleteOrganization(id: string) {
   return pb.collection('organizations').delete(id);
 }
 
+export function getAllBankAccounts() {
+  return pb.collection('bank_accounts').getFullList<IBankAccount>({ sort: 'created' });
+}
+
 export function getBankAccounts(orgId: string) {
   return pb
     .collection('bank_accounts')
-    .getFullList<IBankAccount>({ filter: `organization_id = "${orgId}"` });
+    .getFullList<IBankAccount>({ filter: `organization_id = "${orgId}"`, sort: 'created' });
+}
+
+export function createBankAccount(organizationId: string, accountNumber: string) {
+  return pb.collection('bank_accounts').create<IBankAccount>({
+    organization_id: organizationId,
+    account_number: accountNumber,
+  });
+}
+
+export function updateBankAccount(id: string, accountNumber: string) {
+  return pb.collection('bank_accounts').update<IBankAccount>(id, { account_number: accountNumber });
+}
+
+export function deleteBankAccount(id: string) {
+  return pb.collection('bank_accounts').delete(id);
 }
 
 export function getAccountingObjects(orgId: string) {
@@ -37,12 +56,10 @@ export function getAccountingObjects(orgId: string) {
 }
 
 export function getInvoices(orgId: string, date: string) {
-  return pb
-    .collection('invoices')
-    .getFullList<IInvoice>({
-      filter: `organization_id = "${orgId}" && date = "${date}"`,
-      sort: 'seq',
-    });
+  return pb.collection('invoices').getFullList<IInvoice>({
+    filter: `organization_id = "${orgId}" && date = "${date}"`,
+    sort: 'seq',
+  });
 }
 
 // --- Users ---
@@ -96,10 +113,8 @@ export function deleteOrganizationUser(id: string) {
 }
 
 export function searchAllInvoices(orgId: string, text: string) {
-  return pb
-    .collection('invoices')
-    .getFullList<IInvoice>({
-      filter: `organization_id = "${orgId}" && (counterparty ~ "${text}" || purpose ~ "${text}" || contract_no ~ "${text}" || invoice_no ~ "${text}" || comment ~ "${text}")`,
-      sort: '-date',
-    });
+  return pb.collection('invoices').getFullList<IInvoice>({
+    filter: `organization_id = "${orgId}" && (counterparty ~ "${text}" || purpose ~ "${text}" || contract_no ~ "${text}" || invoice_no ~ "${text}" || comment ~ "${text}")`,
+    sort: '-date',
+  });
 }
