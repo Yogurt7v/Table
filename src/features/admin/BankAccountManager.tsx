@@ -86,7 +86,7 @@ export function BankAccountManager({ organizationId, accounts }: BankAccountMana
                 {acc.account_number}
               </Text>
               <Text size="xs" c="dimmed">
-                Бал.: {acc.balance}
+                Бал.: {acc.balance.toFixed(2)}
               </Text>
               <ActionIcon
                 size="sm"

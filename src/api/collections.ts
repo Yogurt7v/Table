@@ -49,6 +49,10 @@ export function deleteBankAccount(id: string) {
   return pb.collection('bank_accounts').delete(id);
 }
 
+export function updateBankAccountBalance(id: string, balance: number) {
+  return pb.collection('bank_accounts').update<IBankAccount>(id, { balance });
+}
+
 export function getAccountingObjects(orgId: string) {
   return pb
     .collection('accounting_objects')
