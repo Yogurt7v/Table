@@ -1,19 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getBankAccounts, updateBankAccountBalance } from '@/api/collections';
+import { getBalancesForOrgDate, upsertBalance } from '@/api/collections';
 
-export function useBankAccounts(orgId: string) {
+export function useBankAccounts(orgId: string, date: string) {
   return useQuery({
-    queryKey: ['bank_accounts', orgId],
-    queryFn: () => getBankAccounts(orgId),
-    enabled: !!orgId,
+    queryKey: ['bank_accounts', orgId, date],
+    queryFn: () => getBalancesForOrgDate(orgId, date),
+    enabled: !!orgId && !!date,
   });
 }
 
-export function useUpdateBankAccountBalance() {
+export function useUpdateBalance() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, balance }: { id: string; balance: number }) =>
-      updateBankAccountBalance(id, balance),
+    mutationFn: ({
+      accountId,
+      date,
+      balance,
+    }: {
+      accountId: string;
+      date: string;
+      balance: number;
+    }) => upsertBalance(accountId, date, balance),
     onSettled: () => qc.invalidateQueries({ queryKey: ['bank_accounts'] }),
   });
 }

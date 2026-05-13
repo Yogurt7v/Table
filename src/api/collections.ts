@@ -2,6 +2,8 @@ import { pb } from './client.ts';
 import type {
   IOrganization,
   IBankAccount,
+  IBalanceHistory,
+  IAccountWithBalance,
   IAccountingObject,
   IInvoice,
   IUser,
@@ -49,8 +51,44 @@ export function deleteBankAccount(id: string) {
   return pb.collection('bank_accounts').delete(id);
 }
 
-export function updateBankAccountBalance(id: string, balance: number) {
-  return pb.collection('bank_accounts').update<IBankAccount>(id, { balance });
+// --- Balance History ---
+
+export async function getBalancesForOrgDate(
+  orgId: string,
+  date: string,
+): Promise<IAccountWithBalance[]> {
+  const accounts = await pb.collection('bank_accounts').getFullList<IBankAccount>({
+    filter: `organization_id = "${orgId}" && created <= "${date} 23:59:59"`,
+    sort: 'created',
+  });
+
+  if (accounts.length === 0) return [];
+
+  const accountIds = accounts.map((a) => a.id);
+  const filter = accountIds.map((id) => `account_id = "${id}"`).join(' || ');
+  const histories = await pb.collection('balance_history').getFullList<IBalanceHistory>({
+    filter: `(${filter}) && date = "${date}"`,
+  });
+
+  return accounts.map((acc) => ({
+    account: acc,
+    balance: histories.find((h) => h.account_id === acc.id)?.balance ?? 0,
+  }));
+}
+
+export async function upsertBalance(accountId: string, date: string, balance: number) {
+  const existing = await pb.collection('balance_history').getFullList<IBalanceHistory>({
+    filter: `account_id = "${accountId}" && date = "${date}"`,
+    requestKey: `upsert-${accountId}-${date}`,
+  });
+  if (existing.length > 0) {
+    return pb.collection('balance_history').update<IBalanceHistory>(existing[0]!.id, { balance });
+  }
+  return pb.collection('balance_history').create<IBalanceHistory>({
+    account_id: accountId,
+    date,
+    balance,
+  });
 }
 
 export function getAccountingObjects(orgId: string) {

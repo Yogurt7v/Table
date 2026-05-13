@@ -6,7 +6,6 @@ import dayjs from 'dayjs';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useSearch } from '@/shared/context/SearchContext';
 import { useBankAccounts } from '@/shared/hooks/useBankAccounts';
-import { useInvoices } from '@/shared/hooks/useInvoices';
 import { AccountList } from '@/features/accounts/AccountList';
 import { InvoiceSection } from '@/features/invoices/InvoiceSection';
 
@@ -16,8 +15,7 @@ export function MainPage() {
   const [date, setDate] = useState<Date>(new Date());
   const dateStr = dayjs(date).format('YYYY-MM-DD');
 
-  const { data: accounts, isLoading: accountsLoading } = useBankAccounts(currentOrgId);
-  const { data: invoices } = useInvoices(currentOrgId, dateStr);
+  const { data: accounts, isLoading: accountsLoading } = useBankAccounts(currentOrgId, dateStr);
 
   if (!currentOrgId) return <Loader />;
 
@@ -31,7 +29,7 @@ export function MainPage() {
           w={280}
         />
 
-        <AccountList accounts={accounts} loading={accountsLoading} />
+        <AccountList accounts={accounts} loading={accountsLoading} date={dateStr} />
 
         <InvoiceSection
           orgId={currentOrgId}

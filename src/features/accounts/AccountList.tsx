@@ -2,15 +2,17 @@ import { useState } from 'react';
 import { Paper, Title, Table, Loader, Text, Group, NumberInput, ActionIcon } from '@mantine/core';
 import { IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import sumBy from 'lodash/sumBy';
+import dayjs from 'dayjs';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
-import { useUpdateBankAccountBalance } from '@/shared/hooks/useBankAccounts';
-import type { IBankAccount } from '@/shared/types';
+import { useUpdateBalance } from '@/shared/hooks/useBankAccounts';
+import type { IAccountWithBalance } from '@/shared/types';
 
 interface AccountListProps {
-  accounts: IBankAccount[] | undefined;
+  accounts: IAccountWithBalance[] | undefined;
   loading: boolean;
+  date: string;
 }
 
 function toFixed2(n: number) {
@@ -19,25 +21,27 @@ function toFixed2(n: number) {
   return `${spaced}.${parts[1]} ₽`;
 }
 
-export function AccountList({ accounts, loading }: AccountListProps) {
+export function AccountList({ accounts, loading, date }: AccountListProps) {
   const { user } = useAuth();
   const { currentOrgId } = useOrg();
   const { data: orgUsers } = useOrganizationUsers();
-  const updateBalance = useUpdateBankAccountBalance();
+  const updateBalance = useUpdateBalance();
 
   const currentRole = orgUsers?.find(
     (ou) => ou.user_id === user?.id && ou.organization_id === currentOrgId,
   )?.role;
   const canEdit = currentRole === 'admin' || currentRole === 'moderator';
+  const isToday = date === dayjs().format('YYYY-MM-DD');
+  const canEditHere = canEdit && isToday;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<number>(0);
 
   const total = accounts ? sumBy(accounts, 'balance') : 0;
 
-  const startEdit = (acc: IBankAccount) => {
-    setEditingId(acc.id);
-    setEditValue(acc.balance);
+  const startEdit = (item: IAccountWithBalance) => {
+    setEditingId(item.account.id);
+    setEditValue(item.balance);
   };
 
   const cancelEdit = () => {
@@ -46,7 +50,7 @@ export function AccountList({ accounts, loading }: AccountListProps) {
 
   const saveEdit = async () => {
     if (!editingId) return;
-    await updateBalance.mutateAsync({ id: editingId, balance: editValue });
+    await updateBalance.mutateAsync({ accountId: editingId, date, balance: editValue });
     setEditingId(null);
   };
 
@@ -58,30 +62,32 @@ export function AccountList({ accounts, loading }: AccountListProps) {
       {loading ? (
         <Loader size="sm" />
       ) : (
-        <Table
-          highlightOnHover
-          styles={{ td: { borderBottom: 'none' }, th: { borderBottom: 'none' } }}
-        >
+        <Table highlightOnHover>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Счёт</Table.Th>
               <Table.Th ta="right">Остаток</Table.Th>
-              {canEdit && <Table.Th w={60} />}
+              {canEditHere && <Table.Th w={60} />}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {accounts?.map((a) => (
-              <Table.Tr key={a.id}>
-                <Table.Td>{a.account_number}</Table.Td>
+            {accounts?.map((item) => (
+              <Table.Tr key={item.account.id}>
+                <Table.Td>{item.account.account_number}</Table.Td>
                 <Table.Td ta="right">
-                  {editingId === a.id ? (
+                  {editingId === item.account.id ? (
                     <div style={{ width: '50%', marginLeft: 'auto' }}>
                       <NumberInput
                         size="xs"
                         value={editValue}
-                        onChange={(v) =>
-                          setEditValue(typeof v === 'string' ? parseFloat(v) || 0 : v)
-                        }
+                        onChange={(v) => {
+                          if (typeof v === 'string') {
+                            const cleaned = v.replace(/\s/g, '').replace(',', '.');
+                            setEditValue(parseFloat(cleaned) || 0);
+                          } else {
+                            setEditValue(v);
+                          }
+                        }}
                         decimalScale={2}
                         fixedDecimalScale
                         thousandSeparator=" "
@@ -93,12 +99,12 @@ export function AccountList({ accounts, loading }: AccountListProps) {
                       />
                     </div>
                   ) : (
-                    <Text>{toFixed2(a.balance)}</Text>
+                    <Text>{toFixed2(item.balance)}</Text>
                   )}
                 </Table.Td>
-                {canEdit && (
+                {canEditHere && (
                   <Table.Td>
-                    {editingId === a.id ? (
+                    {editingId === item.account.id ? (
                       <Group gap={4} wrap="nowrap">
                         <ActionIcon
                           size="sm"
@@ -118,7 +124,7 @@ export function AccountList({ accounts, loading }: AccountListProps) {
                         size="sm"
                         color="blue"
                         variant="subtle"
-                        onClick={() => startEdit(a)}
+                        onClick={() => startEdit(item)}
                       >
                         <IconPencil size={14} />
                       </ActionIcon>
@@ -130,12 +136,13 @@ export function AccountList({ accounts, loading }: AccountListProps) {
           </Table.Tbody>
           <Table.Tfoot>
             <Table.Tr>
-              <Table.Td colSpan={canEdit ? 3 : 2}>
+              <Table.Td colSpan={2}>
                 <Group justify="flex-end" gap="xs">
                   <Text fw={700}>ИТОГО</Text>
                   <Text fw={700}>{toFixed2(total)}</Text>
                 </Group>
               </Table.Td>
+              {canEditHere && <Table.Td />}
             </Table.Tr>
           </Table.Tfoot>
         </Table>
