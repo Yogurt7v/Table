@@ -1,11 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Paper, Title, Button, Group, Loader, Text, Table } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
+import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
+import { formatAmountRub } from '@/shared/utils/format-currency';
+import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import type { IInvoice } from '@/shared/types';
 
 interface InvoiceSectionProps {
@@ -43,6 +46,8 @@ export function InvoiceSection({ orgId, date, searchText, searchAll, onBackToDat
   const { data: objects } = useAccountingObjects(orgId);
   const { data: invoices } = useInvoices(orgId, date);
   const { data: searchResults } = useSearchInvoices(orgId);
+  const permissions = useInvoicePermissions(orgId);
+  const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
 
   const highlightedIds = useMemo(
     () => computeHighlightedIds(searchText, searchResults, invoices),
@@ -74,7 +79,7 @@ export function InvoiceSection({ orgId, date, searchText, searchAll, onBackToDat
                   <Table.Td>{dayjs(inv.date).format('DD.MM.YYYY')}</Table.Td>
                   <Table.Td>{inv.counterparty}</Table.Td>
                   <Table.Td>{inv.purpose}</Table.Td>
-                  <Table.Td>{inv.amount.toLocaleString()} ₽</Table.Td>
+                  <Table.Td>{formatAmountRub(inv.amount)}</Table.Td>
                   <Table.Td>{inv.paid ? 'Оплачено' : 'Ожидает'}</Table.Td>
                 </Table.Tr>
               ))}
@@ -95,23 +100,39 @@ export function InvoiceSection({ orgId, date, searchText, searchAll, onBackToDat
 
   if (!objects) return <Loader />;
 
-  return objects?.map((obj) => {
-    const objInvoices = invoices?.filter((i) => i.accounting_object_id === obj.id) ?? [];
+  return objects.map((obj) => {
+    const objInvoices =
+      invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id) ?? [];
+    const isDraftOpen = draftObjectId === obj.id;
+
     return (
       <Paper key={obj.id} withBorder p="sm">
         <Group justify="space-between" mb="sm">
           <Title order={5}>{obj.name}</Title>
-          <Button size="compact-xs" variant="light" leftSection={<IconPlus size={14} />}>
-            Добавить счёт
-          </Button>
+          {permissions.canCreate && (
+            <Button
+              size="compact-xs"
+              variant="light"
+              leftSection={<IconPlus size={14} />}
+              disabled={isDraftOpen || draftObjectId !== null}
+              onClick={() => setDraftObjectId(obj.id)}
+            >
+              Добавить счёт
+            </Button>
+          )}
         </Group>
         {!invoices ? (
           <Loader size="sm" />
         ) : (
           <InvoiceTable
             orgId={orgId}
+            objectId={obj.id}
+            date={date}
             invoices={objInvoices}
             highlightedIds={highlightedIds}
+            isDraftOpen={isDraftOpen}
+            onCancelDraft={() => setDraftObjectId(null)}
+            accountingObjects={objects}
           />
         )}
       </Paper>

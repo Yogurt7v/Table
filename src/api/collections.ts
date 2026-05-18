@@ -1,4 +1,5 @@
 import { pb } from './client.ts';
+import { invoiceDateFilter, normalizeInvoice } from '@/shared/utils/normalize-invoice';
 import type {
   IOrganization,
   IBankAccount,
@@ -6,6 +7,7 @@ import type {
   IAccountWithBalance,
   IAccountingObject,
   IInvoice,
+  IInvoiceHistory,
   IUser,
   IOrganizationUser,
 } from '@/shared/types';
@@ -118,9 +120,61 @@ export function deleteAccountingObject(id: string) {
 }
 
 export function getInvoices(orgId: string, date: string) {
-  return pb.collection('invoices').getFullList<IInvoice>({
-    filter: `organization_id = "${orgId}" && date = "${date}"`,
-    sort: 'seq',
+  const { start, end } = invoiceDateFilter(date);
+  return pb
+    .collection('invoices')
+    .getFullList<IInvoice>({
+      filter: `organization_id = "${orgId}" && date >= "${start}" && date < "${end}"`,
+      sort: 'seq',
+    })
+    .then((list) => list.map(normalizeInvoice));
+}
+
+export type CreateInvoiceInput = {
+  organization_id: string;
+  accounting_object_id: string;
+  date: string;
+  counterparty: string;
+  purpose: string;
+  contract_no?: string;
+  invoice_no: string;
+  amount: number;
+  paid?: boolean;
+  paid_date?: string;
+  comment?: string;
+};
+
+export function createInvoice(data: CreateInvoiceInput) {
+  return pb
+    .collection('invoices')
+    .create<IInvoice>({
+      organization_id: data.organization_id,
+      accounting_object_id: data.accounting_object_id,
+      date: data.date.slice(0, 10),
+      counterparty: data.counterparty,
+      purpose: data.purpose,
+      contract_no: data.contract_no ?? '',
+      invoice_no: data.invoice_no,
+      amount: data.amount,
+      paid: data.paid ?? false,
+      paid_date: data.paid_date ?? '',
+      comment: data.comment ?? '',
+    })
+    .then(normalizeInvoice);
+}
+
+export function updateInvoice(id: string, data: Partial<IInvoice>) {
+  return pb.collection('invoices').update<IInvoice>(id, data).then(normalizeInvoice);
+}
+
+export function deleteInvoice(id: string) {
+  return pb.collection('invoices').delete(id);
+}
+
+export function getInvoiceHistory(invoiceId: string) {
+  return pb.collection('invoice_history').getFullList<IInvoiceHistory>({
+    filter: `invoice_id = "${invoiceId}"`,
+    sort: '-changed_at',
   });
 }
 
