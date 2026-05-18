@@ -135,7 +135,7 @@ export function AdminPage() {
               <Title order={4}>Организации</Title>
             </Group>
             <Button leftSection={<IconPlus size={16} />} onClick={() => setShowOrgForm(true)}>
-              Добавить
+              Добавить организацию
             </Button>
           </Group>
 
@@ -170,7 +170,7 @@ export function AdminPage() {
                     </Stack>
                   </Table.Td>
                   <Table.Td>
-                    <Group gap="sm">
+                    <Group gap="xs">
                       <div
                         style={{
                           width: 20,
