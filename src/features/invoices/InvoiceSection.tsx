@@ -108,7 +108,11 @@ export function InvoiceSection({ orgId, date, searchText, searchAll, onBackToDat
         {!invoices ? (
           <Loader size="sm" />
         ) : (
-          <InvoiceTable invoices={objInvoices} highlightedIds={highlightedIds} />
+          <InvoiceTable
+            orgId={orgId}
+            invoices={objInvoices}
+            highlightedIds={highlightedIds}
+          />
         )}
       </Paper>
     );

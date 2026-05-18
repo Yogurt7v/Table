@@ -91,10 +91,30 @@ export async function upsertBalance(accountId: string, date: string, balance: nu
   });
 }
 
+export function getAllAccountingObjects() {
+  return pb.collection('accounting_objects').getFullList<IAccountingObject>({ sort: 'created' });
+}
+
 export function getAccountingObjects(orgId: string) {
-  return pb
-    .collection('accounting_objects')
-    .getFullList<IAccountingObject>({ filter: `organization_id = "${orgId}"` });
+  return pb.collection('accounting_objects').getFullList<IAccountingObject>({
+    filter: `organization_id = "${orgId}"`,
+    sort: 'created',
+  });
+}
+
+export function createAccountingObject(organizationId: string, name: string) {
+  return pb.collection('accounting_objects').create<IAccountingObject>({
+    organization_id: organizationId,
+    name,
+  });
+}
+
+export function updateAccountingObject(id: string, name: string) {
+  return pb.collection('accounting_objects').update<IAccountingObject>(id, { name });
+}
+
+export function deleteAccountingObject(id: string) {
+  return pb.collection('accounting_objects').delete(id);
 }
 
 export function getInvoices(orgId: string, date: string) {

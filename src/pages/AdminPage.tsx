@@ -26,10 +26,16 @@ import { CreateUserModal } from '@/features/admin/CreateUserModal';
 import { InlineRoleCell } from '@/features/admin/InlineRoleCell';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { BankAccountManager } from '@/features/admin/BankAccountManager';
+import { AccountingObjectManager } from '@/features/admin/AccountingObjectManager';
 import { useQuery } from '@tanstack/react-query';
-import { getBankAccounts, getAllBankAccounts } from '@/api/collections';
-import { createBankAccount } from '@/api/collections';
-import type { IBankAccount } from '@/shared/types';
+import {
+  getBankAccounts,
+  getAllBankAccounts,
+  getAccountingObjects,
+  getAllAccountingObjects,
+  createBankAccount,
+} from '@/api/collections';
+import type { IBankAccount, IAccountingObject } from '@/shared/types';
 
 const COLORS = [
   { value: '#228be6', label: 'Синий' },
@@ -74,9 +80,19 @@ export function AdminPage() {
     queryFn: getAllBankAccounts,
   });
 
+  const { data: allObjects = [] } = useQuery({
+    queryKey: ['accounting_objects'],
+    queryFn: getAllAccountingObjects,
+  });
+
   const accountsByOrg: Record<string, IBankAccount[]> = {};
   for (const acc of allAccounts) {
     (accountsByOrg[acc.organization_id] ??= []).push(acc);
+  }
+
+  const objectsByOrg: Record<string, IAccountingObject[]> = {};
+  for (const obj of allObjects) {
+    (objectsByOrg[obj.organization_id] ??= []).push(obj);
   }
 
   const { data: editAccounts } = useQuery({
@@ -84,6 +100,17 @@ export function AdminPage() {
     queryFn: () => getBankAccounts(editOrgId!),
     enabled: !!editOrgId,
   });
+
+  const { data: editObjects = [] } = useQuery({
+    queryKey: ['accounting_objects', editOrgId],
+    queryFn: () => getAccountingObjects(editOrgId!),
+    enabled: !!editOrgId,
+  });
+
+  const editOrgRole = orgUsers?.find(
+    (ou) => ou.user_id === currentUser?.id && ou.organization_id === editOrgId,
+  )?.role;
+  const canEditAccountingObjects = editOrgRole === 'admin' || editOrgRole === 'moderator';
 
   const editOrg = organizations.find((o) => o.id === editOrgId);
 
@@ -144,6 +171,7 @@ export function AdminPage() {
               <Table.Tr>
                 <Table.Th>Название</Table.Th>
                 <Table.Th>Счета</Table.Th>
+                <Table.Th>Объекты</Table.Th>
                 <Table.Th>Цвет</Table.Th>
                 <Table.Th w={100} />
               </Table.Tr>
@@ -164,6 +192,21 @@ export function AdminPage() {
                         (accountsByOrg[org.id] ?? []).map((acc) => (
                           <Text key={acc.id} size="sm">
                             {acc.account_number}
+                          </Text>
+                        ))
+                      )}
+                    </Stack>
+                  </Table.Td>
+                  <Table.Td>
+                    <Stack gap={2}>
+                      {(objectsByOrg[org.id] ?? []).length === 0 ? (
+                        <Text size="xs" c="dimmed">
+                          Нет объектов
+                        </Text>
+                      ) : (
+                        (objectsByOrg[org.id] ?? []).map((obj) => (
+                          <Text key={obj.id} size="sm">
+                            {obj.name}
                           </Text>
                         ))
                       )}
@@ -398,6 +441,11 @@ export function AdminPage() {
               onChange={(v) => v && setEditColor(v)}
             />
             <BankAccountManager organizationId={editOrgId} accounts={editAccounts} />
+            <AccountingObjectManager
+              organizationId={editOrgId}
+              objects={editObjects}
+              canEdit={canEditAccountingObjects}
+            />
             <Button
               fullWidth
               onClick={handleSaveOrg}
