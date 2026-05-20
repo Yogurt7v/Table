@@ -180,7 +180,12 @@ export function InvoiceTable({
       if (field === 'paid' && value === false) {
         updates.paid_date = '';
       }
-      updateInvoice.mutate({ id: row.id, ...updates });
+      // Передаём предыдущие данные для истории
+      const previousData = {
+        [field]: row[field],
+        ...(field === 'paid' && value === true ? { paid_date: row.paid_date } : {}),
+      };
+      updateInvoice.mutate({ id: row.id, previousData, ...updates });
     },
     [updateInvoice, date],
   );

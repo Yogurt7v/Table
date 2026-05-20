@@ -124,7 +124,7 @@ export function getInvoices(orgId: string, date: string) {
   return pb
     .collection('invoices')
     .getFullList<IInvoice>({
-      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && paid_date >= "${today}"))`,
+      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && paid_date = "${today}"))`,
       sort: '-created',
     })
     .then((list) => list.map(normalizeInvoice));
@@ -145,11 +145,6 @@ export type CreateInvoiceInput = {
 };
 
 export function createInvoice(data: CreateInvoiceInput) {
-  // Если счёт создаётся как оплаченный, но дата оплаты не указана – ставим сегодня
-  let paidDate = data.paid_date;
-  if (data.paid === true && !paidDate) {
-    paidDate = new Date().toISOString().slice(0, 10);
-  }
   return pb
     .collection('invoices')
     .create<IInvoice>({
@@ -162,18 +157,32 @@ export function createInvoice(data: CreateInvoiceInput) {
       invoice_no: data.invoice_no,
       amount: data.amount,
       paid: data.paid ?? false,
-      paid_date: paidDate ?? '',
+      paid_date: data.paid_date ?? '',
       comment: data.comment ?? '',
     })
     .then(normalizeInvoice);
 }
 
 export function updateInvoice(id: string, data: Partial<IInvoice>) {
-  // Если поле paid меняется на true и paid_date не задана – ставим сегодня
-  if (data.paid === true && !data.paid_date) {
-    data.paid_date = new Date().toISOString().slice(0, 10);
-  }
   return pb.collection('invoices').update<IInvoice>(id, data).then(normalizeInvoice);
+}
+
+export async function updateInvoiceWithHistory(
+  id: string,
+  data: Partial<IInvoice>,
+  previousData: Record<string, unknown>,
+) {
+  // Записываем историю
+  const author = pb.authStore.model?.name || pb.authStore.model?.email || 'unknown';
+  await pb.collection('invoice_history').create({
+    invoice_id: id,
+    author,
+    changed_at: new Date().toISOString(),
+    previous_data: JSON.stringify(previousData),
+  });
+
+  // Обновляем счёт
+  return updateInvoice(id, data);
 }
 
 export function deleteInvoice(id: string) {
