@@ -6,5 +6,7 @@ export function useInvoices(orgId: string, date: string) {
     queryKey: ['invoices', orgId, date],
     queryFn: () => getInvoices(orgId, date),
     enabled: !!orgId && !!date,
+    staleTime: 0, // Данные считаются устаревшими сразу
+    gcTime: 0, // Кеш удаляется сразу после использования
   });
 }

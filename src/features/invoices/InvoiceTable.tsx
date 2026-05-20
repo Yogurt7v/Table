@@ -1,9 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import {
-  MantineReactTable,
-  useMantineReactTable,
-  type MRT_ColumnDef,
-} from 'mantine-react-table';
+import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef } from 'mantine-react-table';
 import type { ColumnSizingState, OnChangeFn } from '@tanstack/react-table';
 import {
   Text,
@@ -17,13 +13,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import {
-  IconTrash,
-  IconCheck,
-  IconX,
-  IconHistory,
-  IconArrowRight,
-} from '@tabler/icons-react';
+import { IconTrash, IconCheck, IconX, IconHistory, IconArrowRight } from '@tabler/icons-react';
 import type { IAccountingObject, IInvoice } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { loadColumnSizing, saveColumnSizing } from './invoice-table-column-sizing';
@@ -181,9 +171,18 @@ export function InvoiceTable({
   const saveCell = useCallback(
     (row: IInvoice, field: keyof IInvoice, value: unknown) => {
       if (row.id === DRAFT_INVOICE_ID) return;
-      updateInvoice.mutate({ id: row.id, [field]: value });
+      const updates: Record<string, unknown> = { [field]: value };
+      // Если отмечаем как оплачено, автоматически устанавливаем дату оплаты на сегодня
+      if (field === 'paid' && value === true) {
+        updates.paid_date = date.slice(0, 10);
+      }
+      // Если снимаем статус оплачено, очищаем дату оплаты
+      if (field === 'paid' && value === false) {
+        updates.paid_date = '';
+      }
+      updateInvoice.mutate({ id: row.id, ...updates });
     },
-    [updateInvoice],
+    [updateInvoice, date],
   );
 
   const handleSaveDraft = async () => {
@@ -275,10 +274,11 @@ export function InvoiceTable({
         size: 50,
         enableResizing: false,
         enableEditing: false,
-        Cell: ({ row, cell }) => {
+        Cell: ({ row, table }) => {
+          // Показываем порядковый номер: индекс строки + 1
+          const rowIndex = table.getRowModel().rows.indexOf(row);
           if (row.original.id === DRAFT_INVOICE_ID) return '—';
-          const title = textCellValue(cell.getValue());
-          return <EllipsisCell title={title}>{title}</EllipsisCell>;
+          return <EllipsisCell title={String(rowIndex + 1)}>{rowIndex + 1}</EllipsisCell>;
         },
       },
       {
@@ -336,7 +336,8 @@ export function InvoiceTable({
         size: 120,
         enableEditing: fieldEditable('amount'),
         Cell: ({ row, cell }) => {
-          if (row.original.id === DRAFT_INVOICE_ID) return renderDraftInput('amount', { type: 'number' });
+          if (row.original.id === DRAFT_INVOICE_ID)
+            return renderDraftInput('amount', { type: 'number' });
           const title = formatAmountRub(cell.getValue<number>() ?? 0);
           return <EllipsisCell title={title}>{title}</EllipsisCell>;
         },
@@ -436,7 +437,8 @@ export function InvoiceTable({
             return;
           }
           let value: unknown = e.currentTarget.value;
-          if (field === 'amount') value = Math.round(parseFloat(String(value).replace(',', '.')) * 100) / 100 || 0;
+          if (field === 'amount')
+            value = Math.round(parseFloat(String(value).replace(',', '.')) * 100) / 100 || 0;
           saveCell(row.original, field, value);
         },
       }),
@@ -540,13 +542,19 @@ export function InvoiceTable({
       const styles: React.CSSProperties = {};
       if (row.original.id === DRAFT_INVOICE_ID) {
         styles.backgroundColor = 'var(--mantine-color-blue-0)';
+      } else if (row.original.paid) {
+        styles.backgroundColor = 'var(--mantine-color-yellow-1)';
       } else if (highlightedIds.includes(row.original.id)) {
         styles.backgroundColor = 'var(--mantine-color-yellow-0)';
       }
       return Object.keys(styles).length ? { style: styles } : {};
     },
     renderEmptyRowsFallback: () =>
-      isDraftOpen ? null : <Text p="md" c="dimmed">Нет счетов за эту дату</Text>,
+      isDraftOpen ? null : (
+        <Text p="md" c="dimmed">
+          Нет счетов за эту дату
+        </Text>
+      ),
   });
 
   return (

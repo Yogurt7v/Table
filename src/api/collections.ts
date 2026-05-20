@@ -120,12 +120,12 @@ export function deleteAccountingObject(id: string) {
 }
 
 export function getInvoices(orgId: string, date: string) {
-  const { start, end } = invoiceDateFilter(date);
+  const today = date.slice(0, 10);
   return pb
     .collection('invoices')
     .getFullList<IInvoice>({
-      filter: `organization_id = "${orgId}" && date >= "${start}" && date < "${end}"`,
-      sort: 'seq',
+      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && paid_date >= "${today}"))`,
+      sort: '-created',
     })
     .then((list) => list.map(normalizeInvoice));
 }
@@ -145,6 +145,11 @@ export type CreateInvoiceInput = {
 };
 
 export function createInvoice(data: CreateInvoiceInput) {
+  // Если счёт создаётся как оплаченный, но дата оплаты не указана – ставим сегодня
+  let paidDate = data.paid_date;
+  if (data.paid === true && !paidDate) {
+    paidDate = new Date().toISOString().slice(0, 10);
+  }
   return pb
     .collection('invoices')
     .create<IInvoice>({
@@ -157,13 +162,17 @@ export function createInvoice(data: CreateInvoiceInput) {
       invoice_no: data.invoice_no,
       amount: data.amount,
       paid: data.paid ?? false,
-      paid_date: data.paid_date ?? '',
+      paid_date: paidDate ?? '',
       comment: data.comment ?? '',
     })
     .then(normalizeInvoice);
 }
 
 export function updateInvoice(id: string, data: Partial<IInvoice>) {
+  // Если поле paid меняется на true и paid_date не задана – ставим сегодня
+  if (data.paid === true && !data.paid_date) {
+    data.paid_date = new Date().toISOString().slice(0, 10);
+  }
   return pb.collection('invoices').update<IInvoice>(id, data).then(normalizeInvoice);
 }
 

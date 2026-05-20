@@ -19,6 +19,7 @@ export function normalizeInvoice(record: IInvoice): IInvoice {
   return {
     ...record,
     date: normalizePbDate(record.date),
+    paid_date: normalizePbDate(record.paid_date),
     accounting_object_id: normalizeRelationId(record.accounting_object_id),
     organization_id: normalizeRelationId(record.organization_id),
     seq: Number(record.seq) || 0,
