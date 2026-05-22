@@ -107,7 +107,9 @@ export function InvoiceSection({
     const objInvoices =
       invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id) ?? [];
     const isDraftOpen = draftObjectId === obj.id;
-    const totalAmount = objInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+    const totalAmount = objInvoices.reduce((sum, inv) => {
+      return !inv.paid ? sum + inv.amount : sum;
+    }, 0);
 
     return (
       <Paper key={obj.id} withBorder p="sm">

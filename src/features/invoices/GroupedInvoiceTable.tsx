@@ -9,6 +9,7 @@ import {
   TextInput,
   Autocomplete,
   NumberInput,
+  Menu, // <-- Добавлен импорт Menu
 } from '@mantine/core';
 import {
   IconTrash,
@@ -17,6 +18,7 @@ import {
   IconHistory,
   IconArrowRight,
   IconPencil,
+  IconDotsVertical, // <-- Добавлена иконка "три точки"
 } from '@tabler/icons-react';
 import type { IInvoice } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -35,7 +37,7 @@ interface GroupedInvoiceTableProps {
   onDelete: (invoice: IInvoice) => void;
   onHistory: (invoice: IInvoice) => void;
   onMove: (invoice: IInvoice) => void;
-  onTogglePaid: (invoice: IInvoice) => void; // <-- Восстановлен пропс
+  onTogglePaid: (invoice: IInvoice) => void;
   highlightedIds: string[];
   permissions: {
     canUpdate: boolean;
@@ -58,7 +60,7 @@ export function GroupedInvoiceTable({
   onDelete,
   onHistory,
   onMove,
-  onTogglePaid, // <-- Восстановлен в деструктуризации
+  onTogglePaid,
   highlightedIds,
   permissions,
 }: GroupedInvoiceTableProps) {
@@ -86,7 +88,7 @@ export function GroupedInvoiceTable({
             <Table.Th style={{ width: 100 }}>Оплачено</Table.Th>
             <Table.Th style={{ width: 120 }}>Дата оплаты</Table.Th>
             <Table.Th style={{ width: 180 }}>Комментарий</Table.Th>
-            <Table.Th style={{ width: 110 }}>Действия</Table.Th>
+            <Table.Th style={{ width: 50 }}>Действия</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -114,74 +116,70 @@ export function GroupedInvoiceTable({
                   <Table.Td>{invoice.invoice_no}</Table.Td>
                   <Table.Td>{formatAmountRub(invoice.amount)}</Table.Td>
                   <Table.Td>
-                    {/* --- ИЗМЕНЕНИЕ: Условный рендеринг Badge с onClick --- */}
                     {permissions.canUpdate ? (
                       <Badge
                         color={paid ? 'green' : 'orange'}
-                        onClick={() => onTogglePaid(invoice)} // Вызываем переданную функцию
-                        style={{ cursor: 'pointer' }} // Показываем, что элемент кликабелен
+                        onClick={() => onTogglePaid(invoice)}
+                        style={{ cursor: 'pointer' }}
                       >
                         {paid ? 'Да' : 'Нет'}
                       </Badge>
                     ) : (
                       <Badge color={paid ? 'green' : 'orange'}>{paid ? 'Да' : 'Нет'}</Badge>
                     )}
-                    {/* --- /ИЗМЕНЕНИЕ --- */}
                   </Table.Td>
                   <Table.Td>{invoice.paid_date || '—'}</Table.Td>
                   <Table.Td>{invoice.comment || '—'}</Table.Td>
+
+                  {/* --- ЯЧЕЙКА ДЕЙСТВИЙ С ВЫПАДАЮЩИМ МЕНЮ --- */}
                   <Table.Td>
-                    <Group gap={4} wrap="nowrap">
-                      {permissions.canUpdate && (
-                        <Tooltip label="Редактировать">
-                          <ActionIcon
-                            size="sm"
-                            color="blue"
-                            variant="light"
+                    <Menu position="bottom-end" shadow="md" width={200} withinPortal>
+                      <Menu.Target>
+                        <Tooltip label="Действия">
+                          <ActionIcon size="sm" variant="subtle" color="gray">
+                            <IconDotsVertical size={14} />
+                          </ActionIcon>
+                        </Tooltip>
+                      </Menu.Target>
+
+                      <Menu.Dropdown>
+                        {permissions.canUpdate && (
+                          <Menu.Item
+                            leftSection={<IconPencil size={14} />}
                             onClick={() => onEdit(invoice)}
                           >
-                            <IconPencil size={14} />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                      {permissions.canViewHistory && (
-                        <Tooltip label="История">
-                          <ActionIcon
-                            size="sm"
-                            color="gray"
-                            variant="subtle"
+                            Редактировать
+                          </Menu.Item>
+                        )}
+                        {permissions.canViewHistory && (
+                          <Menu.Item
+                            leftSection={<IconHistory size={14} />}
                             onClick={() => onHistory(invoice)}
                           >
-                            <IconHistory size={14} />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                      {permissions.canMove && (
-                        <Tooltip label="Перенести">
-                          <ActionIcon
-                            size="sm"
-                            color="blue"
-                            variant="subtle"
+                            История
+                          </Menu.Item>
+                        )}
+                        {permissions.canMove && (
+                          <Menu.Item
+                            leftSection={<IconArrowRight size={14} />}
                             onClick={() => onMove(invoice)}
                           >
-                            <IconArrowRight size={14} />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                      {permissions.canDelete && (
-                        <Tooltip label="Удалить">
-                          <ActionIcon
-                            size="sm"
+                            Перенести
+                          </Menu.Item>
+                        )}
+                        {permissions.canDelete && (
+                          <Menu.Item
+                            leftSection={<IconTrash size={14} />}
                             color="red"
-                            variant="subtle"
                             onClick={() => onDelete(invoice)}
                           >
-                            <IconTrash size={14} />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                    </Group>
+                            Удалить
+                          </Menu.Item>
+                        )}
+                      </Menu.Dropdown>
+                    </Menu>
                   </Table.Td>
+                  {/* --- /ЯЧЕЙКА ДЕЙСТВИЙ --- */}
                 </Table.Tr>
               );
             });
@@ -233,7 +231,6 @@ export function GroupedInvoiceTable({
                 />
               </Table.Td>
               <Table.Td>
-                {/* Этот чекбокс для строки черновика, оставляем как есть */}
                 <input
                   type="checkbox"
                   checked={draftForm.paid}
