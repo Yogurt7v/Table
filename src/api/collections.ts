@@ -121,13 +121,38 @@ export function deleteAccountingObject(id: string) {
 
 export function getInvoices(orgId: string, date: string) {
   const today = date.slice(0, 10);
+
   return pb
     .collection('invoices')
     .getFullList<IInvoice>({
-      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && paid_date = "${today}"))`,
+      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && paid_date ~ "${today}"))`,
       sort: '-created',
     })
     .then((list) => list.map(normalizeInvoice));
+}
+
+export function searchCounterparties(orgId: string, query: string) {
+  if (!query.trim()) return Promise.resolve([]);
+  const lowerQuery = query.toLowerCase();
+  return pb
+    .collection('invoices')
+    .getFullList<IInvoice>({
+      filter: `organization_id = "${orgId}"`,
+      fields: 'counterparty',
+      sort: '-created',
+      requestKey: `search-counterparties-${orgId}-${query}`,
+    })
+    .then((list) => {
+      const unique = new Map<string, string>();
+      list.forEach((inv) => {
+        if (inv.counterparty && inv.counterparty.toLowerCase().includes(lowerQuery)) {
+          if (!unique.has(inv.counterparty)) {
+            unique.set(inv.counterparty, inv.counterparty);
+          }
+        }
+      });
+      return Array.from(unique.values());
+    });
 }
 
 export type CreateInvoiceInput = {

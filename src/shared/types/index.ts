@@ -42,6 +42,7 @@ export interface IInvoice {
   paid: boolean;
   paid_date: string;
   comment: string;
+  created?: string;
 }
 
 export interface IInvoiceHistory {

@@ -42,7 +42,13 @@ function computeHighlightedIds(
     .map((i) => i.id);
 }
 
-export function InvoiceSection({ orgId, date, searchText, searchAll, onBackToDate }: InvoiceSectionProps) {
+export function InvoiceSection({
+  orgId,
+  date,
+  searchText,
+  searchAll,
+  onBackToDate,
+}: InvoiceSectionProps) {
   const { data: objects } = useAccountingObjects(orgId);
   const { data: invoices } = useInvoices(orgId, date);
   const { data: searchResults } = useSearchInvoices(orgId);
@@ -59,7 +65,9 @@ export function InvoiceSection({ orgId, date, searchText, searchAll, onBackToDat
   if (searchAll && searchResults) {
     return (
       <Paper withBorder p="sm">
-        <Title order={5} mb="sm">Результаты поиска: "{searchText}"</Title>
+        <Title order={5} mb="sm">
+          Результаты поиска: "{searchText}"
+        </Title>
         {searchResults.length === 0 ? (
           <Text c="dimmed">Ничего не найдено</Text>
         ) : (
@@ -86,12 +94,7 @@ export function InvoiceSection({ orgId, date, searchText, searchAll, onBackToDat
             </Table.Tbody>
           </Table>
         )}
-        <Text
-          size="xs"
-          c="blue"
-          style={{ cursor: 'pointer', marginTop: 8 }}
-          onClick={onBackToDate}
-        >
+        <Text size="xs" c="blue" style={{ cursor: 'pointer', marginTop: 8 }} onClick={onBackToDate}>
           ← Вернуться к {dayjs(date).format('DD.MM.YYYY')}
         </Text>
       </Paper>
@@ -104,6 +107,7 @@ export function InvoiceSection({ orgId, date, searchText, searchAll, onBackToDat
     const objInvoices =
       invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id) ?? [];
     const isDraftOpen = draftObjectId === obj.id;
+    const totalAmount = objInvoices.reduce((sum, inv) => sum + inv.amount, 0);
 
     return (
       <Paper key={obj.id} withBorder p="sm">
@@ -124,16 +128,23 @@ export function InvoiceSection({ orgId, date, searchText, searchAll, onBackToDat
         {!invoices ? (
           <Loader size="sm" />
         ) : (
-          <InvoiceTable
-            orgId={orgId}
-            objectId={obj.id}
-            date={date}
-            invoices={objInvoices}
-            highlightedIds={highlightedIds}
-            isDraftOpen={isDraftOpen}
-            onCancelDraft={() => setDraftObjectId(null)}
-            accountingObjects={objects}
-          />
+          <>
+            <InvoiceTable
+              orgId={orgId}
+              objectId={obj.id}
+              date={date}
+              invoices={objInvoices}
+              highlightedIds={highlightedIds}
+              isDraftOpen={isDraftOpen}
+              onCancelDraft={() => setDraftObjectId(null)}
+              accountingObjects={objects}
+            />
+            {objInvoices.length > 0 && (
+              <Text ta="right" fw={700} mt="md">
+                Итого по "{obj.name}": {formatAmountRub(totalAmount)}
+              </Text>
+            )}
+          </>
         )}
       </Paper>
     );
