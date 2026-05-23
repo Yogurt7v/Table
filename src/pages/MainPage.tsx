@@ -20,13 +20,19 @@ export function MainPage() {
   if (!currentOrgId) return <Loader />;
 
   return (
-    <Container size="xl" py="md">
+    <Container size="fluid" py="md">
       <Stack gap="lg">
         <DatePickerInput
-          leftSection={<IconCalendar size={16} />}
+          leftSection={<IconCalendar size={20} />}
           value={date}
           onChange={(v) => v && setDate(v)}
           w={280}
+          styles={{
+          input: {
+            fontWeight: 'bold',
+            fontSize: '1.1rem', // или '18px', '1.2em' и т.д.
+          },
+        }}
         />
 
         <AccountList accounts={accounts} loading={accountsLoading} date={dateStr} />
