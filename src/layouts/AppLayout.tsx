@@ -43,6 +43,9 @@ export function AppLayout() {
             <InvoiceSearch />
           </Group>
           <Group>
+            <Anchor size="sm" onClick={() => navigate('/payment-report')}>
+              Отчёт по оплате
+            </Anchor>
             <Anchor size="sm" onClick={() => navigate('/admin')}>
               + Добавить
             </Anchor>

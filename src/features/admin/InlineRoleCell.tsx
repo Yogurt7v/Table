@@ -13,6 +13,7 @@ const ROLE_COLORS: Record<IOrganizationUser['role'], string> = {
   admin: 'red',
   moderator: 'blue',
   user: 'green',
+  boss: 'teal',
   guest: 'gray',
 };
 
@@ -20,6 +21,7 @@ const ROLE_LABELS: Record<IOrganizationUser['role'], string> = {
   admin: 'Администратор',
   moderator: 'Модератор',
   user: 'Пользователь',
+  boss: 'Босс',
   guest: 'Гость',
 };
 
@@ -102,6 +104,7 @@ export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
                 { value: 'admin', label: 'Админ' },
                 { value: 'moderator', label: 'Модератор' },
                 { value: 'user', label: 'Пользователь' },
+                { value: 'boss', label: 'Босс' },
                 { value: 'guest', label: 'Гость' },
               ]}
               value={selectedRole}
