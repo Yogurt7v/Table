@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
+import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -52,6 +53,7 @@ export function InvoiceSection({
   const { data: objects } = useAccountingObjects(orgId);
   const { data: invoices } = useInvoices(orgId, date);
   const { data: searchResults } = useSearchInvoices(orgId);
+  const { data: paymentMarks } = usePaymentMarks(orgId);
   const permissions = useInvoicePermissions(orgId);
   const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
 
@@ -59,6 +61,15 @@ export function InvoiceSection({
     () => computeHighlightedIds(searchText, searchResults, invoices),
     [searchText, searchResults, invoices],
   );
+
+  const markedTotal = useMemo(() => {
+    if (!invoices || !paymentMarks) return 0;
+    return invoices.reduce((sum, inv) => {
+      const mark = paymentMarks.find((m) => m.invoice_id === inv.id);
+      if (!mark) return sum;
+      return sum + (mark.amount ?? inv.amount);
+    }, 0);
+  }, [invoices, paymentMarks]);
 
   if (!orgId) return null;
 
@@ -103,7 +114,9 @@ export function InvoiceSection({
 
   if (!objects) return <Loader />;
 
-  return objects.map((obj) => {
+  return (
+    <>
+      {objects.map((obj) => {
     const objInvoices =
       invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id) ?? [];
     const isDraftOpen = draftObjectId === obj.id;
@@ -140,6 +153,7 @@ export function InvoiceSection({
               isDraftOpen={isDraftOpen}
               onCancelDraft={() => setDraftObjectId(null)}
               accountingObjects={objects}
+              paymentMarks={paymentMarks}
             />
             {objInvoices.length > 0 && (
               <Text ta="right" fw={700} mt="md">
@@ -150,5 +164,25 @@ export function InvoiceSection({
         )}
       </Paper>
     );
-  });
+  })}
+      {permissions.canViewPaymentMarks && markedTotal > 0 && (
+        <Paper
+          withBorder
+          p="sm"
+          shadow="lg"
+          style={{
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 100,
+            backgroundColor: 'var(--mantine-color-body)',
+          }}
+          mt="md"
+        >
+          <Text ta="right" fw={700} size="md">
+            Итого к оплате: {formatAmountRub(markedTotal)}
+          </Text>
+        </Paper>
+      )}
+    </>
+  );
 }

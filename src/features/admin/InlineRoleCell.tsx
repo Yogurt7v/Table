@@ -13,7 +13,7 @@ const ROLE_COLORS: Record<IOrganizationUser['role'], string> = {
   admin: 'red',
   moderator: 'blue',
   user: 'green',
-  boss: 'teal',
+  boss: 'yellow',
   guest: 'gray',
 };
 

@@ -14,6 +14,8 @@ describe('getInvoicePermissions', () => {
       canDelete: false,
       canMove: false,
       canViewHistory: false,
+      canMarkPayment: false,
+      canViewPaymentMarks: false,
     });
   });
 
@@ -24,6 +26,8 @@ describe('getInvoicePermissions', () => {
       canDelete: false,
       canMove: false,
       canViewHistory: false,
+      canMarkPayment: false,
+      canViewPaymentMarks: false,
     });
   });
 
@@ -34,6 +38,32 @@ describe('getInvoicePermissions', () => {
       canDelete: true,
       canMove: true,
       canViewHistory: true,
+      canMarkPayment: false,
+      canViewPaymentMarks: true,
+    });
+  });
+
+  it('boss can mark payment and view marks', () => {
+    expect(getInvoicePermissions('boss')).toMatchObject({
+      canCreate: false,
+      canUpdate: false,
+      canDelete: false,
+      canMove: false,
+      canViewHistory: false,
+      canMarkPayment: true,
+      canViewPaymentMarks: true,
+    });
+  });
+
+  it('moderator can view payment marks', () => {
+    expect(getInvoicePermissions('moderator')).toMatchObject({
+      canCreate: true,
+      canUpdate: true,
+      canDelete: true,
+      canMove: true,
+      canViewHistory: true,
+      canMarkPayment: false,
+      canViewPaymentMarks: true,
     });
   });
 });

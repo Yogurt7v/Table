@@ -23,6 +23,7 @@ interface CreateUserModalProps {
 }
 
 const ROLE_OPTIONS: { value: IOrganizationUser['role']; label: string }[] = [
+  { value: 'boss', label: 'Босс' },
   { value: 'admin', label: 'Администратор' },
   { value: 'moderator', label: 'Модератор' },
   { value: 'user', label: 'Пользователь' },

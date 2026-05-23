@@ -8,6 +8,7 @@ import type {
   IAccountingObject,
   IInvoice,
   IInvoiceHistory,
+  IPaymentMark,
   IUser,
   IOrganizationUser,
 } from '@/shared/types';
@@ -219,6 +220,34 @@ export function getInvoiceHistory(invoiceId: string) {
     filter: `invoice_id = "${invoiceId}"`,
     sort: '-changed_at',
   });
+}
+
+// --- Payment Marks ---
+
+export function getPaymentMarks(orgId: string) {
+  return pb.collection('payment_marks').getFullList<IPaymentMark>({
+    filter: `organization_id = "${orgId}"`,
+    sort: '-created',
+  });
+}
+
+export function createPaymentMark(data: {
+  invoice_id: string;
+  organization_id: string;
+  amount?: number | null;
+  comment?: string;
+}) {
+  return pb.collection('payment_marks').create<IPaymentMark>({
+    invoice_id: data.invoice_id,
+    organization_id: data.organization_id,
+    amount: data.amount ?? null,
+    comment: data.comment ?? '',
+    created_by: pb.authStore.model?.id,
+  });
+}
+
+export function deletePaymentMark(id: string) {
+  return pb.collection('payment_marks').delete(id);
 }
 
 // --- Users ---

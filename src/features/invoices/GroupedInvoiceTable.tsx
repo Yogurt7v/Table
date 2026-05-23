@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import {
   Table,
   Text,
@@ -9,6 +10,9 @@ import {
   TextInput,
   Autocomplete,
   NumberInput,
+  Textarea,
+  Checkbox,
+  Button,
   Menu,
 } from '@mantine/core';
 import {
@@ -20,7 +24,7 @@ import {
   IconPencil,
   IconSettings,
 } from '@tabler/icons-react';
-import type { IInvoice } from '@/shared/types';
+import type { IInvoice, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import type { DraftInvoiceForm } from './invoice-field-access';
@@ -44,8 +48,14 @@ interface GroupedInvoiceTableProps {
     canDelete: boolean;
     canViewHistory: boolean;
     canMove: boolean;
+    canMarkPayment: boolean;
+    canViewPaymentMarks: boolean;
     canEditField?: (field: string) => boolean;
   };
+  paymentMarks?: IPaymentMark[];
+  onMarkForPayment?: (invoice: IInvoice) => void;
+  onMarkPartialPayment?: (invoiceId: string, amount: number, comment: string) => void;
+  onClearPaymentMark?: (markId: string) => void;
 }
 
 export function GroupedInvoiceTable({
@@ -63,8 +73,33 @@ export function GroupedInvoiceTable({
   onTogglePaid,
   highlightedIds,
   permissions,
+  paymentMarks,
+  onMarkForPayment,
+  onMarkPartialPayment,
+  onClearPaymentMark,
 }: GroupedInvoiceTableProps) {
   const groups = groupInvoicesByCounterparty(invoices);
+
+  const marksByInvoice = useMemo(() => {
+    const map: Record<string, IPaymentMark> = {};
+    if (paymentMarks) {
+      paymentMarks.forEach((mark) => {
+        map[mark.invoice_id] = mark;
+      });
+    }
+    return map;
+  }, [paymentMarks]);
+
+  const [partialForm, setPartialForm] = useState<{
+    invoiceId: string;
+    amount: string;
+    comment: string;
+  } | null>(null);
+
+  const showActionsColumn =
+    permissions.canUpdate || permissions.canDelete || permissions.canViewHistory || permissions.canMove;
+
+  const showPaymentMarksColumn = permissions.canViewPaymentMarks;
 
   if (groups.length === 0 && !isDraftOpen) {
     return (
@@ -72,6 +107,125 @@ export function GroupedInvoiceTable({
         Нет счетов за эту дату
       </Text>
     );
+  }
+
+  function renderPaymentMarkCell(invoice: IInvoice) {
+    const mark = marksByInvoice[invoice.id];
+    const isPartialFormOpen = partialForm?.invoiceId === invoice.id;
+
+    if (permissions.canMarkPayment) {
+      if (isPartialFormOpen) {
+        return (
+          <Group gap={4} wrap="nowrap">
+            <NumberInput
+              size="xs"
+              style={{ width: 100 }}
+              value={partialForm?.amount ?? ''}
+              onChange={(v) => setPartialForm((prev) => prev ? { ...prev, amount: String(v ?? '') } : null)}
+              thousandSeparator=" "
+              decimalSeparator=","
+              placeholder="Сумма"
+            />
+            <Textarea
+              size="xs"
+              style={{ width: 140 }}
+              value={partialForm?.comment ?? ''}
+              onChange={(e) => setPartialForm((prev) => prev ? { ...prev, comment: e.currentTarget.value } : null)}
+              placeholder="Комментарий"
+              autosize
+              minRows={1}
+              maxRows={3}
+            />
+            <Tooltip label="Сохранить">
+              <ActionIcon
+                size="sm"
+                color="green"
+                variant="light"
+                onClick={() => {
+                  const amount = Number(partialForm?.amount);
+                  if (!amount || amount <= 0) return;
+                  onMarkPartialPayment?.(invoice.id, amount, partialForm?.comment ?? '');
+                  setPartialForm(null);
+                }}
+              >
+                <IconCheck size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Отмена">
+              <ActionIcon size="sm" color="gray" variant="subtle" onClick={() => setPartialForm(null)}>
+                <IconX size={14} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        );
+      }
+
+      if (mark) {
+        if (mark.amount == null) {
+          return (
+            <Checkbox
+              size="xs"
+              label={`ОПЛАТИТЬ: ${formatAmountRub(invoice.amount)}`}
+              checked
+              onChange={() => onClearPaymentMark?.(mark.id)}
+            />
+          );
+        }
+        return (
+          <Group gap={4} wrap="nowrap">
+            <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
+              <Text size="xs" fw={600}>
+                ОПЛАТИТЬ: {formatAmountRub(mark.amount)}
+              </Text>
+              {mark.comment && <Text size="xs" c="dimmed">{mark.comment}</Text>}
+            </Box>
+            <Tooltip label="Убрать отметку">
+              <ActionIcon size="xs" color="red" variant="subtle" onClick={() => onClearPaymentMark?.(mark.id)}>
+                <IconX size={12} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        );
+      }
+
+      return (
+        <Group gap={4} wrap="nowrap">
+          <Checkbox
+            size="xs"
+            label="Оплатить"
+            checked={false}
+            onChange={() => onMarkForPayment?.(invoice)}
+          />
+          <Button
+            size="compact-xs"
+            variant="light"
+            onClick={() => setPartialForm({ invoiceId: invoice.id, amount: '', comment: '' })}
+          >
+            частично
+          </Button>
+        </Group>
+      );
+    }
+
+    if (permissions.canViewPaymentMarks && mark) {
+      if (mark.amount == null) {
+        return (
+          <Text size="xs" fw={600}>
+            ОПЛАТИТЬ: {formatAmountRub(invoice.amount)}
+          </Text>
+        );
+      }
+      return (
+        <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
+          <Text size="xs" fw={600}>
+            ОПЛАТИТЬ: {formatAmountRub(mark.amount)}
+          </Text>
+          {mark.comment && <Text size="xs" c="dimmed">{mark.comment}</Text>}
+        </Box>
+      );
+    }
+
+    return <Text size="xs" c="dimmed">—</Text>;
   }
 
   return (
@@ -88,7 +242,8 @@ export function GroupedInvoiceTable({
             <Table.Th style={{ width: 100 }}>Оплачено</Table.Th>
             <Table.Th style={{ width: 120 }}>Дата оплаты</Table.Th>
             <Table.Th style={{ width: 180 }}>Комментарий</Table.Th>
-            <Table.Th style={{ width: 50 }}>Действия</Table.Th>
+            {showPaymentMarksColumn && <Table.Th style={{ width: 180 }}>Отметка</Table.Th>}
+            {showActionsColumn && <Table.Th style={{ width: 50 }}>Действия</Table.Th>}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -99,11 +254,14 @@ export function GroupedInvoiceTable({
               const showCounterparty = idx === counterpartyRowIndex - 1;
               const paid = invoice.paid;
               const isHighlighted = highlightedIds.includes(invoice.id);
+              const hasMark = !!marksByInvoice[invoice.id];
               const rowStyle: React.CSSProperties = paid
                 ? { backgroundColor: 'var(--mantine-color-yellow-1)' }
-                : isHighlighted
-                  ? { backgroundColor: 'var(--mantine-color-yellow-0)' }
-                  : {};
+                : hasMark
+                  ? { backgroundColor: 'var(--mantine-color-green-0)' }
+                  : isHighlighted
+                    ? { backgroundColor: 'var(--mantine-color-yellow-0)' }
+                    : {};
 
               return (
                 <Table.Tr key={invoice.id} style={rowStyle}>
@@ -131,55 +289,59 @@ export function GroupedInvoiceTable({
                   <Table.Td>{invoice.paid_date || '—'}</Table.Td>
                   <Table.Td>{invoice.comment || '—'}</Table.Td>
 
-                  {/* --- ЯЧЕЙКА ДЕЙСТВИЙ С ВЫПАДАЮЩИМ МЕНЮ --- */}
-                  <Table.Td>
-                    <Menu position="bottom-end" shadow="md" width={200} withinPortal>
-                      <Menu.Target>
-                        <Tooltip label="Действия">
-                          <ActionIcon size="sm" variant="subtle" color="gray">
-                            <IconSettings size={24} />
-                          </ActionIcon>
-                        </Tooltip>
-                      </Menu.Target>
+                  {showPaymentMarksColumn && (
+                    <Table.Td>{renderPaymentMarkCell(invoice)}</Table.Td>
+                  )}
 
-                      <Menu.Dropdown>
-                        {permissions.canUpdate && (
-                          <Menu.Item
-                            leftSection={<IconPencil size={14} />}
-                            onClick={() => onEdit(invoice)}
-                          >
-                            Редактировать
-                          </Menu.Item>
-                        )}
-                        {permissions.canViewHistory && (
-                          <Menu.Item
-                            leftSection={<IconHistory size={14} />}
-                            onClick={() => onHistory(invoice)}
-                          >
-                            История
-                          </Menu.Item>
-                        )}
-                        {permissions.canMove && (
-                          <Menu.Item
-                            leftSection={<IconArrowRight size={14} />}
-                            onClick={() => onMove(invoice)}
-                          >
-                            Перенести
-                          </Menu.Item>
-                        )}
-                        {permissions.canDelete && (
-                          <Menu.Item
-                            leftSection={<IconTrash size={14} />}
-                            color="red"
-                            onClick={() => onDelete(invoice)}
-                          >
-                            Удалить
-                          </Menu.Item>
-                        )}
-                      </Menu.Dropdown>
-                    </Menu>
-                  </Table.Td>
-                  {/* --- /ЯЧЕЙКА ДЕЙСТВИЙ --- */}
+                  {showActionsColumn && (
+                    <Table.Td>
+                      <Menu position="bottom-end" shadow="md" width={200} withinPortal>
+                        <Menu.Target>
+                          <Tooltip label="Действия">
+                            <ActionIcon size="sm" variant="subtle" color="gray">
+                              <IconSettings size={24} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </Menu.Target>
+
+                        <Menu.Dropdown>
+                          {permissions.canUpdate && (
+                            <Menu.Item
+                              leftSection={<IconPencil size={14} />}
+                              onClick={() => onEdit(invoice)}
+                            >
+                              Редактировать
+                            </Menu.Item>
+                          )}
+                          {permissions.canViewHistory && (
+                            <Menu.Item
+                              leftSection={<IconHistory size={14} />}
+                              onClick={() => onHistory(invoice)}
+                            >
+                              История
+                            </Menu.Item>
+                          )}
+                          {permissions.canMove && (
+                            <Menu.Item
+                              leftSection={<IconArrowRight size={14} />}
+                              onClick={() => onMove(invoice)}
+                            >
+                              Перенести
+                            </Menu.Item>
+                          )}
+                          {permissions.canDelete && (
+                            <Menu.Item
+                              leftSection={<IconTrash size={14} />}
+                              color="red"
+                              onClick={() => onDelete(invoice)}
+                            >
+                              Удалить
+                            </Menu.Item>
+                          )}
+                        </Menu.Dropdown>
+                      </Menu>
+                    </Table.Td>
+                  )}
                 </Table.Tr>
               );
             });
@@ -253,20 +415,23 @@ export function GroupedInvoiceTable({
                   placeholder="Комментарий"
                 />
               </Table.Td>
-              <Table.Td>
-                <Group gap={4} wrap="nowrap">
-                  <Tooltip label="Сохранить">
-                    <ActionIcon size="sm" color="green" variant="light" onClick={onDraftSave}>
-                      <IconCheck size={14} />
-                    </ActionIcon>
-                  </Tooltip>
-                  <Tooltip label="Отмена">
-                    <ActionIcon size="sm" color="gray" variant="subtle" onClick={onDraftCancel}>
-                      <IconX size={14} />
-                    </ActionIcon>
-                  </Tooltip>
-                </Group>
-              </Table.Td>
+              {showPaymentMarksColumn && <Table.Td />}
+              {showActionsColumn && (
+                <Table.Td>
+                  <Group gap={4} wrap="nowrap">
+                    <Tooltip label="Сохранить">
+                      <ActionIcon size="sm" color="green" variant="light" onClick={onDraftSave}>
+                        <IconCheck size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Отмена">
+                      <ActionIcon size="sm" color="gray" variant="subtle" onClick={onDraftCancel}>
+                        <IconX size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
+                </Table.Td>
+              )}
             </Table.Tr>
           )}
         </Table.Tbody>

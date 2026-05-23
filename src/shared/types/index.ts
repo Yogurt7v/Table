@@ -57,10 +57,23 @@ export interface IOrganizationUser {
   id: string;
   user_id: string;
   organization_id: string;
-  role: 'admin' | 'moderator' | 'user' | 'guest';
+  role: 'admin' | 'moderator' | 'user' | 'guest' | 'boss';
   expand?: {
     user_id?: IUser;
     organization_id?: IOrganization;
+  };
+}
+
+export interface IPaymentMark {
+  id: string;
+  invoice_id: string;
+  organization_id: string;
+  amount: number | null;
+  comment: string;
+  created_by: string;
+  created: string;
+  expand?: {
+    created_by?: IUser;
   };
 }
 

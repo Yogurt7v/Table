@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { notifications } from '@mantine/notifications';
-import type { IAccountingObject, IInvoice } from '@/shared/types';
+import type { IAccountingObject, IInvoice, IPaymentMark } from '@/shared/types';
 import { createEmptyDraft, validateDraftForm, type DraftInvoiceForm } from './invoice-field-access';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
 import { useUpdateInvoice } from '@/shared/hooks/useUpdateInvoice';
 import { useDeleteInvoice } from '@/shared/hooks/useDeleteInvoice';
 import { useMoveInvoice } from '@/shared/hooks/useMoveInvoice';
+import { useCreatePaymentMark, useDeletePaymentMark } from '@/shared/hooks/usePaymentMarks';
 import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { InvoiceHistoryModal } from './InvoiceHistoryModal';
@@ -23,6 +24,7 @@ interface InvoiceTableProps {
   isDraftOpen: boolean;
   onCancelDraft: () => void;
   accountingObjects: IAccountingObject[];
+  paymentMarks?: IPaymentMark[];
 }
 
 export function InvoiceTable({
@@ -34,12 +36,15 @@ export function InvoiceTable({
   isDraftOpen,
   onCancelDraft,
   accountingObjects,
+  paymentMarks,
 }: InvoiceTableProps) {
   const permissions = useInvoicePermissions(orgId);
   const createInvoice = useCreateInvoice(orgId, date);
   const updateInvoice = useUpdateInvoice(orgId, date);
   const deleteInvoice = useDeleteInvoice(orgId, date);
   const moveInvoice = useMoveInvoice(orgId, date);
+  const createPaymentMark = useCreatePaymentMark(orgId);
+  const deletePaymentMark = useDeletePaymentMark(orgId);
 
   const [draftForm, setDraftForm] = useState<DraftInvoiceForm>(createEmptyDraft);
   const counterpartySearch = useCounterpartySearch(orgId, draftForm.counterparty);
@@ -183,6 +188,45 @@ export function InvoiceTable({
     );
   };
 
+  const handleMarkForPayment = (invoice: IInvoice) => {
+    createPaymentMark.mutate(
+      { invoice_id: invoice.id, amount: invoice.amount },
+      {
+        onSuccess: () => {
+          notifications.show({ color: 'green', message: 'Счёт отмечен к оплате' });
+        },
+        onError: () => {
+          notifications.show({ color: 'red', message: 'Не удалось отметить счёт' });
+        },
+      },
+    );
+  };
+
+  const handleMarkPartialPayment = (invoiceId: string, amount: number, comment: string) => {
+    createPaymentMark.mutate(
+      { invoice_id: invoiceId, amount, comment },
+      {
+        onSuccess: () => {
+          notifications.show({ color: 'green', message: 'Частичная оплата отмечена' });
+        },
+        onError: () => {
+          notifications.show({ color: 'red', message: 'Не удалось отметить частичную оплату' });
+        },
+      },
+    );
+  };
+
+  const handleClearPaymentMark = (markId: string) => {
+    deletePaymentMark.mutate(markId, {
+      onSuccess: () => {
+        notifications.show({ color: 'green', message: 'Отметка удалена' });
+      },
+      onError: () => {
+        notifications.show({ color: 'red', message: 'Не удалось удалить отметку' });
+      },
+    });
+  };
+
   const patchDraft = (patch: Partial<DraftInvoiceForm>) => {
     setDraftForm((prev) => ({ ...prev, ...patch }));
   };
@@ -204,8 +248,12 @@ export function InvoiceTable({
         onDelete={(inv) => setDeleteTarget(inv)}
         onHistory={(inv) => setHistoryInvoice(inv)}
         onMove={(inv) => setMoveInvoiceTarget(inv)}
-        onTogglePaid={handleTogglePaid} // <-- Передаём новую функцию
+        onTogglePaid={handleTogglePaid}
         permissions={permissions}
+        paymentMarks={paymentMarks}
+        onMarkForPayment={handleMarkForPayment}
+        onMarkPartialPayment={handleMarkPartialPayment}
+        onClearPaymentMark={handleClearPaymentMark}
       />
       <ConfirmModal
         opened={!!deleteTarget}
