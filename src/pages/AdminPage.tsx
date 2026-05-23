@@ -16,6 +16,7 @@ import { IconTrash, IconUserPlus, IconBuilding, IconPlus, IconPencil } from '@ta
 import { useOrg } from '@/shared/context/OrgContext';
 import { useUsers, useDeleteUser } from '@/shared/hooks/useUsers';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
 import {
   useCreateOrganization,
   useUpdateOrganization,
@@ -53,11 +54,25 @@ const COLOR_NAME: Record<string, string> = Object.fromEntries(
 );
 
 export function AdminPage() {
-  const { organizations } = useOrg();
+  const { organizations, currentOrgId } = useOrg();
   const { data: users } = useUsers();
   const { data: orgUsers } = useOrganizationUsers();
   const deleteUser = useDeleteUser();
   const { user: currentUser } = useAuth();
+  const currentRole = useCurrentUserRole(currentOrgId);
+
+  if (currentOrgId && (currentRole === 'boss' || currentRole === 'guest')) {
+    return (
+      <Container py="xl">
+        <Title order={3} ta="center" c="red">
+          Доступ запрещён
+        </Title>
+        <Text ta="center" mt="sm">
+          У вас нет прав для просмотра этой страницы.
+        </Text>
+      </Container>
+    );
+  }
   const createOrg = useCreateOrganization();
   const updateOrg = useUpdateOrganization();
   const deleteOrg = useDeleteOrganization();

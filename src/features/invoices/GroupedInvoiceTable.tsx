@@ -97,7 +97,10 @@ export function GroupedInvoiceTable({
   } | null>(null);
 
   const showActionsColumn =
-    permissions.canUpdate || permissions.canDelete || permissions.canViewHistory || permissions.canMove;
+    permissions.canUpdate ||
+    permissions.canDelete ||
+    permissions.canViewHistory ||
+    permissions.canMove;
 
   const showPaymentMarksColumn = permissions.canViewPaymentMarks;
 
@@ -121,7 +124,9 @@ export function GroupedInvoiceTable({
               size="xs"
               style={{ width: 100 }}
               value={partialForm?.amount ?? ''}
-              onChange={(v) => setPartialForm((prev) => prev ? { ...prev, amount: String(v ?? '') } : null)}
+              onChange={(v) =>
+                setPartialForm((prev) => (prev ? { ...prev, amount: String(v ?? '') } : null))
+              }
               thousandSeparator=" "
               decimalSeparator=","
               placeholder="Сумма"
@@ -130,7 +135,11 @@ export function GroupedInvoiceTable({
               size="xs"
               style={{ width: 140 }}
               value={partialForm?.comment ?? ''}
-              onChange={(e) => setPartialForm((prev) => prev ? { ...prev, comment: e.currentTarget.value } : null)}
+              onChange={(e) =>
+                setPartialForm((prev) =>
+                  prev ? { ...prev, comment: e.currentTarget.value } : null,
+                )
+              }
               placeholder="Комментарий"
               autosize
               minRows={1}
@@ -152,7 +161,12 @@ export function GroupedInvoiceTable({
               </ActionIcon>
             </Tooltip>
             <Tooltip label="Отмена">
-              <ActionIcon size="sm" color="gray" variant="subtle" onClick={() => setPartialForm(null)}>
+              <ActionIcon
+                size="sm"
+                color="gray"
+                variant="subtle"
+                onClick={() => setPartialForm(null)}
+              >
                 <IconX size={14} />
               </ActionIcon>
             </Tooltip>
@@ -165,7 +179,7 @@ export function GroupedInvoiceTable({
           return (
             <Checkbox
               size="xs"
-              label={`ОПЛАТИТЬ: ${formatAmountRub(invoice.amount)}`}
+              label={formatAmountRub(invoice.amount)}
               checked
               onChange={() => onClearPaymentMark?.(mark.id)}
             />
@@ -177,10 +191,19 @@ export function GroupedInvoiceTable({
               <Text size="xs" fw={600}>
                 ОПЛАТИТЬ: {formatAmountRub(mark.amount)}
               </Text>
-              {mark.comment && <Text size="xs" c="dimmed">{mark.comment}</Text>}
+              {mark.comment && (
+                <Text size="xs" c="dimmed">
+                  {mark.comment}
+                </Text>
+              )}
             </Box>
             <Tooltip label="Убрать отметку">
-              <ActionIcon size="xs" color="red" variant="subtle" onClick={() => onClearPaymentMark?.(mark.id)}>
+              <ActionIcon
+                size="xs"
+                color="red"
+                variant="subtle"
+                onClick={() => onClearPaymentMark?.(mark.id)}
+              >
                 <IconX size={12} />
               </ActionIcon>
             </Tooltip>
@@ -211,21 +234,29 @@ export function GroupedInvoiceTable({
       if (mark.amount == null) {
         return (
           <Text size="xs" fw={600}>
-            ОПЛАТИТЬ: {formatAmountRub(invoice.amount)}
+            {formatAmountRub(invoice.amount)}
           </Text>
         );
       }
       return (
         <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
           <Text size="xs" fw={600}>
-            ОПЛАТИТЬ: {formatAmountRub(mark.amount)}
+            {formatAmountRub(mark.amount)}
           </Text>
-          {mark.comment && <Text size="xs" c="dimmed">{mark.comment}</Text>}
+          {mark.comment && (
+            <Text size="xs" c="dimmed">
+              {mark.comment}
+            </Text>
+          )}
         </Box>
       );
     }
 
-    return <Text size="xs" c="dimmed">—</Text>;
+    return (
+      <Text size="xs" c="dimmed">
+        —
+      </Text>
+    );
   }
 
   return (
@@ -289,9 +320,7 @@ export function GroupedInvoiceTable({
                   <Table.Td>{invoice.paid_date || '—'}</Table.Td>
                   <Table.Td>{invoice.comment || '—'}</Table.Td>
 
-                  {showPaymentMarksColumn && (
-                    <Table.Td>{renderPaymentMarkCell(invoice)}</Table.Td>
-                  )}
+                  {showPaymentMarksColumn && <Table.Td>{renderPaymentMarkCell(invoice)}</Table.Td>}
 
                   {showActionsColumn && (
                     <Table.Td>

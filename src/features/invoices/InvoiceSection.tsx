@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Paper, Title, Button, Group, Loader, Text, Table } from '@mantine/core';
+import { Affix, Paper, Title, Button, Group, Loader, Text, Table } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
@@ -18,6 +18,7 @@ interface InvoiceSectionProps {
   searchText: string;
   searchAll: boolean;
   onBackToDate: () => void;
+  bankTotal: number;
 }
 
 function computeHighlightedIds(
@@ -49,6 +50,7 @@ export function InvoiceSection({
   searchText,
   searchAll,
   onBackToDate,
+  bankTotal,
 }: InvoiceSectionProps) {
   const { data: objects } = useAccountingObjects(orgId);
   const { data: invoices } = useInvoices(orgId, date);
@@ -70,6 +72,8 @@ export function InvoiceSection({
       return sum + (mark.amount ?? inv.amount);
     }, 0);
   }, [invoices, paymentMarks]);
+
+  const isOverBalance = markedTotal > bankTotal;
 
   if (!orgId) return null;
 
@@ -166,22 +170,18 @@ export function InvoiceSection({
     );
   })}
       {permissions.canViewPaymentMarks && markedTotal > 0 && (
-        <Paper
-          withBorder
-          p="sm"
-          shadow="lg"
-          style={{
-            position: 'sticky',
-            bottom: 0,
-            zIndex: 100,
-            backgroundColor: 'var(--mantine-color-body)',
-          }}
-          mt="md"
-        >
-          <Text ta="right" fw={700} size="md">
-            Итого к оплате: {formatAmountRub(markedTotal)}
-          </Text>
-        </Paper>
+        <Affix position={{ top: 70, right: 20 }}>
+          <Paper withBorder p="sm" shadow="lg">
+            <Text
+              ta="right"
+              fw={700}
+              size="md"
+              c={isOverBalance ? 'red' : undefined}
+            >
+              Итого к оплате: {formatAmountRub(markedTotal)}
+            </Text>
+          </Paper>
+        </Affix>
       )}
     </>
   );

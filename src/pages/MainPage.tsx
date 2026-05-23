@@ -43,6 +43,7 @@ export function MainPage() {
           searchText={searchText}
           searchAll={searchAll}
           onBackToDate={() => setSearchAll(false)}
+          bankTotal={accounts?.reduce((s, a) => s + a.balance, 0) ?? 0}
         />
       </Stack>
     </Container>

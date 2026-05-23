@@ -5,11 +5,13 @@ import { IconHome } from '@tabler/icons-react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
+import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
 import { InvoiceSearch } from '@/features/invoices/InvoiceSearch';
 
 export function AppLayout() {
   const { user, logout } = useAuth();
   const { currentOrgId, setCurrentOrgId, organizations, currentOrg } = useOrg();
+  const currentRole = useCurrentUserRole(currentOrgId);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,9 +48,11 @@ export function AppLayout() {
             {/* <Anchor size="sm" onClick={() => navigate('/payment-report')}>
               Отчёт по оплате
             </Anchor> */}
-            <Anchor size="sm" onClick={() => navigate('/admin')}>
-              + Добавить
-            </Anchor>
+            {currentOrgId && currentRole !== 'boss' && currentRole !== 'guest' && (
+              <Anchor size="sm" onClick={() => navigate('/admin')}>
+                + Добавить
+              </Anchor>
+            )}
             <Text size="sm">{user?.name || user?.login || 'Пользователь'}</Text>
             <Text
               size="sm"
