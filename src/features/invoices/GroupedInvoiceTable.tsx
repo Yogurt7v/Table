@@ -9,7 +9,7 @@ import {
   TextInput,
   Autocomplete,
   NumberInput,
-  Menu, // <-- Добавлен импорт Menu
+  Menu,
 } from '@mantine/core';
 import {
   IconTrash,
@@ -18,7 +18,7 @@ import {
   IconHistory,
   IconArrowRight,
   IconPencil,
-  IconDotsVertical, // <-- Добавлена иконка "три точки"
+  IconSettings,
 } from '@tabler/icons-react';
 import type { IInvoice } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -137,7 +137,7 @@ export function GroupedInvoiceTable({
                       <Menu.Target>
                         <Tooltip label="Действия">
                           <ActionIcon size="sm" variant="subtle" color="gray">
-                            <IconDotsVertical size={14} />
+                            <IconSettings size={24} />
                           </ActionIcon>
                         </Tooltip>
                       </Menu.Target>
