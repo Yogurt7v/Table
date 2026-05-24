@@ -45,6 +45,26 @@ export interface IInvoice {
   created?: string;
 }
 
+export type InvoiceColumnId =
+  | 'counterparty'
+  | 'purpose'
+  | 'contract_no'
+  | 'invoice_no'
+  | 'amount'
+  | 'paid'
+  | 'paid_date'
+  | 'comment'
+  | 'files'
+  | 'actions'
+  | 'payment_mark';
+
+export interface IUserSetting {
+  id: string;
+  user_id: string;
+  key: string;
+  value: unknown;
+}
+
 export interface IInvoiceFile {
   id: string;
   invoice_id: string;

@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react';
-import { Affix, Paper, Title, Button, Group, Loader, Text, Table } from '@mantine/core';
-import { IconPlus } from '@tabler/icons-react';
+import { Affix, Paper, Title, Button, Group, Loader, Text, Table, ActionIcon, Tooltip } from '@mantine/core';
+import { IconPlus, IconSettings } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
 import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
 import { useOrgInvoiceFiles } from '@/shared/hooks/useInvoiceFiles';
+import { useUserSetting, useUpsertUserSetting } from '@/shared/hooks/useUserSettings';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
+import { InvoiceColumnSettingsModal } from '@/features/invoices/InvoiceColumnSettingsModal';
+import { DEFAULT_VISIBLE_COLUMNS } from '@/features/invoices/invoice-columns';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
-import type { IInvoice, IInvoiceFile } from '@/shared/types';
+import type { IInvoice, IInvoiceFile, InvoiceColumnId } from '@/shared/types';
 
 interface InvoiceSectionProps {
   orgId: string;
@@ -60,6 +63,21 @@ export function InvoiceSection({
   const { data: orgFiles } = useOrgInvoiceFiles(orgId);
   const permissions = useInvoicePermissions(orgId);
   const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
+  const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
+
+  const { data: savedColumns } = useUserSetting('invoice_columns');
+  const saveColumns = useUpsertUserSetting('invoice_columns');
+
+  const visibleColumns: InvoiceColumnId[] = useMemo(() => {
+    if (Array.isArray(savedColumns) && savedColumns.length > 0) {
+      return savedColumns as InvoiceColumnId[];
+    }
+    return DEFAULT_VISIBLE_COLUMNS;
+  }, [savedColumns]);
+
+  const handleColumnChange = (columns: InvoiceColumnId[]) => {
+    saveColumns.mutate(columns);
+  };
 
   const filesByInvoice = useMemo(() => {
     if (!orgFiles) return {};
@@ -88,6 +106,26 @@ export function InvoiceSection({
   const isOverBalance = markedTotal > bankTotal;
 
   if (!orgId) return null;
+
+  if (!objects) return <Loader />;
+
+  const tableHeader = (
+    <Group justify="space-between" mb="sm">
+      <Group gap="sm">
+        <Title order={5}>Счета</Title>
+        <Tooltip label="Настройка колонок">
+          <ActionIcon
+            size="sm"
+            variant="subtle"
+            color="gray"
+            onClick={() => setColumnSettingsOpen(true)}
+          >
+            <IconSettings size={16} />
+          </ActionIcon>
+        </Tooltip>
+      </Group>
+    </Group>
+  );
 
   if (searchAll && searchResults) {
     return (
@@ -128,10 +166,9 @@ export function InvoiceSection({
     );
   }
 
-  if (!objects) return <Loader />;
-
   return (
     <>
+      {tableHeader}
       {objects.map((obj) => {
     const objInvoices =
       invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id) ?? [];
@@ -171,6 +208,7 @@ export function InvoiceSection({
               accountingObjects={objects}
               paymentMarks={paymentMarks}
               filesByInvoice={filesByInvoice}
+              visibleColumns={visibleColumns}
             />
             {objInvoices.length > 0 && (
               <Text ta="right" fw={700} mt="md">
@@ -182,6 +220,12 @@ export function InvoiceSection({
       </Paper>
     );
   })}
+      <InvoiceColumnSettingsModal
+        opened={columnSettingsOpen}
+        value={visibleColumns}
+        onChange={handleColumnChange}
+        onClose={() => setColumnSettingsOpen(false)}
+      />
       {permissions.canViewPaymentMarks && markedTotal > 0 && (
         <Affix position={{ top: 70, right: 20 }}>
           <Paper withBorder p="sm" shadow="lg">

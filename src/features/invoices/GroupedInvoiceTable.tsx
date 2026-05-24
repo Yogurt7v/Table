@@ -27,10 +27,11 @@ import {
   IconSettings,
   IconFile,
 } from '@tabler/icons-react';
-import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
+import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
+import { ALL_INVOICE_COLUMNS } from './invoice-columns';
 import type { DraftInvoiceForm } from './invoice-field-access';
 
 interface GroupedInvoiceTableProps {
@@ -54,6 +55,7 @@ interface GroupedInvoiceTableProps {
     canMove: boolean;
     canMarkPayment: boolean;
     canViewPaymentMarks: boolean;
+    canManageFiles: boolean;
     canEditField?: (field: string) => boolean;
   };
   paymentMarks?: IPaymentMark[];
@@ -62,6 +64,7 @@ interface GroupedInvoiceTableProps {
   onClearPaymentMark?: (markId: string) => void;
   filesByInvoice?: Record<string, IInvoiceFile[]>;
   onFiles?: (invoice: IInvoice) => void;
+  visibleColumns: InvoiceColumnId[];
 }
 
 export function GroupedInvoiceTable({
@@ -85,6 +88,7 @@ export function GroupedInvoiceTable({
   onClearPaymentMark,
   filesByInvoice,
   onFiles,
+  visibleColumns,
 }: GroupedInvoiceTableProps) {
   const groups = groupInvoicesByCounterparty(invoices);
 
@@ -104,14 +108,22 @@ export function GroupedInvoiceTable({
     comment: string;
   } | null>(null);
 
-  const showActionsColumn =
-    permissions.canUpdate ||
-    permissions.canDelete ||
-    permissions.canViewHistory ||
-    permissions.canMove ||
-    permissions.canManageFiles;
-
-  const showPaymentMarksColumn = permissions.canViewPaymentMarks;
+  const filteredColumns = useMemo(
+    () =>
+      visibleColumns.filter((colId) => {
+        if (colId === 'payment_mark') return permissions.canViewPaymentMarks;
+        if (colId === 'actions')
+          return (
+            permissions.canUpdate ||
+            permissions.canDelete ||
+            permissions.canViewHistory ||
+            permissions.canMove ||
+            permissions.canManageFiles
+          );
+        return true;
+      }),
+    [visibleColumns, permissions],
+  );
 
   if (groups.length === 0 && !isDraftOpen) {
     return (
@@ -224,8 +236,10 @@ export function GroupedInvoiceTable({
         <Group gap={4} wrap="nowrap">
           <Button
             size="xs"
-            onChange={() => onMarkForPayment?.(invoice)}
-          >Оплатить</Button>
+            onClick={() => onMarkForPayment?.(invoice)}
+          >
+            Оплатить
+          </Button>
           <Button
             size="xs"
             variant="light"
@@ -266,23 +280,252 @@ export function GroupedInvoiceTable({
     );
   }
 
+  function renderActionsCell(invoice: IInvoice) {
+    return (
+      <Menu position="bottom-end" shadow="md" width={200} withinPortal>
+        <Menu.Target>
+          <Tooltip label="Действия">
+            <ActionIcon size="sm" variant="subtle" color="gray">
+              <IconSettings size={24} />
+            </ActionIcon>
+          </Tooltip>
+        </Menu.Target>
+
+        <Menu.Dropdown>
+          {permissions.canUpdate && (
+            <Menu.Item
+              leftSection={<IconPencil size={14} />}
+              onClick={() => onEdit(invoice)}
+            >
+              Редактировать
+            </Menu.Item>
+          )}
+          {permissions.canViewHistory && (
+            <Menu.Item
+              leftSection={<IconHistory size={14} />}
+              onClick={() => onHistory(invoice)}
+            >
+              История
+            </Menu.Item>
+          )}
+          {permissions.canMove && (
+            <Menu.Item
+              leftSection={<IconArrowRight size={14} />}
+              onClick={() => onMove(invoice)}
+            >
+              Перенести
+            </Menu.Item>
+          )}
+          <Menu.Item
+            leftSection={<IconFile size={14} />}
+            onClick={() => onFiles?.(invoice)}
+          >
+            Файлы
+          </Menu.Item>
+          {permissions.canDelete && (
+            <Menu.Item
+              leftSection={<IconTrash size={14} />}
+              color="red"
+              onClick={() => onDelete(invoice)}
+            >
+              Удалить
+            </Menu.Item>
+          )}
+        </Menu.Dropdown>
+      </Menu>
+    );
+  }
+
+  const columnRenderers: Record<
+    InvoiceColumnId,
+    {
+      width: number;
+      header: string;
+      renderCell: (invoice: IInvoice) => React.ReactNode;
+      renderDraft: () => React.ReactNode;
+    }
+  > = {
+    counterparty: {
+      width: 180,
+      header: 'Контрагент',
+      renderCell: (_invoice) => null, // handled specially below
+      renderDraft: () => (
+        <Autocomplete
+          size="xs"
+          value={draftForm?.counterparty ?? ''}
+          onChange={(v) => onDraftChange?.('counterparty', v)}
+          data={counterpartyResults || []}
+          placeholder="Контрагент"
+        />
+      ),
+    },
+    purpose: {
+      width: 200,
+      header: 'Назначение платежа',
+      renderCell: (invoice) => <>{invoice.purpose}</>,
+      renderDraft: () => (
+        <TextInput
+          size="xs"
+          value={draftForm?.purpose ?? ''}
+          onChange={(e) => onDraftChange?.('purpose', e.currentTarget.value)}
+          placeholder="Назначение"
+        />
+      ),
+    },
+    contract_no: {
+      width: 150,
+      header: 'Договор',
+      renderCell: (invoice) => <>{invoice.contract_no || '—'}</>,
+      renderDraft: () => (
+        <TextInput
+          size="xs"
+          value={draftForm?.contract_no ?? ''}
+          onChange={(e) => onDraftChange?.('contract_no', e.currentTarget.value)}
+          placeholder="Договор"
+        />
+      ),
+    },
+    invoice_no: {
+      width: 120,
+      header: 'Счет',
+      renderCell: (invoice) => <>{invoice.invoice_no}</>,
+      renderDraft: () => (
+        <TextInput
+          size="xs"
+          value={draftForm?.invoice_no ?? ''}
+          onChange={(e) => onDraftChange?.('invoice_no', e.currentTarget.value)}
+          placeholder="Счет"
+        />
+      ),
+    },
+    amount: {
+      width: 100,
+      header: 'Сумма',
+      renderCell: (invoice) => <>{formatAmountRub(invoice.amount)}</>,
+      renderDraft: () => (
+        <NumberInput
+          size="xs"
+          value={draftForm?.amount ?? 0}
+          onChange={(v) => onDraftChange?.('amount', v ?? 0)}
+          thousandSeparator=" "
+          decimalSeparator=","
+          placeholder="Сумма"
+        />
+      ),
+    },
+    paid: {
+      width: 100,
+      header: 'Оплачено',
+      renderCell: (invoice) => {
+        if (permissions.canUpdate) {
+          return (
+            <Badge
+              color={invoice.paid ? 'green' : 'orange'}
+              onClick={() => onTogglePaid(invoice)}
+              style={{ cursor: 'pointer' }}
+            >
+              {invoice.paid ? 'Да' : 'Нет'}
+            </Badge>
+          );
+        }
+        return (
+          <Badge color={invoice.paid ? 'green' : 'orange'}>
+            {invoice.paid ? 'Да' : 'Нет'}
+          </Badge>
+        );
+      },
+      renderDraft: () => (
+        <input
+          type="checkbox"
+          checked={draftForm?.paid ?? false}
+          onChange={(e) => onDraftChange?.('paid', e.currentTarget.checked)}
+        />
+      ),
+    },
+    paid_date: {
+      width: 120,
+      header: 'Дата оплаты',
+      renderCell: (invoice) => <>{invoice.paid_date || '—'}</>,
+      renderDraft: () => (
+        <TextInput
+          size="xs"
+          type="date"
+          value={draftForm?.paid_date ?? ''}
+          onChange={(e) => onDraftChange?.('paid_date', e.currentTarget.value)}
+        />
+      ),
+    },
+    comment: {
+      width: 180,
+      header: 'Комментарий',
+      renderCell: (invoice) => <>{invoice.comment || '—'}</>,
+      renderDraft: () => (
+        <TextInput
+          size="xs"
+          value={draftForm?.comment ?? ''}
+          onChange={(e) => onDraftChange?.('comment', e.currentTarget.value)}
+          placeholder="Комментарий"
+        />
+      ),
+    },
+    files: {
+      width: 160,
+      header: 'Файлы',
+      renderCell: (invoice) => {
+        const invoiceFiles = filesByInvoice?.[invoice.id];
+        if (invoiceFiles?.length) {
+          return (
+            <Stack gap={2}>
+              {invoiceFiles.map((f) => (
+                <Anchor
+                  key={f.id}
+                  href={getInvoiceFileUrl(f)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  size="xs"
+                >
+                  {f.name}
+                </Anchor>
+              ))}
+            </Stack>
+          );
+        }
+        return (
+          <Text size="xs" c="dimmed">
+            —
+          </Text>
+        );
+      },
+      renderDraft: () => null,
+    },
+    actions: {
+      width: 50,
+      header: 'Действия',
+      renderCell: renderActionsCell,
+      renderDraft: () => null,
+    },
+    payment_mark: {
+      width: 180,
+      header: 'Отметка',
+      renderCell: renderPaymentMarkCell,
+      renderDraft: () => null,
+    },
+  };
+
   return (
     <Box style={{ overflowX: 'auto' }}>
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
             <Table.Th style={{ width: 50 }}>№</Table.Th>
-            <Table.Th style={{ width: 180 }}>Контрагент</Table.Th>
-            <Table.Th style={{ width: 200 }}>Назначение платежа</Table.Th>
-            <Table.Th style={{ width: 150 }}>Договор</Table.Th>
-            <Table.Th style={{ width: 120 }}>Счет</Table.Th>
-            <Table.Th style={{ width: 100 }}>Сумма</Table.Th>
-            <Table.Th style={{ width: 100 }}>Оплачено</Table.Th>
-            <Table.Th style={{ width: 120 }}>Дата оплаты</Table.Th>
-            <Table.Th style={{ width: 180 }}>Комментарий</Table.Th>
-            <Table.Th style={{ width: 160 }}>Файлы</Table.Th>
-            {showActionsColumn && <Table.Th style={{ width: 50 }}>Действия</Table.Th>}
-            {showPaymentMarksColumn && <Table.Th style={{ width: 180 }}>Отметка</Table.Th>}
+            {filteredColumns.map((colId) => {
+              const col = columnRenderers[colId];
+              return (
+                <Table.Th key={colId} style={{ width: col.width }}>
+                  {col.header}
+                </Table.Th>
+              );
+            })}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -305,103 +548,15 @@ export function GroupedInvoiceTable({
               return (
                 <Table.Tr key={invoice.id} style={rowStyle}>
                   <Table.Td>{invoiceNumber}</Table.Td>
-                  <Table.Td>
-                    {showCounterparty ? <Text fw={600}>{group.counterparty}</Text> : null}
-                  </Table.Td>
-                  <Table.Td>{invoice.purpose}</Table.Td>
-                  <Table.Td>{invoice.contract_no || '—'}</Table.Td>
-                  <Table.Td>{invoice.invoice_no}</Table.Td>
-                  <Table.Td>{formatAmountRub(invoice.amount)}</Table.Td>
-                  <Table.Td>
-                    {permissions.canUpdate ? (
-                      <Badge
-                        color={paid ? 'green' : 'orange'}
-                        onClick={() => onTogglePaid(invoice)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {paid ? 'Да' : 'Нет'}
-                      </Badge>
-                    ) : (
-                      <Badge color={paid ? 'green' : 'orange'}>{paid ? 'Да' : 'Нет'}</Badge>
-                    )}
-                  </Table.Td>
-                  <Table.Td>{invoice.paid_date || '—'}</Table.Td>
-                  <Table.Td>{invoice.comment || '—'}</Table.Td>
-                  <Table.Td>
-                    {filesByInvoice?.[invoice.id]?.length ? (
-                      <Stack gap={2}>
-                        {filesByInvoice[invoice.id]!.map((f) => (
-                          <Anchor
-                            key={f.id}
-                            href={getInvoiceFileUrl(f)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            size="xs"
-                          >
-                            {f.name}
-                          </Anchor>
-                        ))}
-                      </Stack>
-                    ) : (
-                      <Text size="xs" c="dimmed">—</Text>
-                    )}
-                  </Table.Td>
-                  {showActionsColumn && (
-                    <Table.Td>
-                      <Menu position="bottom-end" shadow="md" width={200} withinPortal>
-                        <Menu.Target>
-                          <Tooltip label="Действия">
-                            <ActionIcon size="sm" variant="subtle" color="gray">
-                              <IconSettings size={24} />
-                            </ActionIcon>
-                          </Tooltip>
-                        </Menu.Target>
-
-                        <Menu.Dropdown>
-                          {permissions.canUpdate && (
-                            <Menu.Item
-                              leftSection={<IconPencil size={14} />}
-                              onClick={() => onEdit(invoice)}
-                            >
-                              Редактировать
-                            </Menu.Item>
-                          )}
-                          {permissions.canViewHistory && (
-                            <Menu.Item
-                              leftSection={<IconHistory size={14} />}
-                              onClick={() => onHistory(invoice)}
-                            >
-                              История
-                            </Menu.Item>
-                          )}
-                          {permissions.canMove && (
-                            <Menu.Item
-                              leftSection={<IconArrowRight size={14} />}
-                              onClick={() => onMove(invoice)}
-                            >
-                              Перенести
-                            </Menu.Item>
-                          )}
-                          <Menu.Item
-                            leftSection={<IconFile size={14} />}
-                            onClick={() => onFiles?.(invoice)}
-                          >
-                            Файлы
-                          </Menu.Item>
-                          {permissions.canDelete && (
-                            <Menu.Item
-                              leftSection={<IconTrash size={14} />}
-                              color="red"
-                              onClick={() => onDelete(invoice)}
-                            >
-                              Удалить
-                            </Menu.Item>
-                          )}
-                        </Menu.Dropdown>
-                      </Menu>
+                  {filteredColumns.map((colId) => (
+                    <Table.Td key={colId}>
+                      {colId === 'counterparty' && showCounterparty ? (
+                        <Text fw={600}>{group.counterparty}</Text>
+                      ) : colId === 'counterparty' ? null : (
+                        columnRenderers[colId].renderCell(invoice)
+                      )}
                     </Table.Td>
-                  )}
-                  {showPaymentMarksColumn && <Table.Td>{renderPaymentMarkCell(invoice)}</Table.Td>}
+                  ))}
                 </Table.Tr>
               );
             });
@@ -409,89 +564,26 @@ export function GroupedInvoiceTable({
           {isDraftOpen && draftForm && (
             <Table.Tr style={{ backgroundColor: 'var(--mantine-color-blue-0)' }}>
               <Table.Td>—</Table.Td>
-              <Table.Td>
-                <Autocomplete
-                  size="xs"
-                  value={draftForm.counterparty}
-                  onChange={(v) => onDraftChange?.('counterparty', v)}
-                  data={counterpartyResults || []}
-                  placeholder="Контрагент"
-                />
-              </Table.Td>
-              <Table.Td>
-                <TextInput
-                  size="xs"
-                  value={draftForm.purpose}
-                  onChange={(e) => onDraftChange?.('purpose', e.currentTarget.value)}
-                  placeholder="Назначение"
-                />
-              </Table.Td>
-              <Table.Td>
-                <TextInput
-                  size="xs"
-                  value={draftForm.contract_no}
-                  onChange={(e) => onDraftChange?.('contract_no', e.currentTarget.value)}
-                  placeholder="Договор"
-                />
-              </Table.Td>
-              <Table.Td>
-                <TextInput
-                  size="xs"
-                  value={draftForm.invoice_no}
-                  onChange={(e) => onDraftChange?.('invoice_no', e.currentTarget.value)}
-                  placeholder="Счет"
-                />
-              </Table.Td>
-              <Table.Td>
-                <NumberInput
-                  size="xs"
-                  value={draftForm.amount}
-                  onChange={(v) => onDraftChange?.('amount', v ?? 0)}
-                  thousandSeparator=" "
-                  decimalSeparator=","
-                  placeholder="Сумма"
-                />
-              </Table.Td>
-              <Table.Td>
-                <input
-                  type="checkbox"
-                  checked={draftForm.paid}
-                  onChange={(e) => onDraftChange?.('paid', e.currentTarget.checked)}
-                />
-              </Table.Td>
-              <Table.Td>
-                <TextInput
-                  size="xs"
-                  type="date"
-                  value={draftForm.paid_date}
-                  onChange={(e) => onDraftChange?.('paid_date', e.currentTarget.value)}
-                />
-              </Table.Td>
-              <Table.Td>
-                <TextInput
-                  size="xs"
-                  value={draftForm.comment}
-                  onChange={(e) => onDraftChange?.('comment', e.currentTarget.value)}
-                  placeholder="Комментарий"
-                />
-              </Table.Td>
-              {showPaymentMarksColumn && <Table.Td />}
-              {showActionsColumn && (
-                <Table.Td>
-                  <Group gap={4} wrap="nowrap">
-                    <Tooltip label="Сохранить">
-                      <ActionIcon size="sm" color="green" variant="light" onClick={onDraftSave}>
-                        <IconCheck size={14} />
-                      </ActionIcon>
-                    </Tooltip>
-                    <Tooltip label="Отмена">
-                      <ActionIcon size="sm" color="gray" variant="subtle" onClick={onDraftCancel}>
-                        <IconX size={14} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Group>
+              {filteredColumns.map((colId) => (
+                <Table.Td key={colId}>
+                  {colId === 'actions' ? (
+                    <Group gap={4} wrap="nowrap">
+                      <Tooltip label="Сохранить">
+                        <ActionIcon size="sm" color="green" variant="light" onClick={onDraftSave}>
+                          <IconCheck size={14} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Отмена">
+                        <ActionIcon size="sm" color="gray" variant="subtle" onClick={onDraftCancel}>
+                          <IconX size={14} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
+                  ) : (
+                    columnRenderers[colId].renderDraft()
+                  )}
                 </Table.Td>
-              )}
+              ))}
             </Table.Tr>
           )}
         </Table.Tbody>

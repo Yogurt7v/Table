@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { notifications } from '@mantine/notifications';
-import type { IAccountingObject, IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
+import type { IAccountingObject, IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { createEmptyDraft, validateDraftForm, type DraftInvoiceForm } from './invoice-field-access';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
@@ -27,6 +27,7 @@ interface InvoiceTableProps {
   accountingObjects: IAccountingObject[];
   paymentMarks?: IPaymentMark[];
   filesByInvoice?: Record<string, IInvoiceFile[]>;
+  visibleColumns: InvoiceColumnId[];
 }
 
 export function InvoiceTable({
@@ -40,6 +41,7 @@ export function InvoiceTable({
   accountingObjects,
   paymentMarks,
   filesByInvoice,
+  visibleColumns,
 }: InvoiceTableProps) {
   const permissions = useInvoicePermissions(orgId);
   const createInvoice = useCreateInvoice(orgId, date);
@@ -260,6 +262,7 @@ export function InvoiceTable({
         onClearPaymentMark={handleClearPaymentMark}
         filesByInvoice={filesByInvoice}
         onFiles={(inv) => setFilesInvoice(inv)}
+        visibleColumns={visibleColumns}
       />
       <ConfirmModal
         opened={!!deleteTarget}

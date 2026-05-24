@@ -11,6 +11,7 @@ import type {
   IInvoiceHistory,
   IPaymentMark,
   IUser,
+  IUserSetting,
   IOrganizationUser,
 } from '@/shared/types';
 
@@ -299,6 +300,34 @@ export function updateOrganizationUserRole(id: string, role: IOrganizationUser['
 
 export function deleteOrganizationUser(id: string) {
   return pb.collection('organization_users').delete(id);
+}
+
+// --- User Settings ---
+
+export function getUserSetting(userId: string, key: string) {
+  return pb.collection('user_settings').getFirstListItem<IUserSetting>(
+    `user_id = "${userId}" && key = "${key}"`,
+  );
+}
+
+export function upsertUserSetting(
+  userId: string,
+  key: string,
+  value: unknown,
+) {
+  return pb.collection('user_settings').getFirstListItem<IUserSetting>(
+    `user_id = "${userId}" && key = "${key}"`,
+  )
+    .then((existing) =>
+      pb.collection('user_settings').update<IUserSetting>(existing.id, { value }),
+    )
+    .catch(() =>
+      pb.collection('user_settings').create<IUserSetting>({
+        user_id: userId,
+        key,
+        value,
+      }),
+    );
 }
 
 // --- Invoice Files ---
