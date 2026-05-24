@@ -178,7 +178,7 @@ export function InvoiceSection({
     }, 0);
 
     return (
-      <Paper key={obj.id} withBorder p="sm">
+      <Paper key={obj.id} withBorder p="sm" style={{ borderLeft: '3px solid var(--org-color, #228be6)' }}>
         <Group justify="space-between" mb="sm">
           <Title order={5}>{obj.name}</Title>
           {permissions.canCreate && (

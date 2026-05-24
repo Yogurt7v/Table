@@ -240,6 +240,7 @@ export function InvoiceTable({
   return (
     <>
       <GroupedInvoiceTable
+        orgId={orgId}
         invoices={invoices}
         isDraftOpen={isDraftOpen}
         draftForm={draftForm}

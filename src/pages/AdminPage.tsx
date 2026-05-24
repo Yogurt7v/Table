@@ -11,8 +11,9 @@ import {
   TextInput,
   Select,
   Modal,
+  Alert,
 } from '@mantine/core';
-import { IconTrash, IconUserPlus, IconBuilding, IconPlus, IconPencil } from '@tabler/icons-react';
+import { IconTrash, IconUserPlus, IconBuilding, IconPlus, IconPencil, IconInfoCircle } from '@tabler/icons-react';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useUsers, useDeleteUser } from '@/shared/hooks/useUsers';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
@@ -277,6 +278,41 @@ export function AdminPage() {
               Добавить пользователя
             </Button>
           </Group>
+
+          <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light" mb="sm" pb={6}>
+            <Stack gap={2}>
+              <Text size="sm">
+                <Text span c="red" fw={500}>
+                  Администратор
+                </Text>{' '}
+                — полный доступ
+              </Text>
+              <Text size="sm">
+                <Text span c="blue" fw={500}>
+                  Модератор
+                </Text>{' '}
+                — удаление, перенос, история
+              </Text>
+              <Text size="sm">
+                <Text span c="green" fw={500}>
+                  Пользователь
+                </Text>{' '}
+                — создание/редактирование счетов
+              </Text>
+              <Text size="sm">
+                <Text span c="orange" fw={500}>
+                  Босс
+                </Text>{' '}
+                — отметка оплаты
+              </Text>
+              <Text size="sm">
+                <Text span c="gray" fw={500}>
+                  Гость
+                </Text>{' '}
+                — только просмотр
+              </Text>
+            </Stack>
+          </Alert>
 
           <Table striped highlightOnHover withTableBorder>
             <Table.Thead>

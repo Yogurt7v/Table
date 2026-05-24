@@ -1,6 +1,6 @@
 /// <reference path="../pb_modules/types.d.ts" />
 
-onRecordBeforeCreateRequest((e) => {
+onRecordCreate((e) => {
   const record = e.record;
   if (record.get('seq') != null && record.get('seq') !== '') return;
 

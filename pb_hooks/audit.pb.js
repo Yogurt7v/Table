@@ -7,7 +7,7 @@ function getAuthor(e) {
   return user ? (user.get('email') || user.getId()) : 'system';
 }
 
-onRecordBeforeUpdateRequest((e) => {
+onRecordUpdateRequest((e) => {
   const record = e.record;
   const original = record.originalCopy();
   if (!original) return;

@@ -12,6 +12,6 @@
 // function encryptRecord(record) { ... }
 // function decryptRecord(record) { ... }
 // 
-// onRecordBeforeCreateRequest((e) => { encryptRecord(e.record); }, 'invoices');
-// onRecordBeforeUpdateRequest((e) => { encryptRecord(e.record); }, 'invoices');
+// onRecordCreate((e) => { encryptRecord(e.record); }, 'invoices');
+// onRecordUpdate((e) => { encryptRecord(e.record); }, 'invoices');
 // onRecordEnrich((e) => { decryptRecord(e.record); }, 'invoices');

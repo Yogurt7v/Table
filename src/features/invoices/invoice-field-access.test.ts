@@ -17,6 +17,7 @@ describe('getInvoicePermissions', () => {
       canManageFiles: false,
       canMarkPayment: false,
       canViewPaymentMarks: false,
+      canViewPaidDate: true,
     });
   });
 
@@ -30,6 +31,7 @@ describe('getInvoicePermissions', () => {
       canManageFiles: false,
       canMarkPayment: false,
       canViewPaymentMarks: false,
+      canViewPaidDate: true,
     });
   });
 
@@ -43,10 +45,11 @@ describe('getInvoicePermissions', () => {
       canManageFiles: true,
       canMarkPayment: false,
       canViewPaymentMarks: true,
+      canViewPaidDate: true,
     });
   });
 
-  it('boss can mark payment and view marks', () => {
+  it('boss can mark payment, view marks, but hide paid_date', () => {
     expect(getInvoicePermissions('boss')).toMatchObject({
       canCreate: false,
       canUpdate: false,
@@ -56,6 +59,7 @@ describe('getInvoicePermissions', () => {
       canManageFiles: false,
       canMarkPayment: true,
       canViewPaymentMarks: true,
+      canViewPaidDate: false,
     });
   });
 
@@ -69,6 +73,7 @@ describe('getInvoicePermissions', () => {
       canManageFiles: true,
       canMarkPayment: false,
       canViewPaymentMarks: true,
+      canViewPaidDate: true,
     });
   });
 });

@@ -27,20 +27,48 @@ export function AppLayout() {
 
   return (
     <AppShell header={{ height: 56 }} padding="md">
-      <AppShell.Header>
+      <AppShell.Header
+        style={{ borderBottom: '3px solid var(--org-color, #228be6)' }}
+      >
         <Group h="100%" px="md" justify="space-between">
           <Group>
             <ActionIcon variant="subtle" color="gray" onClick={() => navigate('/')}>
               <IconHome size={20} />
             </ActionIcon>
             <Select
-              data={organizations.map((o) => ({ value: o.id, label: o.name }))}
+              data={organizations.map((o) => ({ value: o.id, label: o.name, color: o.color }))}
               value={currentOrgId || null}
               onChange={(v) => v && setCurrentOrgId(v)}
               placeholder="Выберите организацию"
               w={280}
               clearable={false}
               size="sm"
+              leftSection={
+                currentOrg ? (
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      backgroundColor: currentOrg.color,
+                    }}
+                  />
+                ) : undefined
+              }
+              leftSectionPointerEvents="none"
+              renderOption={({ option }) => (
+                <Group gap="xs">
+                  <div
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      backgroundColor: (option as Record<string, unknown>).color as string,
+                    }}
+                  />
+                  <Text>{option.label}</Text>
+                </Group>
+              )}
             />
             <InvoiceSearch />
           </Group>
@@ -50,7 +78,7 @@ export function AppLayout() {
             </Anchor> */}
             {currentOrgId && currentRole !== 'boss' && currentRole !== 'guest' && (
               <Anchor size="sm" onClick={() => navigate('/admin')}>
-                + Добавить
+                Панель администратора
               </Anchor>
             )}
             <Text size="sm">{user?.name || user?.login || 'Пользователь'}</Text>

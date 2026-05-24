@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Table,
   Text,
@@ -33,8 +33,21 @@ import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { ALL_INVOICE_COLUMNS } from './invoice-columns';
 import type { DraftInvoiceForm } from './invoice-field-access';
+import { loadColumnSizing, saveColumnSizing, type ColumnSizingState } from './invoice-table-column-sizing';
+
+function shortenFileName(name: string): string {
+  const dotIndex = name.lastIndexOf('.');
+  if (dotIndex === -1) {
+    return name.length > 5 ? '...' + name.slice(-5) : name;
+  }
+  const extension = name.slice(dotIndex);
+  const baseName = name.slice(0, dotIndex);
+  if (baseName.length <= 5) return name;
+  return '...' + baseName.slice(-5) + extension;
+}
 
 interface GroupedInvoiceTableProps {
+  orgId: string;
   invoices: IInvoice[];
   isDraftOpen: boolean;
   draftForm?: DraftInvoiceForm;
@@ -55,6 +68,7 @@ interface GroupedInvoiceTableProps {
     canMove: boolean;
     canMarkPayment: boolean;
     canViewPaymentMarks: boolean;
+    canViewPaidDate: boolean;
     canManageFiles: boolean;
     canEditField?: (field: string) => boolean;
   };
@@ -68,6 +82,7 @@ interface GroupedInvoiceTableProps {
 }
 
 export function GroupedInvoiceTable({
+  orgId,
   invoices,
   isDraftOpen,
   draftForm,
@@ -112,6 +127,7 @@ export function GroupedInvoiceTable({
     () =>
       visibleColumns.filter((colId) => {
         if (colId === 'payment_mark') return permissions.canViewPaymentMarks;
+        if (colId === 'paid_date') return permissions.canViewPaidDate;
         if (colId === 'actions')
           return (
             permissions.canUpdate ||
@@ -124,6 +140,52 @@ export function GroupedInvoiceTable({
       }),
     [visibleColumns, permissions],
   );
+
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(
+    () => loadColumnSizing(orgId),
+  );
+  const columnSizingRef = useRef<ColumnSizingState>(columnSizing);
+
+  useEffect(() => {
+    columnSizingRef.current = columnSizing;
+  }, [columnSizing]);
+
+  useEffect(() => {
+    const sizing = loadColumnSizing(orgId);
+    setColumnSizing(sizing);
+    columnSizingRef.current = sizing;
+  }, [orgId]);
+
+  const resizingRef = useRef<{ colId: string; startX: number; startWidth: number } | null>(null);
+
+  const handleResizeStart = (colId: InvoiceColumnId, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const col = columnRenderers[colId];
+    if (!col) return;
+    const startWidth = columnSizing[colId] ?? col.width;
+    resizingRef.current = { colId, startX: e.clientX, startWidth };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const state = resizingRef.current;
+      if (!state) return;
+      const delta = e.clientX - state.startX;
+      const newWidth = Math.max(50, state.startWidth + delta);
+      setColumnSizing((prev) => ({ ...prev, [state.colId]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      if (resizingRef.current) {
+        saveColumnSizing(orgId, columnSizingRef.current);
+      }
+      resizingRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
 
   if (groups.length === 0 && !isDraftOpen) {
     return (
@@ -168,7 +230,7 @@ export function GroupedInvoiceTable({
             />
             <Tooltip label="Сохранить">
               <ActionIcon
-                size="sm"
+                size="md"
                 color="green"
                 variant="light"
                 onClick={() => {
@@ -183,7 +245,7 @@ export function GroupedInvoiceTable({
             </Tooltip>
             <Tooltip label="Отмена">
               <ActionIcon
-                size="sm"
+                size="md"
                 color="gray"
                 variant="subtle"
                 onClick={() => setPartialForm(null)}
@@ -220,7 +282,7 @@ export function GroupedInvoiceTable({
             </Box>
             <Tooltip label="Убрать отметку">
               <ActionIcon
-                size="xs"
+                size="sm"
                 color="red"
                 variant="subtle"
                 onClick={() => onClearPaymentMark?.(mark.id)}
@@ -434,26 +496,13 @@ export function GroupedInvoiceTable({
           </Badge>
         );
       },
-      renderDraft: () => (
-        <input
-          type="checkbox"
-          checked={draftForm?.paid ?? false}
-          onChange={(e) => onDraftChange?.('paid', e.currentTarget.checked)}
-        />
-      ),
+      renderDraft: () => null,
     },
     paid_date: {
       width: 120,
       header: 'Дата оплаты',
       renderCell: (invoice) => <>{invoice.paid_date || '—'}</>,
-      renderDraft: () => (
-        <TextInput
-          size="xs"
-          type="date"
-          value={draftForm?.paid_date ?? ''}
-          onChange={(e) => onDraftChange?.('paid_date', e.currentTarget.value)}
-        />
-      ),
+      renderDraft: () => null,
     },
     comment: {
       width: 180,
@@ -484,7 +533,7 @@ export function GroupedInvoiceTable({
                   rel="noopener noreferrer"
                   size="xs"
                 >
-                  {f.name}
+                  {shortenFileName(f.name)}
                 </Anchor>
               ))}
             </Stack>
@@ -513,16 +562,32 @@ export function GroupedInvoiceTable({
   };
 
   return (
-    <Box style={{ overflowX: 'auto' }}>
-      <Table striped highlightOnHover>
+    <Box style={{ overflow: 'hidden' }}>
+      <Table striped highlightOnHover style={{ width: '100%', maxWidth: '100%', tableLayout: 'fixed', overflow: 'hidden' }}>
         <Table.Thead>
           <Table.Tr>
-            <Table.Th style={{ width: 50 }}>№</Table.Th>
+            <Table.Th style={{ width: 50, overflow: 'hidden' }}>№</Table.Th>
             {filteredColumns.map((colId) => {
               const col = columnRenderers[colId];
+              const width = columnSizing[colId] ?? col.width;
               return (
-                <Table.Th key={colId} style={{ width: col.width }}>
-                  {col.header}
+                <Table.Th key={colId} style={{ width, position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                    {col.header}
+                  </div>
+                  <div
+                    onMouseDown={(e) => handleResizeStart(colId, e)}
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 6,
+                      cursor: 'col-resize',
+                      userSelect: 'none',
+                      borderRight: '1px solid var(--mantine-color-gray-3)',
+                    }}
+                  />
                 </Table.Th>
               );
             })}
@@ -547,43 +612,59 @@ export function GroupedInvoiceTable({
 
               return (
                 <Table.Tr key={invoice.id} style={rowStyle}>
-                  <Table.Td>{invoiceNumber}</Table.Td>
-                  {filteredColumns.map((colId) => (
-                    <Table.Td key={colId}>
-                      {colId === 'counterparty' && showCounterparty ? (
-                        <Text fw={600}>{group.counterparty}</Text>
-                      ) : colId === 'counterparty' ? null : (
-                        columnRenderers[colId].renderCell(invoice)
-                      )}
-                    </Table.Td>
-                  ))}
+                  <Table.Td>
+                    <div style={{ overflow: 'hidden', maxWidth: '100%' }}>{invoiceNumber}</div>
+                  </Table.Td>
+                  {filteredColumns.map((colId) => {
+                    const col = columnRenderers[colId];
+                    const width = columnSizing[colId] ?? col.width;
+                    return (
+                      <Table.Td key={colId} style={{ width }}>
+                        <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                          {colId === 'counterparty' && showCounterparty ? (
+                            <Text fw={600}>{group.counterparty}</Text>
+                          ) : colId === 'counterparty' ? null : (
+                            col.renderCell(invoice)
+                          )}
+                        </div>
+                      </Table.Td>
+                    );
+                  })}
                 </Table.Tr>
               );
             });
           })}
           {isDraftOpen && draftForm && (
             <Table.Tr style={{ backgroundColor: 'var(--mantine-color-blue-0)' }}>
-              <Table.Td>—</Table.Td>
-              {filteredColumns.map((colId) => (
-                <Table.Td key={colId}>
-                  {colId === 'actions' ? (
-                    <Group gap={4} wrap="nowrap">
-                      <Tooltip label="Сохранить">
-                        <ActionIcon size="sm" color="green" variant="light" onClick={onDraftSave}>
-                          <IconCheck size={14} />
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="Отмена">
-                        <ActionIcon size="sm" color="gray" variant="subtle" onClick={onDraftCancel}>
-                          <IconX size={14} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  ) : (
-                    columnRenderers[colId].renderDraft()
-                  )}
-                </Table.Td>
-              ))}
+              <Table.Td>
+                <div style={{ overflow: 'hidden', maxWidth: '100%' }}>—</div>
+              </Table.Td>
+              {filteredColumns.map((colId) => {
+                const col = columnRenderers[colId];
+                const width = columnSizing[colId] ?? col.width;
+                return (
+                  <Table.Td key={colId} style={{ width }}>
+                    <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                      {colId === 'actions' ? (
+                        <Group gap={4} wrap="nowrap">
+                          <Tooltip label="Сохранить">
+                            <ActionIcon size="md" color="green" variant="light" onClick={onDraftSave}>
+                              <IconCheck size={14} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Tooltip label="Отмена">
+                            <ActionIcon size="md" color="gray" variant="subtle" onClick={onDraftCancel}>
+                              <IconX size={14} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </Group>
+                      ) : (
+                        col.renderDraft()
+                      )}
+                    </div>
+                  </Table.Td>
+                );
+              })}
             </Table.Tr>
           )}
         </Table.Tbody>
