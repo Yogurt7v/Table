@@ -7,6 +7,7 @@ import type {
   IAccountWithBalance,
   IAccountingObject,
   IInvoice,
+  IInvoiceFile,
   IInvoiceHistory,
   IPaymentMark,
   IUser,
@@ -298,6 +299,39 @@ export function updateOrganizationUserRole(id: string, role: IOrganizationUser['
 
 export function deleteOrganizationUser(id: string) {
   return pb.collection('organization_users').delete(id);
+}
+
+// --- Invoice Files ---
+
+export function getInvoiceFilesByOrg(orgId: string) {
+  return pb.collection('invoice_files').getFullList<IInvoiceFile>({
+    filter: `organization_id = "${orgId}"`,
+    sort: 'created',
+  });
+}
+
+export function getInvoiceFiles(invoiceId: string) {
+  return pb.collection('invoice_files').getFullList<IInvoiceFile>({
+    filter: `invoice_id = "${invoiceId}"`,
+    sort: 'created',
+  });
+}
+
+export function createInvoiceFile(invoiceId: string, orgId: string, file: File, name: string) {
+  const formData = new FormData();
+  formData.append('invoice_id', invoiceId);
+  formData.append('organization_id', orgId);
+  formData.append('file', file);
+  formData.append('name', name);
+  return pb.collection('invoice_files').create<IInvoiceFile>(formData);
+}
+
+export function deleteInvoiceFile(id: string) {
+  return pb.collection('invoice_files').delete(id);
+}
+
+export function getInvoiceFileUrl(fileRecord: IInvoiceFile) {
+  return pb.files.getUrl(fileRecord, fileRecord.file);
 }
 
 export function searchAllInvoices(orgId: string, text: string) {

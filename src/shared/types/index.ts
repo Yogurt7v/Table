@@ -45,6 +45,15 @@ export interface IInvoice {
   created?: string;
 }
 
+export interface IInvoiceFile {
+  id: string;
+  invoice_id: string;
+  organization_id: string;
+  file: string;
+  name: string;
+  created?: string;
+}
+
 export interface IInvoiceHistory {
   id: string;
   invoice_id: string;

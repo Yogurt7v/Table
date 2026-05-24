@@ -14,6 +14,8 @@ import {
   Checkbox,
   Button,
   Menu,
+  Stack,
+  Anchor,
 } from '@mantine/core';
 import {
   IconTrash,
@@ -23,8 +25,10 @@ import {
   IconArrowRight,
   IconPencil,
   IconSettings,
+  IconFile,
 } from '@tabler/icons-react';
-import type { IInvoice, IPaymentMark } from '@/shared/types';
+import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
+import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import type { DraftInvoiceForm } from './invoice-field-access';
@@ -56,6 +60,8 @@ interface GroupedInvoiceTableProps {
   onMarkForPayment?: (invoice: IInvoice) => void;
   onMarkPartialPayment?: (invoiceId: string, amount: number, comment: string) => void;
   onClearPaymentMark?: (markId: string) => void;
+  filesByInvoice?: Record<string, IInvoiceFile[]>;
+  onFiles?: (invoice: IInvoice) => void;
 }
 
 export function GroupedInvoiceTable({
@@ -77,6 +83,8 @@ export function GroupedInvoiceTable({
   onMarkForPayment,
   onMarkPartialPayment,
   onClearPaymentMark,
+  filesByInvoice,
+  onFiles,
 }: GroupedInvoiceTableProps) {
   const groups = groupInvoicesByCounterparty(invoices);
 
@@ -100,7 +108,8 @@ export function GroupedInvoiceTable({
     permissions.canUpdate ||
     permissions.canDelete ||
     permissions.canViewHistory ||
-    permissions.canMove;
+    permissions.canMove ||
+    permissions.canManageFiles;
 
   const showPaymentMarksColumn = permissions.canViewPaymentMarks;
 
@@ -213,14 +222,12 @@ export function GroupedInvoiceTable({
 
       return (
         <Group gap={4} wrap="nowrap">
-          <Checkbox
-            size="xs"
-            label="Оплатить"
-            checked={false}
-            onChange={() => onMarkForPayment?.(invoice)}
-          />
           <Button
-            size="compact-xs"
+            size="xs"
+            onChange={() => onMarkForPayment?.(invoice)}
+          >Оплатить</Button>
+          <Button
+            size="xs"
             variant="light"
             onClick={() => setPartialForm({ invoiceId: invoice.id, amount: '', comment: '' })}
           >
@@ -273,8 +280,9 @@ export function GroupedInvoiceTable({
             <Table.Th style={{ width: 100 }}>Оплачено</Table.Th>
             <Table.Th style={{ width: 120 }}>Дата оплаты</Table.Th>
             <Table.Th style={{ width: 180 }}>Комментарий</Table.Th>
-            {showPaymentMarksColumn && <Table.Th style={{ width: 180 }}>Отметка</Table.Th>}
+            <Table.Th style={{ width: 160 }}>Файлы</Table.Th>
             {showActionsColumn && <Table.Th style={{ width: 50 }}>Действия</Table.Th>}
+            {showPaymentMarksColumn && <Table.Th style={{ width: 180 }}>Отметка</Table.Th>}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -319,9 +327,25 @@ export function GroupedInvoiceTable({
                   </Table.Td>
                   <Table.Td>{invoice.paid_date || '—'}</Table.Td>
                   <Table.Td>{invoice.comment || '—'}</Table.Td>
-
-                  {showPaymentMarksColumn && <Table.Td>{renderPaymentMarkCell(invoice)}</Table.Td>}
-
+                  <Table.Td>
+                    {filesByInvoice?.[invoice.id]?.length ? (
+                      <Stack gap={2}>
+                        {filesByInvoice[invoice.id]!.map((f) => (
+                          <Anchor
+                            key={f.id}
+                            href={getInvoiceFileUrl(f)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            size="xs"
+                          >
+                            {f.name}
+                          </Anchor>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Text size="xs" c="dimmed">—</Text>
+                    )}
+                  </Table.Td>
                   {showActionsColumn && (
                     <Table.Td>
                       <Menu position="bottom-end" shadow="md" width={200} withinPortal>
@@ -358,6 +382,12 @@ export function GroupedInvoiceTable({
                               Перенести
                             </Menu.Item>
                           )}
+                          <Menu.Item
+                            leftSection={<IconFile size={14} />}
+                            onClick={() => onFiles?.(invoice)}
+                          >
+                            Файлы
+                          </Menu.Item>
                           {permissions.canDelete && (
                             <Menu.Item
                               leftSection={<IconTrash size={14} />}
@@ -371,6 +401,7 @@ export function GroupedInvoiceTable({
                       </Menu>
                     </Table.Td>
                   )}
+                  {showPaymentMarksColumn && <Table.Td>{renderPaymentMarkCell(invoice)}</Table.Td>}
                 </Table.Tr>
               );
             });

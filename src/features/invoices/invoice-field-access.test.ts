@@ -14,6 +14,7 @@ describe('getInvoicePermissions', () => {
       canDelete: false,
       canMove: false,
       canViewHistory: false,
+      canManageFiles: false,
       canMarkPayment: false,
       canViewPaymentMarks: false,
     });
@@ -26,6 +27,7 @@ describe('getInvoicePermissions', () => {
       canDelete: false,
       canMove: false,
       canViewHistory: false,
+      canManageFiles: false,
       canMarkPayment: false,
       canViewPaymentMarks: false,
     });
@@ -38,6 +40,7 @@ describe('getInvoicePermissions', () => {
       canDelete: true,
       canMove: true,
       canViewHistory: true,
+      canManageFiles: true,
       canMarkPayment: false,
       canViewPaymentMarks: true,
     });
@@ -50,6 +53,7 @@ describe('getInvoicePermissions', () => {
       canDelete: false,
       canMove: false,
       canViewHistory: false,
+      canManageFiles: false,
       canMarkPayment: true,
       canViewPaymentMarks: true,
     });
@@ -62,6 +66,7 @@ describe('getInvoicePermissions', () => {
       canDelete: true,
       canMove: true,
       canViewHistory: true,
+      canManageFiles: true,
       canMarkPayment: false,
       canViewPaymentMarks: true,
     });

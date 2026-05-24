@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { notifications } from '@mantine/notifications';
-import type { IAccountingObject, IInvoice, IPaymentMark } from '@/shared/types';
+import type { IAccountingObject, IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import { createEmptyDraft, validateDraftForm, type DraftInvoiceForm } from './invoice-field-access';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
@@ -13,6 +13,7 @@ import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { InvoiceHistoryModal } from './InvoiceHistoryModal';
 import { InvoiceMoveModal } from './InvoiceMoveModal';
 import { InvoiceEditModal } from './InvoiceEditModal';
+import { InvoiceFilesModal } from './InvoiceFilesModal';
 import { GroupedInvoiceTable } from './GroupedInvoiceTable';
 
 interface InvoiceTableProps {
@@ -25,6 +26,7 @@ interface InvoiceTableProps {
   onCancelDraft: () => void;
   accountingObjects: IAccountingObject[];
   paymentMarks?: IPaymentMark[];
+  filesByInvoice?: Record<string, IInvoiceFile[]>;
 }
 
 export function InvoiceTable({
@@ -37,6 +39,7 @@ export function InvoiceTable({
   onCancelDraft,
   accountingObjects,
   paymentMarks,
+  filesByInvoice,
 }: InvoiceTableProps) {
   const permissions = useInvoicePermissions(orgId);
   const createInvoice = useCreateInvoice(orgId, date);
@@ -52,6 +55,7 @@ export function InvoiceTable({
   const [historyInvoice, setHistoryInvoice] = useState<IInvoice | null>(null);
   const [moveInvoiceTarget, setMoveInvoiceTarget] = useState<IInvoice | null>(null);
   const [editInvoice, setEditInvoice] = useState<IInvoice | null>(null);
+  const [filesInvoice, setFilesInvoice] = useState<IInvoice | null>(null);
 
   useEffect(() => {
     if (isDraftOpen) {
@@ -254,6 +258,8 @@ export function InvoiceTable({
         onMarkForPayment={handleMarkForPayment}
         onMarkPartialPayment={handleMarkPartialPayment}
         onClearPaymentMark={handleClearPaymentMark}
+        filesByInvoice={filesByInvoice}
+        onFiles={(inv) => setFilesInvoice(inv)}
       />
       <ConfirmModal
         opened={!!deleteTarget}
@@ -304,6 +310,14 @@ export function InvoiceTable({
         onSave={handleEditInvoice}
         loading={updateInvoice.isPending}
         onClose={() => setEditInvoice(null)}
+      />
+      <InvoiceFilesModal
+        opened={!!filesInvoice}
+        invoiceId={filesInvoice?.id ?? null}
+        invoiceLabel={filesInvoice?.counterparty || filesInvoice?.invoice_no || ''}
+        orgId={orgId}
+        canManageFiles={permissions.canManageFiles}
+        onClose={() => setFilesInvoice(null)}
       />
     </>
   );

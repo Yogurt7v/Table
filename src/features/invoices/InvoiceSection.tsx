@@ -6,11 +6,12 @@ import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
 import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
+import { useOrgInvoiceFiles } from '@/shared/hooks/useInvoiceFiles';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
-import type { IInvoice } from '@/shared/types';
+import type { IInvoice, IInvoiceFile } from '@/shared/types';
 
 interface InvoiceSectionProps {
   orgId: string;
@@ -56,8 +57,19 @@ export function InvoiceSection({
   const { data: invoices } = useInvoices(orgId, date);
   const { data: searchResults } = useSearchInvoices(orgId);
   const { data: paymentMarks } = usePaymentMarks(orgId);
+  const { data: orgFiles } = useOrgInvoiceFiles(orgId);
   const permissions = useInvoicePermissions(orgId);
   const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
+
+  const filesByInvoice = useMemo(() => {
+    if (!orgFiles) return {};
+    const map: Record<string, IInvoiceFile[]> = {};
+    for (const f of orgFiles) {
+      if (!map[f.invoice_id]) map[f.invoice_id] = [];
+      map[f.invoice_id]!.push(f);
+    }
+    return map;
+  }, [orgFiles]);
 
   const highlightedIds = useMemo(
     () => computeHighlightedIds(searchText, searchResults, invoices),
@@ -158,6 +170,7 @@ export function InvoiceSection({
               onCancelDraft={() => setDraftObjectId(null)}
               accountingObjects={objects}
               paymentMarks={paymentMarks}
+              filesByInvoice={filesByInvoice}
             />
             {objInvoices.length > 0 && (
               <Text ta="right" fw={700} mt="md">
