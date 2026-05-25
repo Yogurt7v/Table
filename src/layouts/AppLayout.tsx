@@ -33,7 +33,7 @@ export function AppLayout() {
         <Group h="100%" px="md" justify="space-between">
           <Group>
             <ActionIcon variant="subtle" color="gray" onClick={() => navigate('/')}>
-              <IconHome size={20} />
+              <IconHome size={22} />
             </ActionIcon>
             <Select
               data={organizations.map((o) => ({ value: o.id, label: o.name, color: o.color }))}

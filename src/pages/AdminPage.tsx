@@ -87,6 +87,7 @@ export function AdminPage() {
     null,
   );
   const [deleteOrgTarget, setDeleteOrgTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteOrgConfirmText, setDeleteOrgConfirmText] = useState('');
   const [editOrgId, setEditOrgId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState<string>('');
@@ -255,7 +256,10 @@ export function AdminPage() {
                         color="red"
                         variant="subtle"
                         size="lg"
-                        onClick={() => setDeleteOrgTarget({ id: org.id, name: org.name })}
+                        onClick={() => {
+                          setDeleteOrgTarget({ id: org.id, name: org.name });
+                          setDeleteOrgConfirmText('');
+                        }}
                       >
                         <IconTrash size={22} />
                       </ActionIcon>
@@ -279,40 +283,45 @@ export function AdminPage() {
             </Button>
           </Group>
 
-          <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light" mb="sm" pb={6}>
-            <Stack gap={2}>
-              <Text size="sm">
-                <Text span c="red" fw={500}>
-                  Администратор
-                </Text>{' '}
-                — полный доступ
-              </Text>
-              <Text size="sm">
-                <Text span c="blue" fw={500}>
-                  Модератор
-                </Text>{' '}
-                — удаление, перенос, история
-              </Text>
-              <Text size="sm">
-                <Text span c="green" fw={500}>
-                  Пользователь
-                </Text>{' '}
-                — создание/редактирование счетов
-              </Text>
-              <Text size="sm">
-                <Text span c="orange" fw={500}>
-                  Босс
-                </Text>{' '}
-                — отметка оплаты
-              </Text>
-              <Text size="sm">
-                <Text span c="gray" fw={500}>
-                  Гость
-                </Text>{' '}
-                — только просмотр
-              </Text>
-            </Stack>
-          </Alert>
+          <details style={{ marginBottom: 'var(--mantine-spacing-sm)' }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
+              Описание ролей
+            </summary>
+            <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light" mt="sm" pb={6}>
+              <Stack gap={2}>
+                <Text size="sm">
+                  <Text span c="red" fw={500}>
+                    Администратор
+                  </Text>{' '}
+                  — полный доступ
+                </Text>
+                <Text size="sm">
+                  <Text span c="blue" fw={500}>
+                    Модератор
+                  </Text>{' '}
+                  — Пользователь + удаление, перенос, история
+                </Text>
+                <Text size="sm">
+                  <Text span c="green" fw={500}>
+                    Пользователь
+                  </Text>{' '}
+                  — создание/редактирование счетов
+                </Text>
+                <Text size="sm">
+                  <Text span c="orange" fw={500}>
+                    Босс
+                  </Text>{' '}
+                  — отметка оплаты
+                </Text>
+                <Text size="sm">
+                  <Text span c="gray" fw={500}>
+                    Гость
+                  </Text>{' '}
+                  — только просмотр
+                </Text>
+              </Stack>
+            </Alert>
+          </details>
 
           <Table striped highlightOnHover withTableBorder>
             <Table.Thead>
@@ -375,19 +384,55 @@ export function AdminPage() {
         loading={deleteUser.isPending}
       />
 
-      <ConfirmModal
+      <Modal
         opened={!!deleteOrgTarget}
-        onClose={() => setDeleteOrgTarget(null)}
-        onConfirm={() => {
-          if (deleteOrgTarget) {
-            deleteOrg.mutate(deleteOrgTarget.id);
-          }
+        onClose={() => {
           setDeleteOrgTarget(null);
+          setDeleteOrgConfirmText('');
         }}
-        title="Удаление организации"
-        message={`Вы уверены, что хотите удалить организацию «${deleteOrgTarget?.name ?? ''}»?`}
-        loading={deleteOrg.isPending}
-      />
+        title={`Удаление организации «${deleteOrgTarget?.name ?? ''}»`}
+        size="sm"
+      >
+        <Stack>
+          <Text size="sm">
+            Это действие необратимо. Все счета, данные и настройки организации будут удалены.
+          </Text>
+          <Text size="sm" fw={500}>
+            Введите «я осознаю последствия» для подтверждения:
+          </Text>
+          <TextInput
+            value={deleteOrgConfirmText}
+            onChange={(e) => setDeleteOrgConfirmText(e.currentTarget.value)}
+            placeholder="я осознаю последствия"
+          />
+          <Group justify="flex-end" gap="sm">
+            <Button
+              variant="default"
+              onClick={() => {
+                setDeleteOrgTarget(null);
+                setDeleteOrgConfirmText('');
+              }}
+              disabled={deleteOrg.isPending}
+            >
+              Отмена
+            </Button>
+            <Button
+              color="red"
+              disabled={deleteOrgConfirmText !== 'я осознаю последствия' || deleteOrg.isPending}
+              loading={deleteOrg.isPending}
+              onClick={() => {
+                if (deleteOrgTarget) {
+                  deleteOrg.mutate(deleteOrgTarget.id);
+                }
+                setDeleteOrgTarget(null);
+                setDeleteOrgConfirmText('');
+              }}
+            >
+              Удалить
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       {/* Create Org Modal */}
       <Modal

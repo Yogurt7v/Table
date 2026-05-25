@@ -347,7 +347,7 @@ export function GroupedInvoiceTable({
       <Menu position="bottom-end" shadow="md" width={200} withinPortal>
         <Menu.Target>
           <Tooltip label="Действия">
-            <ActionIcon size="sm" variant="subtle" color="gray">
+            <ActionIcon ml="15px" size="sm" variant="subtle" color="gray">
               <IconSettings size={24} />
             </ActionIcon>
           </Tooltip>
@@ -410,7 +410,7 @@ export function GroupedInvoiceTable({
     counterparty: {
       width: 180,
       header: 'Контрагент',
-      renderCell: (_invoice) => null, // handled specially below
+      renderCell: (_invoice) => null,
       renderDraft: () => (
         <Autocomplete
           size="xs"
