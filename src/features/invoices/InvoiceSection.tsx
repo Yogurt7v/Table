@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Affix, Paper, Title, Button, Group, Loader, Text, Table, ActionIcon, Tooltip } from '@mantine/core';
-import { IconPlus, IconSettings } from '@tabler/icons-react';
+import { IconPlus, IconPrinter, IconSettings } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useInvoices } from '@/shared/hooks/useInvoices';
@@ -11,6 +11,7 @@ import { useUserSetting, useUpsertUserSetting } from '@/shared/hooks/useUserSett
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { InvoiceColumnSettingsModal } from '@/features/invoices/InvoiceColumnSettingsModal';
+import { PrintableInvoices } from '@/features/invoices/PrintableInvoices';
 import { DEFAULT_VISIBLE_COLUMNS } from '@/features/invoices/invoice-columns';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
@@ -64,6 +65,24 @@ export function InvoiceSection({
   const permissions = useInvoicePermissions(orgId);
   const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handlePrint = () => {
+    setIsPrinting(true);
+  };
+
+  useEffect(() => {
+    if (isPrinting) {
+      const timer = setTimeout(() => window.print(), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isPrinting]);
+
+  useEffect(() => {
+    const onAfterPrint = () => setIsPrinting(false);
+    window.addEventListener('afterprint', onAfterPrint);
+    return () => window.removeEventListener('afterprint', onAfterPrint);
+  }, []);
 
   const { data: savedColumns } = useUserSetting('invoice_columns');
   const saveColumns = useUpsertUserSetting('invoice_columns');
@@ -115,12 +134,22 @@ export function InvoiceSection({
         <Title order={5}>Счета</Title>
         <Tooltip label="Настройка колонок">
           <ActionIcon
-            size="sm"
+            size="md"
             variant="subtle"
             color="gray"
             onClick={() => setColumnSettingsOpen(true)}
           >
-            <IconSettings size={16} />
+            <IconSettings size={20} />
+          </ActionIcon>
+        </Tooltip>
+        <Tooltip label="Печать">
+          <ActionIcon
+            size="md"
+            variant="subtle"
+            color="gray"
+            onClick={handlePrint}
+          >
+            <IconPrinter size={20} />
           </ActionIcon>
         </Tooltip>
       </Group>
@@ -163,6 +192,20 @@ export function InvoiceSection({
           ← Вернуться к {dayjs(date).format('DD.MM.YYYY')}
         </Text>
       </Paper>
+    );
+  }
+
+  if (isPrinting) {
+    return (
+      <PrintableInvoices
+        invoices={invoices ?? []}
+        objects={objects}
+        date={date}
+        visibleColumns={visibleColumns}
+        paymentMarks={paymentMarks}
+        canViewPaymentMarks={permissions.canViewPaymentMarks}
+        canViewPaidDate={permissions.canViewPaidDate}
+      />
     );
   }
 
