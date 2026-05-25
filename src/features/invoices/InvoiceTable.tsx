@@ -87,7 +87,8 @@ export function InvoiceTable({
       });
       onCancelDraft();
       notifications.show({ color: 'green', message: 'Счёт добавлен' });
-    } catch {
+    } catch (err) {
+      console.error('Ошибка создания счёта:', err);
       notifications.show({ color: 'red', message: 'Не удалось создать счёт' });
     }
   };

@@ -89,7 +89,7 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
                           }
                         }}
                         decimalScale={2}
-                        fixedDecimalScale
+                        // fixedDecimalScale
                         thousandSeparator=" "
                         styles={{ input: { textAlign: 'right' } }}
                         onKeyDown={(e) => {

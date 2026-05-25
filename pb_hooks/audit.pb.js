@@ -1,32 +1,65 @@
-/// <reference path="../pb_modules/types.d.ts" />
+/// <reference path="../pb_data/types.d.ts" />
 
+// 🔧 Вспомогательная функция для получения автора
 function getAuthor(e) {
-  const admin = e.httpContext?.get('admin');
-  if (admin) return admin.email || 'admin';
-  const user = e.httpContext?.get('authRecord');
-  return user ? (user.get('email') || user.getId()) : 'system';
-}
-
-onRecordUpdateRequest((e) => {
-  const record = e.record;
-  const original = record.originalCopy();
-  if (!original) return;
-
-  const oldData = {};
-  const fields = ['counterparty', 'purpose', 'contract_no', 'invoice_no', 'amount', 'paid', 'paid_date', 'comment', 'seq'];
-  for (const field of fields) {
-    oldData[field] = original.get(field);
+  // В PB 0.38.2 авторизованный пользователь доступен через e.request.auth.record
+  const authRecord = e.request?.auth?.record;
+  if (authRecord) {
+    return authRecord.get('email') || authRecord.getId();
   }
 
-  const author = getAuthor(e);
-  const collection = $app.dao().findCollectionByNameOrId('invoice_history');
+  // Для админов (если нужно)
+  // const admin = $app.adminAuth()?.record; // опционально
+  // if (admin) return admin.email || 'admin';
 
-  const newHistory = $app.dao().createRecord(collection, {
-    invoice_id: record.getId(),
-    author: author,
-    changed_at: new Date().toISOString(),
-    previous_data: JSON.stringify(oldData),
-  });
+  return 'system';
+}
 
-  $app.dao().saveRecord(newHistory);
-}, 'invoices');
+// 🔥 Правильное объявление хука: глобальная переменная + присваивание
+onRecordBeforeUpdate = (e) => {
+  // Фильтрация коллекции внутри хука
+  if (e.collection.name !== 'invoices') return;
+
+  try {
+    const record = e.record;
+    const original = record.original(); // Состояние записи ДО изменений
+
+    // Если original() вернул null (редко, но бывает) — выходим
+    if (!original) return;
+
+    // Собираем старые значения
+    const oldData = {};
+    const fields = [
+      'counterparty',
+      'purpose',
+      'contract_no',
+      'invoice_no',
+      'amount',
+      'paid',
+      'paid_date',
+      'comment',
+      'seq',
+    ];
+    for (const field of fields) {
+      oldData[field] = original.get(field);
+    }
+
+    const author = getAuthor(e);
+
+    // Находим коллекцию истории
+    const historyCollection = $app.findCollectionByNameOrId('invoice_history');
+
+    // 🔥 Правильное создание записи в PB 0.38.2:
+    const newHistory = new Record(historyCollection);
+    newHistory.set('invoice_id', record.getId());
+    newHistory.set('author', author);
+    newHistory.set('changed_at', new Date().toISOString());
+    newHistory.set('previous_data', JSON.stringify(oldData));
+
+    // Сохраняем через DAO (обходит API Rules, что правильно для аудита)
+    $app.dao().saveRecord(newHistory);
+  } catch (err) {
+    console.error('[audit_hook] error:', err);
+    // Не пробрасываем ошибку, чтобы не ломать основное обновление инвойса
+  }
+};

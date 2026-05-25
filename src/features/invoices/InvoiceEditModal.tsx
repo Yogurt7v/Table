@@ -39,12 +39,12 @@ export function InvoiceEditModal({
     if (opened) {
       if (invoice) {
         setForm({
-          counterparty: invoice.counterparty,
-          purpose: invoice.purpose,
+          counterparty: invoice.counterparty || '',
+          purpose: invoice.purpose || '',
           contract_no: invoice.contract_no || '',
-          invoice_no: invoice.invoice_no,
-          amount: invoice.amount,
-          paid: invoice.paid,
+          invoice_no: invoice.invoice_no || '',
+          amount: invoice.amount || 0,
+          paid: invoice.paid || false,
           paid_date: invoice.paid_date || '',
           comment: invoice.comment || '',
         });

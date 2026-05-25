@@ -8,6 +8,11 @@ export function useCreateInvoice(orgId: string, date: string) {
 
   return useMutation({
     mutationFn: (data: CreateInvoiceInput) => createInvoice(data),
+
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['invoices', orgId, date] });
+    },
+
     onSuccess: (created) => {
       const normalized = normalizeInvoice(created);
       queryClient.setQueryData<IInvoice[]>(['invoices', orgId, date], (old) => {
@@ -15,6 +20,7 @@ export function useCreateInvoice(orgId: string, date: string) {
         return next.sort((a, b) => a.seq - b.seq);
       });
     },
+
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices', orgId, date] });
     },
