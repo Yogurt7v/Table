@@ -7,8 +7,8 @@ export interface InvoiceGroup {
 
 /**
  * Группирует счета по контрагентам.
- * Внутри группы счета сортируются по дате создания (новые вверху).
- * Группы сортируются по дате первого счета группы.
+ * Внутри группы счета сортируются по seq.
+ * Группы сортируются по минимальному seq в группе.
  */
 export function groupInvoicesByCounterparty(invoices: IInvoice[]): InvoiceGroup[] {
   const grouped = new Map<string, IInvoice[]>();
@@ -20,22 +20,16 @@ export function groupInvoicesByCounterparty(invoices: IInvoice[]): InvoiceGroup[
     grouped.get(inv.counterparty)!.push(inv);
   });
 
-  // Сортируем каждую группу по дате создания (новые вверху)
   const result: InvoiceGroup[] = [];
   grouped.forEach((invoices, counterparty) => {
-    invoices.sort((a, b) => {
-      const dateA = new Date(a.created ?? 0).getTime();
-      const dateB = new Date(b.created ?? 0).getTime();
-      return dateB - dateA; // Новые вверху
-    });
+    invoices.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
     result.push({ counterparty, invoices });
   });
 
-  // Сортируем группы по дате первого счета (новые группы вверху)
   result.sort((a, b) => {
-    const dateA = new Date(a.invoices[0]?.created ?? 0).getTime();
-    const dateB = new Date(b.invoices[0]?.created ?? 0).getTime();
-    return dateB - dateA;
+    const seqA = Math.min(...a.invoices.map((inv) => inv.seq ?? 0));
+    const seqB = Math.min(...b.invoices.map((inv) => inv.seq ?? 0));
+    return seqA - seqB;
   });
 
   return result;

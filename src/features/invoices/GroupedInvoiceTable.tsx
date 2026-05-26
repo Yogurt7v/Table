@@ -27,13 +27,31 @@ import {
   IconSettings,
   IconFile,
 } from '@tabler/icons-react';
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { ALL_INVOICE_COLUMNS } from './invoice-columns';
 import type { DraftInvoiceForm } from './invoice-field-access';
-import { loadColumnSizing, saveColumnSizing, type ColumnSizingState } from './invoice-table-column-sizing';
+import {
+  loadColumnSizing,
+  saveColumnSizing,
+  type ColumnSizingState,
+} from './invoice-table-column-sizing';
 
 function shortenFileName(name: string): string {
   const dotIndex = name.lastIndexOf('.');
@@ -44,6 +62,45 @@ function shortenFileName(name: string): string {
   const baseName = name.slice(0, dotIndex);
   if (baseName.length <= 5) return name;
   return '...' + baseName.slice(-5) + extension;
+}
+
+function SortableGroupBody({
+  id,
+  children,
+}: {
+  id: string;
+  children: (ctx: {
+    listeners: Record<string, unknown>;
+    isDragging: boolean;
+    isOver: boolean;
+  }) => React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    index,
+    overIndex,
+  } = useSortable({ id });
+
+  const isOver = !isDragging && overIndex === index;
+
+  return (
+    <Table.Tbody
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.3 : 1,
+      }}
+      {...attributes}
+    >
+      {children({ listeners, isDragging, isOver })}
+    </Table.Tbody>
+  );
 }
 
 interface GroupedInvoiceTableProps {
@@ -79,6 +136,7 @@ interface GroupedInvoiceTableProps {
   filesByInvoice?: Record<string, IInvoiceFile[]>;
   onFiles?: (invoice: IInvoice) => void;
   visibleColumns: InvoiceColumnId[];
+  onReorderGroups?: (counterpartyOrder: string[]) => void;
 }
 
 export function GroupedInvoiceTable({
@@ -104,6 +162,7 @@ export function GroupedInvoiceTable({
   filesByInvoice,
   onFiles,
   visibleColumns,
+  onReorderGroups,
 }: GroupedInvoiceTableProps) {
   const groups = groupInvoicesByCounterparty(invoices);
 
@@ -141,8 +200,8 @@ export function GroupedInvoiceTable({
     [visibleColumns, permissions],
   );
 
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(
-    () => loadColumnSizing(orgId),
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() =>
+    loadColumnSizing(orgId),
   );
   const columnSizingRef = useRef<ColumnSizingState>(columnSizing);
 
@@ -187,10 +246,33 @@ export function GroupedInvoiceTable({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = groups.findIndex((g) => g.counterparty === active.id);
+    const newIndex = groups.findIndex((g) => g.counterparty === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(
+      groups.map((g) => g.counterparty),
+      oldIndex,
+      newIndex,
+    );
+
+    onReorderGroups?.(newOrder);
+  };
+
   if (groups.length === 0 && !isDraftOpen) {
     return (
       <Text c="dimmed" ta="center" py="md">
-        Нет счетов за эту дату
+        Нет счетов
       </Text>
     );
   }
@@ -296,10 +378,7 @@ export function GroupedInvoiceTable({
 
       return (
         <Group gap={4} wrap="nowrap">
-          <Button
-            size="xs"
-            onClick={() => onMarkForPayment?.(invoice)}
-          >
+          <Button size="xs" onClick={() => onMarkForPayment?.(invoice)}>
             Оплатить
           </Button>
           <Button
@@ -355,33 +434,21 @@ export function GroupedInvoiceTable({
 
         <Menu.Dropdown>
           {permissions.canUpdate && (
-            <Menu.Item
-              leftSection={<IconPencil size={14} />}
-              onClick={() => onEdit(invoice)}
-            >
+            <Menu.Item leftSection={<IconPencil size={14} />} onClick={() => onEdit(invoice)}>
               Редактировать
             </Menu.Item>
           )}
           {permissions.canViewHistory && (
-            <Menu.Item
-              leftSection={<IconHistory size={14} />}
-              onClick={() => onHistory(invoice)}
-            >
+            <Menu.Item leftSection={<IconHistory size={14} />} onClick={() => onHistory(invoice)}>
               История
             </Menu.Item>
           )}
           {permissions.canMove && (
-            <Menu.Item
-              leftSection={<IconArrowRight size={14} />}
-              onClick={() => onMove(invoice)}
-            >
+            <Menu.Item leftSection={<IconArrowRight size={14} />} onClick={() => onMove(invoice)}>
               Перенести
             </Menu.Item>
           )}
-          <Menu.Item
-            leftSection={<IconFile size={14} />}
-            onClick={() => onFiles?.(invoice)}
-          >
+          <Menu.Item leftSection={<IconFile size={14} />} onClick={() => onFiles?.(invoice)}>
             Файлы
           </Menu.Item>
           {permissions.canDelete && (
@@ -491,9 +558,7 @@ export function GroupedInvoiceTable({
           );
         }
         return (
-          <Badge color={invoice.paid ? 'green' : 'orange'}>
-            {invoice.paid ? 'Да' : 'Нет'}
-          </Badge>
+          <Badge color={invoice.paid ? 'green' : 'orange'}>{invoice.paid ? 'Да' : 'Нет'}</Badge>
         );
       },
       renderDraft: () => null,
@@ -563,7 +628,11 @@ export function GroupedInvoiceTable({
 
   return (
     <Box style={{ overflow: 'hidden' }}>
-      <Table striped highlightOnHover style={{ width: '100%', maxWidth: '100%', tableLayout: 'fixed', overflow: 'hidden' }}>
+      <Table
+        // striped
+        highlightOnHover
+        style={{ width: '100%', maxWidth: '100%', tableLayout: 'fixed', overflow: 'hidden' }}
+      >
         <Table.Thead>
           <Table.Tr>
             <Table.Th style={{ width: 50, overflow: 'hidden' }}>№</Table.Th>
@@ -572,9 +641,7 @@ export function GroupedInvoiceTable({
               const width = columnSizing[colId] ?? col.width;
               return (
                 <Table.Th key={colId} style={{ width, position: 'relative', overflow: 'hidden' }}>
-                  <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
-                    {col.header}
-                  </div>
+                  <div style={{ overflow: 'hidden', maxWidth: '100%' }}>{col.header}</div>
                   <div
                     onMouseDown={(e) => handleResizeStart(colId, e)}
                     style={{
@@ -593,27 +660,89 @@ export function GroupedInvoiceTable({
             })}
           </Table.Tr>
         </Table.Thead>
-        <Table.Tbody>
-          {groups.map((group) => {
-            const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
-            return group.invoices.map((invoice, idx) => {
-              const invoiceNumber = getInvoiceNumber(groups, invoice.id);
-              const showCounterparty = idx === counterpartyRowIndex - 1;
-              const paid = invoice.paid;
-              const isHighlighted = highlightedIds.includes(invoice.id);
-              const hasMark = !!marksByInvoice[invoice.id];
-              const rowStyle: React.CSSProperties = paid
-                ? { backgroundColor: 'var(--mantine-color-yellow-1)' }
-                : hasMark
-                  ? { backgroundColor: 'var(--mantine-color-green-0)' }
-                  : isHighlighted
-                    ? { backgroundColor: 'var(--mantine-color-yellow-0)' }
-                    : {};
-
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <SortableContext
+            items={groups.map((g) => g.counterparty)}
+            strategy={verticalListSortingStrategy}
+          >
+            {groups.map((group) => {
+              const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
+              const BORDER = `2px dashed var(--mantine-color-gray-4)`;
               return (
-                <Table.Tr key={invoice.id} style={rowStyle}>
+                <SortableGroupBody key={group.counterparty} id={group.counterparty}>
+                  {({ listeners, isOver }) =>
+                    group.invoices.map((invoice, idx) => {
+                      const invoiceNumber = getInvoiceNumber(groups, invoice.id);
+                      const showCounterparty = idx === counterpartyRowIndex - 1;
+                      const paid = invoice.paid;
+                      const isHighlighted = highlightedIds.includes(invoice.id);
+                      const hasMark = !!marksByInvoice[invoice.id];
+                      const isFirst = idx === 0;
+                      const isLast = idx === group.invoices.length - 1;
+
+                      const isNumHandle = true;
+                      const isCpHandle = showCounterparty;
+
+                      const rowStyle: React.CSSProperties = {
+                        borderLeft: BORDER,
+                        borderRight: BORDER,
+                        ...(isFirst ? { borderTop: BORDER } : {}),
+                        ...(isLast ? { borderBottom: BORDER } : {}),
+                        ...(paid
+                          ? { backgroundColor: 'var(--mantine-color-yellow-1)' }
+                          : hasMark
+                            ? { backgroundColor: 'var(--mantine-color-green-0)' }
+                            : isHighlighted
+                              ? { backgroundColor: 'var(--mantine-color-yellow-0)' }
+                              : {}),
+                        ...(isOver && isFirst
+                          ? { borderTop: '3px solid var(--mantine-color-blue-6)' }
+                          : {}),
+                      };
+
+                      return (
+                        <Table.Tr key={invoice.id} style={rowStyle}>
+                          <Table.Td
+                            {...(isNumHandle ? listeners : {})}
+                            style={{ cursor: isNumHandle ? 'grab' : undefined, overflow: 'hidden', maxWidth: '100%' }}
+                          >
+                            <div style={{ overflow: 'hidden', maxWidth: '100%' }}>{invoiceNumber}</div>
+                          </Table.Td>
+                          {filteredColumns.map((colId) => {
+                            const col = columnRenderers[colId];
+                            const width = columnSizing[colId] ?? col.width;
+                            const isThisCpHandle = isCpHandle && colId === 'counterparty';
+                            return (
+                              <Table.Td
+                                key={colId}
+                                {...(isThisCpHandle ? listeners : {})}
+                                style={{
+                                  width,
+                                  cursor: isThisCpHandle ? 'grab' : undefined,
+                                }}
+                              >
+                                <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                                  {colId === 'counterparty' && showCounterparty ? (
+                                    <Text fw={600}>{group.counterparty}</Text>
+                                  ) : colId === 'counterparty' ? null : (
+                                    col.renderCell(invoice)
+                                  )}
+                                </div>
+                              </Table.Td>
+                            );
+                          })}
+                        </Table.Tr>
+                      );
+                    })
+                  }
+                </SortableGroupBody>
+              );
+            })}
+            {isDraftOpen && draftForm && (
+              <Table.Tbody>
+                <Table.Tr style={{ backgroundColor: 'var(--mantine-color-blue-0)' }}>
                   <Table.Td>
-                    <div style={{ overflow: 'hidden', maxWidth: '100%' }}>{invoiceNumber}</div>
+                    <div style={{ overflow: 'hidden', maxWidth: '100%' }}>—</div>
                   </Table.Td>
                   {filteredColumns.map((colId) => {
                     const col = columnRenderers[colId];
@@ -621,53 +750,41 @@ export function GroupedInvoiceTable({
                     return (
                       <Table.Td key={colId} style={{ width }}>
                         <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
-                          {colId === 'counterparty' && showCounterparty ? (
-                            <Text fw={600}>{group.counterparty}</Text>
-                          ) : colId === 'counterparty' ? null : (
-                            col.renderCell(invoice)
+                          {colId === 'actions' ? (
+                            <Group gap={4} wrap="nowrap">
+                              <Tooltip label="Сохранить">
+                                <ActionIcon
+                                  size="lg"
+                                  color="green"
+                                  variant="filled"
+                                  onClick={onDraftSave}
+                                >
+                                  <IconCheck size={14} />
+                                </ActionIcon>
+                              </Tooltip>
+                              <Tooltip label="Отмена">
+                                <ActionIcon
+                                  size="lg"
+                                  color="gray"
+                                  variant="filled"
+                                  onClick={onDraftCancel}
+                                >
+                                  <IconX size={14} />
+                                </ActionIcon>
+                              </Tooltip>
+                            </Group>
+                          ) : (
+                            col.renderDraft()
                           )}
                         </div>
                       </Table.Td>
                     );
                   })}
                 </Table.Tr>
-              );
-            });
-          })}
-          {isDraftOpen && draftForm && (
-            <Table.Tr style={{ backgroundColor: 'var(--mantine-color-blue-0)' }}>
-              <Table.Td>
-                <div style={{ overflow: 'hidden', maxWidth: '100%' }}>—</div>
-              </Table.Td>
-              {filteredColumns.map((colId) => {
-                const col = columnRenderers[colId];
-                const width = columnSizing[colId] ?? col.width;
-                return (
-                  <Table.Td key={colId} style={{ width }}>
-                    <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
-                      {colId === 'actions' ? (
-                        <Group gap={4} wrap="nowrap">
-                          <Tooltip label="Сохранить">
-                            <ActionIcon size="md" color="green" variant="light" onClick={onDraftSave}>
-                              <IconCheck size={14} />
-                            </ActionIcon>
-                          </Tooltip>
-                          <Tooltip label="Отмена">
-                            <ActionIcon size="md" color="gray" variant="subtle" onClick={onDraftCancel}>
-                              <IconX size={14} />
-                            </ActionIcon>
-                          </Tooltip>
-                        </Group>
-                      ) : (
-                        col.renderDraft()
-                      )}
-                    </div>
-                  </Table.Td>
-                );
-              })}
-            </Table.Tr>
-          )}
-        </Table.Tbody>
+              </Table.Tbody>
+            )}
+          </SortableContext>
+        </DndContext>
       </Table>
     </Box>
   );

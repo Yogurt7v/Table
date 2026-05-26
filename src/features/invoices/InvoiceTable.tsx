@@ -7,6 +7,8 @@ import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
 import { useUpdateInvoice } from '@/shared/hooks/useUpdateInvoice';
 import { useDeleteInvoice } from '@/shared/hooks/useDeleteInvoice';
 import { useMoveInvoice } from '@/shared/hooks/useMoveInvoice';
+import { useReorderInvoices } from '@/shared/hooks/useReorderInvoices';
+import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import { useCreatePaymentMark, useDeletePaymentMark } from '@/shared/hooks/usePaymentMarks';
 import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -50,6 +52,17 @@ export function InvoiceTable({
   const moveInvoice = useMoveInvoice(orgId, date);
   const createPaymentMark = useCreatePaymentMark(orgId);
   const deletePaymentMark = useDeletePaymentMark(orgId);
+  const reorderInvoices = useReorderInvoices(orgId, date);
+
+  const handleReorderGroups = (counterpartyOrder: string[]) => {
+    const groups = groupInvoicesByCounterparty(invoices);
+    const map = new Map(groups.map((g) => [g.counterparty, g.invoices]));
+    const flatIds = counterpartyOrder.flatMap((cp) => {
+      const g = map.get(cp);
+      return g ? g.map((inv) => inv.id) : [];
+    });
+    reorderInvoices.mutate(flatIds);
+  };
 
   const [draftForm, setDraftForm] = useState<DraftInvoiceForm>(createEmptyDraft);
   const counterpartySearch = useCounterpartySearch(orgId, draftForm.counterparty);
@@ -265,6 +278,7 @@ export function InvoiceTable({
         filesByInvoice={filesByInvoice}
         onFiles={(inv) => setFilesInvoice(inv)}
         visibleColumns={visibleColumns}
+        onReorderGroups={handleReorderGroups}
       />
       <ConfirmModal
         opened={!!deleteTarget}
