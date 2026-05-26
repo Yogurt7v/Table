@@ -213,7 +213,13 @@ export async function updateInvoiceWithHistory(
   return updateInvoice(id, data);
 }
 
-export function deleteInvoice(id: string) {
+export async function deleteInvoice(id: string) {
+  const historyRecords = await pb.collection('invoice_history').getFullList<IInvoiceHistory>({
+    filter: `invoice_id = "${id}"`,
+  });
+  await Promise.all(
+    historyRecords.map((record) => pb.collection('invoice_history').delete(record.id)),
+  );
   return pb.collection('invoices').delete(id);
 }
 

@@ -22,13 +22,17 @@ export function groupInvoicesByCounterparty(invoices: IInvoice[]): InvoiceGroup[
 
   const result: InvoiceGroup[] = [];
   grouped.forEach((invoices, counterparty) => {
-    invoices.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
+    invoices.sort((a, b) => {
+      const seqA = (a.seq ?? 0) || Infinity;
+      const seqB = (b.seq ?? 0) || Infinity;
+      return seqA - seqB;
+    });
     result.push({ counterparty, invoices });
   });
 
   result.sort((a, b) => {
-    const seqA = Math.min(...a.invoices.map((inv) => inv.seq ?? 0));
-    const seqB = Math.min(...b.invoices.map((inv) => inv.seq ?? 0));
+    const seqA = Math.min(...a.invoices.map((inv) => inv.seq ?? 0)) || Infinity;
+    const seqB = Math.min(...b.invoices.map((inv) => inv.seq ?? 0)) || Infinity;
     return seqA - seqB;
   });
 
