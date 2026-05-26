@@ -39,14 +39,14 @@ export function InvoiceEditModal({
     if (opened) {
       if (invoice) {
         setForm({
-          counterparty: invoice.counterparty || '',
-          purpose: invoice.purpose || '',
-          contract_no: invoice.contract_no || '',
-          invoice_no: invoice.invoice_no || '',
+          counterparty: invoice.counterparty,
+          purpose: invoice.purpose,
+          contract_no: invoice.contract_no,
+          invoice_no: invoice.invoice_no,
           amount: invoice.amount || 0,
           paid: invoice.paid || false,
-          paid_date: invoice.paid_date || '',
-          comment: invoice.comment || '',
+          paid_date: invoice.paid_date,
+          comment: invoice.comment,
         });
       } else {
         setForm(createEmptyDraft());
@@ -96,20 +96,29 @@ export function InvoiceEditModal({
           label="Назначение платежа"
           placeholder="Введите назначение платежа"
           value={form.purpose}
-          onChange={(e) => setForm((prev) => ({ ...prev, purpose: e.currentTarget.value }))}
+          onChange={(e) => {
+            const value = e.currentTarget.value;
+            setForm((prev) => ({ ...prev, purpose: value }));
+          }}
           required
         />
         <TextInput
           label="Договор"
           placeholder="Номер договора"
           value={form.contract_no}
-          onChange={(e) => setForm((prev) => ({ ...prev, contract_no: e.currentTarget.value }))}
+          onChange={(e) => {
+            const value = e.currentTarget.value;
+            setForm((prev) => ({ ...prev, contract_no: value }));
+          }}
         />
         <TextInput
           label="Номер счёта"
           placeholder="Введите номер счёта"
           value={form.invoice_no}
-          onChange={(e) => setForm((prev) => ({ ...prev, invoice_no: e.currentTarget.value }))}
+          onChange={(e) => {
+            const value = e.currentTarget.value;
+            setForm((prev) => ({ ...prev, invoice_no: value }));
+          }}
           required
         />
         <NumberInput
@@ -125,8 +134,11 @@ export function InvoiceEditModal({
         <TextInput
           label="Комментарий"
           placeholder="Введите комментарий"
-          value={form.comment}
-          onChange={(e) => setForm((prev) => ({ ...prev, comment: e.currentTarget.value }))}
+          value={form.comment ?? ''}
+          onChange={(e) => {
+            const value = e.currentTarget.value;
+            setForm((prev) => ({ ...prev, comment: value }));
+          }}
         />
         <Group justify="flex-end" gap="sm">
           <Button variant="default" onClick={handleClose}>

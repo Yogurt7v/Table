@@ -1,4 +1,4 @@
-import { Modal, Stack, Text, Table, Loader } from '@mantine/core';
+import { Modal, Text, Timeline, Loader } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { getInvoiceHistory } from '@/api/collections';
@@ -42,7 +42,11 @@ export function InvoiceHistoryModal({
       ) : !history?.length ? (
         <Text c="dimmed">Изменений пока нет</Text>
       ) : (
-        <Stack gap="md">
+        <>
+          <Text size="xs" c="dimmed" mb="sm">
+            Показаны старые значения изменённых полей
+          </Text>
+          <Timeline active={history.length - 1} bulletSize={28} lineWidth={2}>
           {history.map((entry) => {
             const prev =
               typeof entry.previous_data === 'string'
@@ -50,30 +54,27 @@ export function InvoiceHistoryModal({
                 : entry.previous_data;
 
             return (
-              <Stack key={entry.id} gap={4}>
-                <Text size="sm" fw={500}>
-                  {dayjs(entry.changed_at).format('DD.MM.YYYY HH:mm')} — {entry.author}
+              <Timeline.Item
+                key={entry.id}
+                title={dayjs(entry.changed_at).format('DD.MM.YYYY HH:mm')}
+              >
+                <Text c="dimmed" size="sm" mb="xs">
+                  {entry.author}
                 </Text>
-                <Table withTableBorder striped>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>Поле</Table.Th>
-                      <Table.Th>Было</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {Object.entries(prev).map(([key, value]) => (
-                      <Table.Tr key={key}>
-                        <Table.Td>{FIELD_LABELS[key] ?? key}</Table.Td>
-                        <Table.Td>{formatHistoryValue(key, value)}</Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-              </Stack>
+
+                {Object.entries(prev).map(([key, value]) => (
+                  <Text key={key} size="sm">
+                    <Text component="span" c="dimmed">
+                      {FIELD_LABELS[key] ?? key}:{' '}
+                    </Text>
+                    {formatHistoryValue(key, value)}
+                  </Text>
+                ))}
+              </Timeline.Item>
             );
           })}
-        </Stack>
+        </Timeline>
+        </>
       )}
     </Modal>
   );
