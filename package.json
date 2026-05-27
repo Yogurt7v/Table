@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "pb": "./pocketbase serve",
+    "pbe": "pocketbase.exe serve",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",

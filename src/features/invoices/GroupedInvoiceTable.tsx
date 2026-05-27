@@ -27,13 +27,7 @@ import {
   IconSettings,
   IconFile,
 } from '@tabler/icons-react';
-import {
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
+import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -45,7 +39,6 @@ import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/sh
 import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
-import { ALL_INVOICE_COLUMNS } from './invoice-columns';
 import type { DraftInvoiceForm } from './invoice-field-access';
 import {
   loadColumnSizing,
@@ -75,16 +68,8 @@ function SortableGroupBody({
     isOver: boolean;
   }) => React.ReactNode;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-    index,
-    overIndex,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, index, overIndex } =
+    useSortable({ id });
 
   const isOver = !isDragging && overIndex === index;
 
@@ -704,9 +689,15 @@ export function GroupedInvoiceTable({
                         <Table.Tr key={invoice.id} style={rowStyle}>
                           <Table.Td
                             {...(isNumHandle ? listeners : {})}
-                            style={{ cursor: isNumHandle ? 'grab' : undefined, overflow: 'hidden', maxWidth: '100%' }}
+                            style={{
+                              cursor: isNumHandle ? 'grab' : undefined,
+                              overflow: 'hidden',
+                              maxWidth: '100%',
+                            }}
                           >
-                            <div style={{ overflow: 'hidden', maxWidth: '100%' }}>{invoiceNumber}</div>
+                            <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                              {invoiceNumber}
+                            </div>
                           </Table.Td>
                           {filteredColumns.map((colId) => {
                             const col = columnRenderers[colId];
