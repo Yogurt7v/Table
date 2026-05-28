@@ -31,8 +31,6 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
     (ou) => ou.user_id === user?.id && ou.organization_id === currentOrgId,
   )?.role;
   const canEdit = currentRole === 'admin' || currentRole === 'moderator';
-  const isToday = date === dayjs().format('YYYY-MM-DD');
-  const canEditHere = canEdit && isToday;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<number>(0);
@@ -53,6 +51,10 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
     await updateBalance.mutateAsync({ accountId: editingId, date, balance: editValue });
     setEditingId(null);
   };
+
+  if (currentRole && !canEdit && currentRole !== 'boss') return null;
+  const isToday = date === dayjs().format('YYYY-MM-DD');
+  const canEditHere = canEdit && isToday;
 
   return (
     <Paper withBorder p="sm" w="50%">
