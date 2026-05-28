@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Paper, Title, Table, Loader, Text, Group, NumberInput, ActionIcon } from '@mantine/core';
 import { IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import sumBy from 'lodash/sumBy';
-import dayjs from 'dayjs';
+// import dayjs from 'dayjs';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
@@ -53,8 +53,8 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
   };
 
   if (currentRole && !canEdit && currentRole !== 'boss') return null;
-  const isToday = date === dayjs().format('YYYY-MM-DD');
-  const canEditHere = canEdit && isToday;
+  // const isToday = date === dayjs().format('YYYY-MM-DD');
+  const canEditHere = canEdit; // && isToday
 
   return (
     <Paper withBorder p="sm" w="50%">
