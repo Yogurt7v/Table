@@ -2,12 +2,12 @@ import { useMemo, useState, useEffect } from 'react';
 import { Affix, Paper, Title, Button, Group, Loader, Text, Table, ActionIcon, Tooltip, Switch } from '@mantine/core';
 import { IconPlus, IconPrinter, IconSettings } from '@tabler/icons-react';
 import dayjs from 'dayjs';
-import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
 import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
 import { useOrgInvoiceFiles } from '@/shared/hooks/useInvoiceFiles';
 import { useUserSetting, useUpsertUserSetting } from '@/shared/hooks/useUserSettings';
+import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { InvoiceColumnSettingsModal } from '@/features/invoices/InvoiceColumnSettingsModal';
@@ -57,7 +57,7 @@ export function InvoiceSection({
   onBackToDate,
   bankTotal,
 }: InvoiceSectionProps) {
-  const { data: objects } = useAccountingObjects(orgId);
+  const objects = useAccessibleObjects(orgId);
   const { data: invoices } = useInvoices(orgId, date);
   const { data: searchResults } = useSearchInvoices(orgId);
   const { data: paymentMarks } = usePaymentMarks(orgId);

@@ -87,6 +87,7 @@ export interface IOrganizationUser {
   user_id: string;
   organization_id: string;
   role: 'admin' | 'moderator' | 'user' | 'guest' | 'boss';
+  objects?: string[];
   expand?: {
     user_id?: IUser;
     organization_id?: IOrganization;

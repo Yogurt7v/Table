@@ -1,10 +1,24 @@
 import { useState } from 'react';
-import { Group, Stack, Select, Button, Text, Badge, ActionIcon } from '@mantine/core';
-import { IconTrash, IconPlus } from '@tabler/icons-react';
+import {
+  Group,
+  Stack,
+  Select,
+  Button,
+  Text,
+  Badge,
+  ActionIcon,
+  Popover,
+  Checkbox,
+  CheckboxGroup,
+  Loader,
+} from '@mantine/core';
+import { IconTrash, IconPlus, IconEye } from '@tabler/icons-react';
 import {
   useCreateOrganizationUser,
   useDeleteOrganizationUser,
+  useUpdateOrganizationUser,
 } from '@/shared/hooks/useOrganizationUsers';
+import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useOrg } from '@/shared/context/OrgContext';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type { IOrganizationUser } from '@/shared/types';
@@ -30,14 +44,73 @@ interface InlineRoleCellProps {
   assignments: IOrganizationUser[];
 }
 
+function ObjectCheckboxList({
+  orgId,
+  selected,
+  onChange,
+}: {
+  orgId: string;
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const { data: objects, isLoading } = useAccountingObjects(orgId);
+
+  if (isLoading) return <Loader size="xs" />;
+
+  if (!objects || objects.length === 0) {
+    return (
+      <Text size="xs" c="dimmed" fs="italic">
+        У организации нет объектов
+      </Text>
+    );
+  }
+
+  return (
+    <CheckboxGroup value={selected} onChange={onChange}>
+      <Stack gap={4}>
+        {objects?.map((obj) => (
+          <Checkbox key={obj.id} value={obj.id} label={obj.name} size="xs" />
+        ))}
+      </Stack>
+    </CheckboxGroup>
+  );
+}
+
+function ObjectLabels({ orgId, objectIds }: { orgId: string; objectIds: string[] }) {
+  const { data: objects } = useAccountingObjects(orgId);
+  if (!objects) return null;
+
+  const names = objectIds
+    .map((id) => objects.find((o) => o.id === id)?.name)
+    .filter((n): n is string => !!n);
+
+  if (names.length === 0) return null;
+
+  return (
+    <>
+      <Text size="xs" c="dimmed" component="span" ml="xs">
+        Объекты:
+      </Text>
+      {names.map((name) => (
+        <Badge key={name} color="gray" size="xs" variant="light" ml={2}>
+          {name}
+        </Badge>
+      ))}
+    </>
+  );
+}
+
 export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
   const createOrgUser = useCreateOrganizationUser();
   const deleteOrgUser = useDeleteOrganizationUser();
+  const updateOrgUser = useUpdateOrganizationUser();
   const { organizations } = useOrg();
   const [showForm, setShowForm] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<IOrganizationUser['role']>('guest');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; orgName: string } | null>(null);
+  const [objectsPopoverId, setObjectsPopoverId] = useState<string | null>(null);
+  const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
 
   const availableOrgs = organizations.filter(
     (o) => !assignments.some((a) => a.organization_id === o.id),
@@ -66,6 +139,7 @@ export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
         {assignments.map((a) => {
           const orgName =
             organizations.find((o) => o.id === a.organization_id)?.name ?? a.organization_id;
+          const orgColor = organizations.find((o) => o.id === a.organization_id)?.color;
           return (
             <Group key={a.id} gap={4} wrap="nowrap">
               <Group gap={4} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
@@ -75,7 +149,60 @@ export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
                 <Badge color={ROLE_COLORS[a.role]} size="sm" variant="light">
                   {ROLE_LABELS[a.role]}
                 </Badge>
+                {a.objects && a.objects.length > 0 && a.role !== 'admin' && (
+                  <ObjectLabels orgId={a.organization_id} objectIds={a.objects} />
+                )}
               </Group>
+              {a.role !== 'admin' && (
+                <Popover
+                  opened={objectsPopoverId === a.id}
+                  onClose={() => setObjectsPopoverId(null)}
+                  closeOnClickOutside={false}
+                >
+                  <Popover.Target>
+                    <ActionIcon
+                      size="sm"
+                      variant="subtle"
+                      color={a.objects && a.objects.length > 0 ? 'blue' : 'gray'}
+                      onClick={() => {
+                        setObjectsPopoverId(objectsPopoverId === a.id ? null : a.id);
+                        setSelectedObjects(a.objects ?? []);
+                      }}
+                    >
+                      <IconEye size={24} />
+                    </ActionIcon>
+                  </Popover.Target>
+                  <Popover.Dropdown>
+                    <ObjectCheckboxList
+                      orgId={a.organization_id}
+                      selected={selectedObjects}
+                      onChange={setSelectedObjects}
+                    />
+                    <Group justify="flex-end" mt="xs">
+                      <Button
+                        size="compact-xs"
+                        variant="light"
+                        onClick={() => setObjectsPopoverId(null)}
+                      >
+                        Отмена
+                      </Button>
+                      <Button
+                        size="compact-xs"
+                        onClick={async () => {
+                          await updateOrgUser.mutateAsync({
+                            id: a.id,
+                            data: { objects: selectedObjects },
+                          });
+                          setObjectsPopoverId(null);
+                        }}
+                        loading={updateOrgUser.isPending}
+                      >
+                        Сохранить
+                      </Button>
+                    </Group>
+                  </Popover.Dropdown>
+                </Popover>
+              )}
               <ActionIcon
                 size="md"
                 color="red"

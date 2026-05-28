@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getOrganizationUsers,
   createOrganizationUser,
-  updateOrganizationUserRole,
+  updateOrganizationUser,
   deleteOrganizationUser,
 } from '@/api/collections';
 import type { IOrganizationUser } from '@/shared/types';
@@ -21,20 +21,22 @@ export function useCreateOrganizationUser() {
       userId,
       organizationId,
       role,
+      objectIds,
     }: {
       userId: string;
       organizationId: string;
       role: IOrganizationUser['role'];
-    }) => createOrganizationUser(userId, organizationId, role),
+      objectIds?: string[];
+    }) => createOrganizationUser(userId, organizationId, role, objectIds),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organization_users'] }),
   });
 }
 
-export function useUpdateOrganizationUserRole() {
+export function useUpdateOrganizationUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, role }: { id: string; role: IOrganizationUser['role'] }) =>
-      updateOrganizationUserRole(id, role),
+    mutationFn: ({ id, data }: { id: string; data: { role?: IOrganizationUser['role']; objects?: string[] } }) =>
+      updateOrganizationUser(id, data),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organization_users'] }),
   });
 }

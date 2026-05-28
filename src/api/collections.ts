@@ -292,16 +292,18 @@ export function createOrganizationUser(
   userId: string,
   organizationId: string,
   role: IOrganizationUser['role'],
+  objectIds?: string[],
 ) {
   return pb.collection('organization_users').create<IOrganizationUser>({
     user_id: userId,
     organization_id: organizationId,
     role,
+    objects: objectIds,
   });
 }
 
-export function updateOrganizationUserRole(id: string, role: IOrganizationUser['role']) {
-  return pb.collection('organization_users').update<IOrganizationUser>(id, { role });
+export function updateOrganizationUser(id: string, data: { role?: IOrganizationUser['role']; objects?: string[] }) {
+  return pb.collection('organization_users').update<IOrganizationUser>(id, data);
 }
 
 export function deleteOrganizationUser(id: string) {
