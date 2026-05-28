@@ -203,7 +203,7 @@ export function PrintableInvoices({
         <p className="print-date">{dayjs(date).format('DD.MM.YYYY')}</p>
 
         {objBindings.map(({ obj, groups, unpaidTotal }, objIdx) => (
-          <div key={obj.id} style={objIdx > 0 ? { pageBreakBefore: 'always' } : undefined}>
+          <div key={obj.id}>
             <div className="print-obj-header">{obj.name}</div>
 
             <table>
