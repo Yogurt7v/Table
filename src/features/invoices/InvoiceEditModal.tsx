@@ -7,6 +7,7 @@ import {
   Alert,
   Autocomplete,
   Group,
+  Textarea,
 } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
@@ -92,9 +93,10 @@ export function InvoiceEditModal({
           searchable
           required
         />
-        <TextInput
+        <Textarea
           label="Назначение платежа"
           placeholder="Введите назначение платежа"
+          autosize
           value={form.purpose}
           onChange={(e) => {
             const value = e.currentTarget.value;
