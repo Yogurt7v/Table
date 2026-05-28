@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Affix, Paper, Title, Button, Group, Loader, Text, Table, ActionIcon, Tooltip } from '@mantine/core';
+import { Affix, Paper, Title, Button, Group, Loader, Text, Table, ActionIcon, Tooltip, Switch } from '@mantine/core';
 import { IconPlus, IconPrinter, IconSettings } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
@@ -66,6 +66,7 @@ export function InvoiceSection({
   const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [hidePaid, setHidePaid] = useState(false);
 
   const handlePrint = () => {
     setIsPrinting(true);
@@ -124,6 +125,13 @@ export function InvoiceSection({
 
   const isOverBalance = markedTotal > bankTotal;
 
+  const paidTodayTotal = useMemo(() => {
+    if (!invoices) return 0;
+    return invoices
+      .filter((inv) => inv.paid && inv.paid_date === date)
+      .reduce((sum, inv) => sum + inv.amount, 0);
+  }, [invoices, date]);
+
   if (!orgId) return null;
 
   if (!objects) return <Loader />;
@@ -152,6 +160,19 @@ export function InvoiceSection({
             <IconPrinter size={20} />
           </ActionIcon>
         </Tooltip>
+        {(permissions.role === 'admin' || permissions.role === 'moderator') && (
+          <Switch
+            size="xs"
+            label="Скрыть оплаченные"
+            checked={hidePaid}
+            onChange={(e) => setHidePaid(e.currentTarget.checked)}
+          />
+        )}
+        {paidTodayTotal > 0 && (
+          <Text size="sm" c="dimmed">
+            Оплачено: {formatAmountRub(paidTodayTotal)}
+          </Text>
+        )}
       </Group>
     </Group>
   );
@@ -214,7 +235,11 @@ export function InvoiceSection({
       {tableHeader}
       {objects.map((obj) => {
     const objInvoices =
-      invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id) ?? [];
+      (hidePaid
+        ? invoices?.filter(
+            (i) => normalizeRelationId(i.accounting_object_id) === obj.id && !i.paid,
+          )
+        : invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id)) ?? [];
     const isDraftOpen = draftObjectId === obj.id;
     const totalAmount = objInvoices.reduce((sum, inv) => {
       return !inv.paid ? sum + inv.amount : sum;
