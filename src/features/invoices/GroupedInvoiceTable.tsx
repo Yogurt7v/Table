@@ -705,27 +705,52 @@ export function GroupedInvoiceTable({
           >
             {groups.map((group) => {
               const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
-              const BORDER = `2px dashed var(--mantine-primary-color-filled)`;
+              const BORDER = `1.5px dashed var(--mantine-primary-color-filled)`;
               return (
                 <SortableGroupBody key={group.counterparty} id={group.counterparty}>
                   {({ listeners, isOver }) =>
                     group.invoices.flatMap((invoice, idx) => {
+                      const getExpandedCount = (inv: IInvoice) => {
+                        const amts = inv.payment_amounts ?? [];
+                        const tPaid = amts.reduce((s, a) => s + a, 0);
+                        let extra = 0;
+                        if (amts.length > 1) extra += amts.length - 1;
+                        if (tPaid > 0 && inv.amount - tPaid > 0) extra += 1;
+                        return 1 + extra;
+                      };
+
+                      const precedingRows = group.invoices.slice(0, idx).reduce(
+                        (sum, inv) => sum + getExpandedCount(inv), 0,
+                      );
+                      const followingRows = group.invoices.slice(idx + 1).reduce(
+                        (sum, inv) => sum + getExpandedCount(inv), 0,
+                      );
+                      const isGroupFirst = precedingRows === 0;
+                      const isGroupLast = followingRows === 0;
+
                       const invoiceNumber = getInvoiceNumber(groups, invoice.id);
                       const showCounterparty = idx === counterpartyRowIndex - 1;
                       const paid = invoice.paid;
                       const isHighlighted = highlightedIds.includes(invoice.id);
                       const hasMark = !!marksByInvoice[invoice.id];
-                      const isFirst = idx === 0;
-                      const isLast = idx === group.invoices.length - 1;
 
                       const isNumHandle = true;
                       const isCpHandle = showCounterparty;
 
+                      const amounts = invoice.payment_amounts ?? [];
+                      const totalPaid = amounts.reduce((s, a) => s + a, 0);
+                      const remaining = invoice.amount - totalPaid;
+
+                      const hasCopies = amounts.length > 1;
+                      const hasRemainder = totalPaid > 0 && remaining > 0;
+                      const extraRows = (hasCopies ? amounts.length - 1 : 0) + (hasRemainder ? 1 : 0);
+                      const isLastRow = isGroupLast && extraRows === 0;
+
                       const rowStyle: React.CSSProperties = {
                         borderLeft: BORDER,
                         borderRight: BORDER,
-                        ...(isFirst ? { borderTop: BORDER } : {}),
-                        ...(isLast ? { borderBottom: BORDER } : {}),
+                        ...(isGroupFirst ? { borderTop: BORDER } : {}),
+                        ...(isLastRow ? { borderBottom: BORDER } : {}),
                         ...(paid
                           ? { backgroundColor: 'var(--mantine-color-yellow-1)' }
                           : hasMark
@@ -733,14 +758,10 @@ export function GroupedInvoiceTable({
                             : isHighlighted
                               ? { backgroundColor: 'var(--mantine-color-yellow-0)' }
                               : {}),
-                        ...(isOver && isFirst
+                        ...(isOver && isGroupFirst
                           ? { borderTop: '3px solid var(--mantine-color-blue-6)' }
                           : {}),
                       };
-
-                      const amounts = invoice.payment_amounts ?? [];
-                      const totalPaid = amounts.reduce((s, a) => s + a, 0);
-                      const remaining = invoice.amount - totalPaid;
 
                       const rows: React.ReactNode[] = [];
 
@@ -795,7 +816,11 @@ export function GroupedInvoiceTable({
                             <Table.Tr
                               key={copyId}
                               style={{
-                                ...rowStyle,
+                                borderLeft: BORDER,
+                                borderRight: BORDER,
+                                ...(isGroupLast && !hasRemainder && i === amounts.length - 1
+                                  ? { borderBottom: BORDER }
+                                  : {}),
                                 backgroundColor: 'var(--mantine-color-yellow-1)',
                                 fontSize: '0.9em',
                               }}
@@ -868,10 +893,12 @@ export function GroupedInvoiceTable({
                           <Table.Tr
                             key={remainderId}
                             style={{
-                              ...rowStyle,
-                              backgroundColor: 'var(--mantine-color-gray-0)',
-                              fontSize: '0.9em',
-                            }}
+                                borderLeft: BORDER,
+                                borderRight: BORDER,
+                                ...(isGroupLast ? { borderBottom: BORDER } : {}),
+                                backgroundColor: 'var(--mantine-color-gray-0)',
+                                fontSize: '0.9em',
+                              }}
                           >
                             <Table.Td
                               style={{
