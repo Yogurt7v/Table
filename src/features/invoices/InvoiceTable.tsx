@@ -173,29 +173,26 @@ export function InvoiceTable({
     );
   };
 
-  const handleTogglePaid = (invoice: IInvoice) => {
-    // Вычисляем новое значение paid
-    const newPaidStatus = !invoice.paid;
-
-    // Если paid = true -> устанавливаем сегодняшнюю дату
-    // Если paid = false -> очищаем дату оплаты (null)
-    const newPaidDate = newPaidStatus ? date.slice(0, 10) : null;
-
-    // Подготовим обновления
-    const updates: Record<string, unknown> = {
-      paid: newPaidStatus,
-      paid_date: newPaidDate,
-    };
-
-    // Подготовим данные для отката (previousData)
+  const handlePayInvoice = (invoiceId: string, amount: number) => {
+    const invoice = invoices.find((i) => i.id === invoiceId);
+    if (!invoice) return;
+    const newAmounts = [...(invoice.payment_amounts ?? []), amount];
+    const totalPaid = newAmounts.reduce((s, a) => s + a, 0);
     const previousData: Record<string, unknown> = {
       paid: invoice.paid,
+      payment_amounts: invoice.payment_amounts,
+      paid_amount: invoice.paid_amount,
       paid_date: invoice.paid_date,
     };
-
-    // Вызов mutate хука updateInvoice
     updateInvoice.mutate(
-      { id: invoice.id, previousData, ...updates },
+      {
+        id: invoiceId,
+        previousData,
+        paid: true,
+        payment_amounts: newAmounts,
+        paid_amount: totalPaid >= invoice.amount ? null : totalPaid,
+        paid_date: date.slice(0, 10),
+      },
       {
         onSuccess: () => {
           notifications.show({ color: 'green', message: 'Статус счёта обновлён' });
@@ -203,6 +200,41 @@ export function InvoiceTable({
         onError: (error) => {
           console.error('Ошибка при обновлении статуса оплаты:', error);
           notifications.show({ color: 'red', message: 'Не удалось обновить статус счёта' });
+        },
+      },
+    );
+  };
+
+  const handleClearPayment = (invoiceId: string) => {
+    const originalId = invoiceId.replace(/__p\d+$/, '');
+    const invoice = invoices.find((i) => i.id === originalId);
+    if (!invoice) return;
+    const amounts = invoice.payment_amounts ?? [];
+    if (amounts.length === 0) return;
+    const newAmounts = amounts.slice(0, -1);
+    const totalPaid = newAmounts.reduce((s, a) => s + a, 0);
+    const previousData: Record<string, unknown> = {
+      paid: invoice.paid,
+      payment_amounts: invoice.payment_amounts,
+      paid_amount: invoice.paid_amount,
+      paid_date: invoice.paid_date,
+    };
+    updateInvoice.mutate(
+      {
+        id: originalId,
+        previousData,
+        paid: newAmounts.length > 0,
+        payment_amounts: newAmounts,
+        paid_amount: newAmounts.length > 0 ? (totalPaid >= invoice.amount ? null : totalPaid) : null,
+        paid_date: newAmounts.length > 0 ? invoice.paid_date : null,
+      },
+      {
+        onSuccess: () => {
+          notifications.show({ color: 'green', message: 'Оплата снята' });
+        },
+        onError: (error) => {
+          console.error('Ошибка при снятии оплаты:', error);
+          notifications.show({ color: 'red', message: 'Не удалось снять оплату' });
         },
       },
     );
@@ -269,7 +301,8 @@ export function InvoiceTable({
         onDelete={(inv) => setDeleteTarget(inv)}
         onHistory={(inv) => setHistoryInvoice(inv)}
         onMove={(inv) => setMoveInvoiceTarget(inv)}
-        onTogglePaid={handleTogglePaid}
+        onPayInvoice={handlePayInvoice}
+        onClearPayment={handleClearPayment}
         permissions={permissions}
         paymentMarks={paymentMarks}
         onMarkForPayment={handleMarkForPayment}

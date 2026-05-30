@@ -99,8 +99,12 @@ export function PrintableInvoices({
         return invoice.invoice_no;
       case 'amount':
         return formatAmountRub(invoice.amount);
-      case 'paid':
-        return invoice.paid ? 'Да' : 'Нет';
+      case 'paid': {
+        if (invoice.paid) {
+          return formatAmountRub(invoice.paid_amount ?? invoice.amount);
+        }
+        return 'Нет';
+      }
       case 'paid_date':
         return invoice.paid_date || '—';
       case 'comment':

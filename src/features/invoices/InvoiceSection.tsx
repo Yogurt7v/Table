@@ -129,7 +129,7 @@ export function InvoiceSection({
     if (!invoices) return 0;
     return invoices
       .filter((inv) => inv.paid && inv.paid_date === date)
-      .reduce((sum, inv) => sum + inv.amount, 0);
+      .reduce((sum, inv) => sum + (inv.paid_amount ?? inv.amount), 0);
   }, [invoices, date]);
 
   if (!orgId) return null;
@@ -236,13 +236,27 @@ export function InvoiceSection({
       {objects.map((obj) => {
     const objInvoices =
       (hidePaid
-        ? invoices?.filter(
-            (i) => normalizeRelationId(i.accounting_object_id) === obj.id && !i.paid,
-          )
+        ? invoices?.flatMap((i) => {
+            if (normalizeRelationId(i.accounting_object_id) !== obj.id) return [];
+            if (!i.paid) return [i];
+            const amounts = i.payment_amounts ?? [];
+            if (amounts.length === 0) return [];
+            const totalPaid = amounts.reduce((s, a) => s + a, 0);
+            const remaining = i.amount - totalPaid;
+            if (remaining <= 0) return [];
+            return [{ ...i, amount: remaining, paid: false, paid_amount: null, payment_amounts: [] }];
+          })
         : invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id)) ?? [];
     const isDraftOpen = draftObjectId === obj.id;
     const totalAmount = objInvoices.reduce((sum, inv) => {
-      return !inv.paid ? sum + inv.amount : sum;
+      if (!inv.paid) return sum + inv.amount;
+      const amounts = inv.payment_amounts ?? [];
+      if (amounts.length > 0) {
+        const totalPaid = amounts.reduce((s, a) => s + a, 0);
+        const remaining = inv.amount - totalPaid;
+        if (remaining > 0) return sum + remaining;
+      }
+      return sum;
     }, 0);
 
     return (

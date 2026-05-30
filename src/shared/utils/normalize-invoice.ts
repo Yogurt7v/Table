@@ -25,6 +25,10 @@ export function normalizeInvoice(record: IInvoice): IInvoice {
     seq: Number(record.seq) || 0,
     amount: Number(record.amount) || 0,
     paid: Boolean(record.paid),
+    paid_amount: record.paid_amount != null ? Number(record.paid_amount) : null,
+    payment_amounts: Array.isArray(record.payment_amounts)
+      ? record.payment_amounts.map(Number)
+      : [],
   };
 }
 

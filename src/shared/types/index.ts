@@ -40,6 +40,8 @@ export interface IInvoice {
   invoice_no: string;
   amount: number;
   paid: boolean;
+  paid_amount: number | null;
+  payment_amounts: number[];
   paid_date: string;
   comment: string;
   created?: string;

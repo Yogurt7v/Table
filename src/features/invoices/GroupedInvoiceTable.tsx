@@ -16,6 +16,7 @@ import {
   Menu,
   Stack,
   Anchor,
+  Modal,
 } from '@mantine/core';
 import {
   IconTrash,
@@ -39,6 +40,7 @@ import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/sh
 import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
+import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type { DraftInvoiceForm } from './invoice-field-access';
 import {
   loadColumnSizing,
@@ -101,7 +103,8 @@ interface GroupedInvoiceTableProps {
   onDelete: (invoice: IInvoice) => void;
   onHistory: (invoice: IInvoice) => void;
   onMove: (invoice: IInvoice) => void;
-  onTogglePaid: (invoice: IInvoice) => void;
+  onPayInvoice: (invoiceId: string, amount: number) => void;
+  onClearPayment: (invoiceId: string) => void;
   highlightedIds: string[];
   permissions: {
     canUpdate: boolean;
@@ -137,7 +140,8 @@ export function GroupedInvoiceTable({
   onDelete,
   onHistory,
   onMove,
-  onTogglePaid,
+  onPayInvoice,
+  onClearPayment,
   highlightedIds,
   permissions,
   paymentMarks,
@@ -166,6 +170,10 @@ export function GroupedInvoiceTable({
     amount: string;
     comment: string;
   } | null>(null);
+
+  const [payModalInvoice, setPayModalInvoice] = useState<IInvoice | null>(null);
+  const [payModalAmount, setPayModalAmount] = useState<string>('');
+  const [clearConfirmInvoiceId, setClearConfirmInvoiceId] = useState<string | null>(null);
 
   const filteredColumns = useMemo(
     () =>
@@ -253,6 +261,15 @@ export function GroupedInvoiceTable({
 
     onReorderGroups?.(newOrder);
   };
+
+  function handlePaySubmit(invoice: IInvoice, amount: number) {
+    if (invoice.id.endsWith('__r')) {
+      const parentId = invoice.id.slice(0, -3);
+      onPayInvoice(parentId, amount);
+    } else {
+      onPayInvoice(invoice.id, amount);
+    }
+  }
 
   if (groups.length === 0 && !isDraftOpen) {
     return (
@@ -528,23 +545,59 @@ export function GroupedInvoiceTable({
       ),
     },
     paid: {
-      width: 100,
+      width: 130,
       header: 'Оплачено',
       renderCell: (invoice) => {
+        const amounts = invoice.payment_amounts;
         if (permissions.canUpdate) {
+          if (amounts.length > 0) {
+            const isLast = amounts.length === 1;
+            return (
+              <Badge
+                color="green"
+                variant="light"
+                style={{ cursor: isLast ? 'pointer' : 'default' }}
+                onClick={isLast ? () => setClearConfirmInvoiceId(invoice.id) : undefined}
+              >
+                {formatAmountRub(amounts[0]!)}
+              </Badge>
+            );
+          }
+          if (invoice.paid) {
+            return (
+              <Badge color="green" variant="light">
+                {formatAmountRub(invoice.paid_amount ?? invoice.amount)}
+              </Badge>
+            );
+          }
           return (
             <Badge
-              color={invoice.paid ? 'green' : 'orange'}
-              onClick={() => onTogglePaid(invoice)}
+              color="orange"
               style={{ cursor: 'pointer' }}
+              onClick={() => {
+                setPayModalInvoice(invoice);
+                setPayModalAmount(String(invoice.amount));
+              }}
             >
-              {invoice.paid ? 'Да' : 'Нет'}
+              Нет
             </Badge>
           );
         }
-        return (
-          <Badge color={invoice.paid ? 'green' : 'orange'}>{invoice.paid ? 'Да' : 'Нет'}</Badge>
-        );
+        if (amounts.length > 0) {
+          return (
+            <Text size="xs" fw={600}>
+              {formatAmountRub(amounts[0]!)}
+            </Text>
+          );
+        }
+        if (invoice.paid) {
+          return (
+            <Badge color="green" variant="light">
+              {formatAmountRub(invoice.paid_amount ?? invoice.amount)}
+            </Badge>
+          );
+        }
+        return <Badge color="orange">Нет</Badge>;
       },
       renderDraft: () => null,
     },
@@ -652,11 +705,11 @@ export function GroupedInvoiceTable({
           >
             {groups.map((group) => {
               const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
-              const BORDER = `2px dashed var(--mantine-color-gray-4)`;
+              const BORDER = `2px dashed var(--mantine-primary-color-filled)`;
               return (
                 <SortableGroupBody key={group.counterparty} id={group.counterparty}>
                   {({ listeners, isOver }) =>
-                    group.invoices.map((invoice, idx) => {
+                    group.invoices.flatMap((invoice, idx) => {
                       const invoiceNumber = getInvoiceNumber(groups, invoice.id);
                       const showCounterparty = idx === counterpartyRowIndex - 1;
                       const paid = invoice.paid;
@@ -685,7 +738,14 @@ export function GroupedInvoiceTable({
                           : {}),
                       };
 
-                      return (
+                      const amounts = invoice.payment_amounts ?? [];
+                      const totalPaid = amounts.reduce((s, a) => s + a, 0);
+                      const remaining = invoice.amount - totalPaid;
+
+                      const rows: React.ReactNode[] = [];
+
+                      // 1. Original row
+                      rows.push(
                         <Table.Tr key={invoice.id} style={rowStyle}>
                           <Table.Td
                             {...(isNumHandle ? listeners : {})}
@@ -722,8 +782,132 @@ export function GroupedInvoiceTable({
                               </Table.Td>
                             );
                           })}
-                        </Table.Tr>
+                        </Table.Tr>,
                       );
+
+                      // 2. Copy rows for payment_amounts[1..n]
+                      if (amounts.length > 1) {
+                        for (let i = 1; i < amounts.length; i++) {
+                          const copyAmt = amounts[i]!;
+                          const isLastCopy = i === amounts.length - 1;
+                          const copyId = `${invoice.id}__p${i - 1}`;
+                          rows.push(
+                            <Table.Tr
+                              key={copyId}
+                              style={{
+                                ...rowStyle,
+                                backgroundColor: 'var(--mantine-color-yellow-1)',
+                                fontSize: '0.9em',
+                              }}
+                            >
+                              <Table.Td
+                                style={{
+                                  overflow: 'hidden',
+                                  maxWidth: '100%',
+                                  color: 'var(--mantine-color-dimmed)',
+                                }}
+                              >
+                                <div style={{ overflow: 'hidden', maxWidth: '100%' }} />
+                              </Table.Td>
+                              {filteredColumns.map((colId) => {
+                                const col = columnRenderers[colId];
+                                const width = columnSizing[colId] ?? col.width;
+                                return (
+                                  <Table.Td key={colId} style={{ width }}>
+                                    <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                                      {colId === 'counterparty' ? null : colId === 'paid' ? (
+                                        <Badge
+                                          color="green"
+                                          variant="light"
+                                          style={{
+                                            cursor: isLastCopy ? 'pointer' : 'default',
+                                          }}
+                                          onClick={
+                                            isLastCopy
+                                              ? () => setClearConfirmInvoiceId(copyId)
+                                              : undefined
+                                          }
+                                        >
+                                          {formatAmountRub(copyAmt)}
+                                        </Badge>
+                                      ) : colId === 'purpose' ? (
+                                        <Text size="xs" c="dimmed" fs="italic">
+                                          {invoice.purpose}
+                                        </Text>
+                                      ) : (
+                                        col.renderCell({
+                                          ...invoice,
+                                          id: copyId,
+                                          amount: copyAmt,
+                                          paid: true,
+                                          paid_amount: null,
+                                          payment_amounts: [],
+                                        })
+                                      )}
+                                    </div>
+                                  </Table.Td>
+                                );
+                              })}
+                            </Table.Tr>,
+                          );
+                        }
+                      }
+
+                      // 3. Remainder row
+                      if (totalPaid > 0 && remaining > 0) {
+                        const remainderId = `${invoice.id}__r`;
+                        const remainderInvoice = {
+                          ...invoice,
+                          id: remainderId,
+                          amount: remaining,
+                          paid: false,
+                          paid_amount: null,
+                          payment_amounts: [],
+                        };
+                        rows.push(
+                          <Table.Tr
+                            key={remainderId}
+                            style={{
+                              ...rowStyle,
+                              backgroundColor: 'var(--mantine-color-gray-0)',
+                              fontSize: '0.9em',
+                            }}
+                          >
+                            <Table.Td
+                              style={{
+                                overflow: 'hidden',
+                                maxWidth: '100%',
+                                color: 'var(--mantine-color-dimmed)',
+                              }}
+                            >
+                              <div style={{ overflow: 'hidden', maxWidth: '100%' }} />
+                            </Table.Td>
+                            {filteredColumns.map((colId) => {
+                              const col = columnRenderers[colId];
+                              const width = columnSizing[colId] ?? col.width;
+                              return (
+                                <Table.Td key={colId} style={{ width }}>
+                                  <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                                    {colId === 'counterparty' ? null : colId === 'amount' ? (
+                                      <Text size="xs" c="dimmed">
+                                        Остаток: {formatAmountRub(remaining)}
+                                      </Text>
+                                    ) : colId === 'purpose' ? (
+                                      <Text size="xs" c="dimmed" fs="italic">
+                                        {invoice.purpose}
+                                      </Text>
+                                    ) : (
+                                      col.renderCell(remainderInvoice)
+                                    )}
+                                  </div>
+                                </Table.Td>
+                              );
+                            })}
+                          </Table.Tr>,
+                        );
+                      }
+
+                      return rows;
                     })
                   }
                 </SortableGroupBody>
@@ -777,6 +961,76 @@ export function GroupedInvoiceTable({
           </SortableContext>
         </DndContext>
       </Table>
+
+      <Modal
+        opened={!!payModalInvoice}
+        onClose={() => setPayModalInvoice(null)}
+        title="Оплата счёта"
+        size="sm"
+      >
+        {payModalInvoice && (
+          <Stack gap="sm">
+            <Group gap={4}>
+              <Text size="sm" fw={600}>
+                Контрагент:
+              </Text>
+              <Text size="sm">{payModalInvoice.counterparty}</Text>
+            </Group>
+            <Group gap={4}>
+              <Text size="sm" fw={600}>
+                Назначение:
+              </Text>
+              <Text size="sm">{payModalInvoice.purpose}</Text>
+            </Group>
+            <Group gap={4}>
+              <Text size="sm" fw={600}>
+                Сумма счёта:
+              </Text>
+              <Text size="sm">{formatAmountRub(payModalInvoice.amount)}</Text>
+            </Group>
+            <NumberInput
+              label="Сумма к оплате"
+              value={payModalAmount}
+              onChange={(v) => setPayModalAmount(String(v ?? ''))}
+              thousandSeparator=" "
+              decimalSeparator=","
+              min={0}
+              max={payModalInvoice.amount}
+              clampBehavior="strict"
+            />
+            <Group justify="flex-end" mt="md">
+              <Button variant="default" onClick={() => setPayModalInvoice(null)}>
+                Отмена
+              </Button>
+              <Button
+                color="green"
+                onClick={() => {
+                  const amount = Math.min(Number(payModalAmount), payModalInvoice.amount);
+                  if (!amount || amount <= 0) return;
+                  handlePaySubmit(payModalInvoice, amount);
+                  setPayModalInvoice(null);
+                  setPayModalAmount('');
+                }}
+              >
+                Оплатить
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+
+      <ConfirmModal
+        opened={!!clearConfirmInvoiceId}
+        onClose={() => setClearConfirmInvoiceId(null)}
+        onConfirm={() => {
+          if (clearConfirmInvoiceId) {
+            onClearPayment(clearConfirmInvoiceId);
+          }
+          setClearConfirmInvoiceId(null);
+        }}
+        title="Снятие оплаты"
+        message="Снять отметку об оплате счёта?"
+      />
     </Box>
   );
 }
