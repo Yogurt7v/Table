@@ -217,7 +217,7 @@ export function InvoiceTable({
         previousData,
         paid: true,
         payment_amounts: newAmounts,
-        paid_amount: totalPaid >= invoice.amount ? null : totalPaid,
+        paid_amount: amount,
         paid_date: date.slice(0, 10),
       },
       {
@@ -252,7 +252,7 @@ export function InvoiceTable({
         previousData,
         paid: newAmounts.length > 0,
         payment_amounts: newAmounts,
-        paid_amount: newAmounts.length > 0 ? (totalPaid >= invoice.amount ? null : totalPaid) : null,
+        paid_amount: newAmounts.length > 0 ? newAmounts[newAmounts.length - 1]! : null,
         paid_date: newAmounts.length > 0 ? invoice.paid_date : null,
       },
       {

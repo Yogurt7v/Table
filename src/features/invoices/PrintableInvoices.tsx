@@ -108,7 +108,7 @@ export function PrintableInvoices({
         return formatAmountRub(invoice.amount);
       case 'paid': {
         if (invoice.paid) {
-          return formatAmountRub(invoice.paid_amount ?? invoice.amount);
+          return formatAmountRub(invoice.payment_amounts?.reduce((s, a) => s + a, 0) ?? invoice.amount);
         }
         return 'Нет';
       }

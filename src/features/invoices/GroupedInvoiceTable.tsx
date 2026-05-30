@@ -575,7 +575,7 @@ export function GroupedInvoiceTable({
           if (invoice.paid) {
             return (
               <Badge color="green" variant="light">
-                {formatAmountRub(invoice.paid_amount ?? invoice.amount)}
+                {formatAmountRub(invoice.payment_amounts?.reduce((s, a) => s + a, 0) ?? invoice.amount)}
               </Badge>
             );
           }
