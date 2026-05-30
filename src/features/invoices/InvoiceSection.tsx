@@ -299,6 +299,7 @@ export function InvoiceSection({
               invoices={objInvoices}
               highlightedIds={highlightedIds}
               isDraftOpen={isDraftOpen}
+              onOpenDraft={(id) => setDraftObjectId(id)}
               onCancelDraft={() => setDraftObjectId(null)}
               accountingObjects={objects}
               paymentMarks={paymentMarks}

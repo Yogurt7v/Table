@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { notifications } from '@mantine/notifications';
 import type { IAccountingObject, IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { createEmptyDraft, validateDraftForm, type DraftInvoiceForm } from './invoice-field-access';
@@ -9,6 +9,7 @@ import { useDeleteInvoice } from '@/shared/hooks/useDeleteInvoice';
 import { useMoveInvoice } from '@/shared/hooks/useMoveInvoice';
 import { useReorderInvoices } from '@/shared/hooks/useReorderInvoices';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
+import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { useCreatePaymentMark, useDeletePaymentMark } from '@/shared/hooks/usePaymentMarks';
 import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -25,6 +26,7 @@ interface InvoiceTableProps {
   invoices: IInvoice[];
   highlightedIds: string[];
   isDraftOpen: boolean;
+  onOpenDraft?: (objectId: string) => void;
   onCancelDraft: () => void;
   accountingObjects: IAccountingObject[];
   paymentMarks?: IPaymentMark[];
@@ -39,6 +41,7 @@ export function InvoiceTable({
   invoices,
   highlightedIds,
   isDraftOpen,
+  onOpenDraft,
   onCancelDraft,
   accountingObjects,
   paymentMarks,
@@ -71,12 +74,36 @@ export function InvoiceTable({
   const [moveInvoiceTarget, setMoveInvoiceTarget] = useState<IInvoice | null>(null);
   const [editInvoice, setEditInvoice] = useState<IInvoice | null>(null);
   const [filesInvoice, setFilesInvoice] = useState<IInvoice | null>(null);
+  const copySourceRef = useRef<IInvoice | null>(null);
 
   useEffect(() => {
     if (isDraftOpen) {
-      setDraftForm(createEmptyDraft());
+      if (copySourceRef.current) {
+        const src = copySourceRef.current;
+        copySourceRef.current = null;
+        setDraftForm({
+          counterparty: src.counterparty,
+          purpose: src.purpose,
+          contract_no: src.contract_no,
+          invoice_no: src.invoice_no,
+          amount: src.amount,
+          paid: false,
+          paid_date: '',
+          comment: src.comment,
+        });
+      } else {
+        setDraftForm(createEmptyDraft());
+      }
     }
   }, [isDraftOpen]);
+
+  const handleCopy = useCallback(
+    (invoice: IInvoice) => {
+      copySourceRef.current = invoice;
+      onOpenDraft?.(normalizeRelationId(invoice.accounting_object_id));
+    },
+    [onOpenDraft],
+  );
 
   const handleSaveDraft = async () => {
     const error = validateDraftForm(draftForm);
@@ -298,6 +325,7 @@ export function InvoiceTable({
         onDraftCancel={onCancelDraft}
         highlightedIds={highlightedIds}
         onEdit={(inv) => setEditInvoice(inv)}
+        onCopy={handleCopy}
         onDelete={(inv) => setDeleteTarget(inv)}
         onHistory={(inv) => setHistoryInvoice(inv)}
         onMove={(inv) => setMoveInvoiceTarget(inv)}

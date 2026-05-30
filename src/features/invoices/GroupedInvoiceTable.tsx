@@ -27,6 +27,7 @@ import {
   IconPencil,
   IconSettings,
   IconFile,
+  IconCopy,
 } from '@tabler/icons-react';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import {
@@ -100,6 +101,7 @@ interface GroupedInvoiceTableProps {
   onDraftSave?: () => void;
   onDraftCancel?: () => void;
   onEdit: (invoice: IInvoice) => void;
+  onCopy?: (invoice: IInvoice) => void;
   onDelete: (invoice: IInvoice) => void;
   onHistory: (invoice: IInvoice) => void;
   onMove: (invoice: IInvoice) => void;
@@ -107,6 +109,7 @@ interface GroupedInvoiceTableProps {
   onClearPayment: (invoiceId: string) => void;
   highlightedIds: string[];
   permissions: {
+    canCreate: boolean;
     canUpdate: boolean;
     canDelete: boolean;
     canViewHistory: boolean;
@@ -137,6 +140,7 @@ export function GroupedInvoiceTable({
   onDraftSave,
   onDraftCancel,
   onEdit,
+  onCopy,
   onDelete,
   onHistory,
   onMove,
@@ -453,6 +457,11 @@ export function GroupedInvoiceTable({
           <Menu.Item leftSection={<IconFile size={14} />} onClick={() => onFiles?.(invoice)}>
             Файлы
           </Menu.Item>
+          {permissions.canCreate && (
+            <Menu.Item leftSection={<IconCopy size={14} />} onClick={() => onCopy?.(invoice)}>
+              Копировать
+            </Menu.Item>
+          )}
           {permissions.canDelete && (
             <Menu.Item
               leftSection={<IconTrash size={14} />}
