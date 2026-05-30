@@ -67,7 +67,14 @@ export function PrintableInvoices({
         const objInvoices =
           invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id) ?? [];
         const groups = groupInvoicesByCounterparty(objInvoices);
-        const unpaidTotal = objInvoices.reduce((sum, inv) => (!inv.paid ? sum + inv.amount : sum), 0);
+        const unpaidTotal = objInvoices.reduce((sum, inv) => {
+          if (!inv.paid) return sum + inv.amount;
+          const amounts = inv.payment_amounts ?? [];
+          if (amounts.length === 0) return sum;
+          const totalPaid = amounts.reduce((s, a) => s + a, 0);
+          const remaining = inv.amount - totalPaid;
+          return remaining > 0 ? sum + remaining : sum;
+        }, 0);
         return { obj, groups, unpaidTotal };
       })
       .filter((b) => b.groups.length > 0);
@@ -224,16 +231,81 @@ export function PrintableInvoices({
                   let rowNum = 0;
                   return groups.map((group) => (
                     <Fragment key={group.counterparty}>
-                      {group.invoices.map((invoice) => {
+                      {group.invoices.flatMap((invoice) => {
+                        const amounts = invoice.payment_amounts ?? [];
+                        const totalPaid = amounts.reduce((s, a) => s + a, 0);
+                        const remaining = invoice.amount - totalPaid;
+                        const hasCopies = amounts.length > 1;
+                        const hasRemainder = totalPaid > 0 && remaining > 0;
+
+                        const expandedRows: React.ReactNode[] = [];
+
+                        // 1. Original row
                         rowNum++;
-                        return (
+                        expandedRows.push(
                           <tr key={invoice.id}>
                             <td>{rowNum}</td>
                             {printColumns.map((colId) => (
                               <td key={colId}>{cellText(colId, invoice)}</td>
                             ))}
-                          </tr>
+                          </tr>,
                         );
+
+                        // 2. Copy rows for payment_amounts[1..n]
+                        if (hasCopies) {
+                          for (let i = 1; i < amounts.length; i++) {
+                            const copyAmt = amounts[i]!;
+                            expandedRows.push(
+                              <tr key={`${invoice.id}__p${i - 1}`}>
+                                <td />
+                                {printColumns.map((colId) => {
+                                  if (colId === 'paid') {
+                                    return (
+                                      <td key={colId}>{formatAmountRub(copyAmt)}</td>
+                                    );
+                                  }
+                                  if (colId === 'purpose') {
+                                    return (
+                                      <td key={colId} style={{ fontStyle: 'italic', color: '#666' }}>
+                                        {invoice.purpose}
+                                      </td>
+                                    );
+                                  }
+                                  return <td key={colId} />;
+                                })}
+                              </tr>,
+                            );
+                          }
+                        }
+
+                        // 3. Remainder row
+                        if (hasRemainder) {
+                          expandedRows.push(
+                            <tr key={`${invoice.id}__r`}>
+                              <td />
+                              {printColumns.map((colId) => {
+                                if (colId === 'amount') {
+                                  return (
+                                    <td key={colId}>Остаток: {formatAmountRub(remaining)}</td>
+                                  );
+                                }
+                                if (colId === 'paid') {
+                                  return <td key={colId}>Нет</td>;
+                                }
+                                if (colId === 'purpose') {
+                                  return (
+                                    <td key={colId} style={{ fontStyle: 'italic', color: '#666' }}>
+                                      {invoice.purpose}
+                                    </td>
+                                  );
+                                }
+                                return <td key={colId} />;
+                              })}
+                            </tr>,
+                          );
+                        }
+
+                        return expandedRows;
                       })}
                     </Fragment>
                   ));

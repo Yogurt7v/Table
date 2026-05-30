@@ -867,6 +867,7 @@ export function GroupedInvoiceTable({
                                           paid: true,
                                           paid_amount: null,
                                           payment_amounts: [],
+                                          paid_date: null,
                                         })
                                       )}
                                     </div>
@@ -888,6 +889,7 @@ export function GroupedInvoiceTable({
                           paid: false,
                           paid_amount: null,
                           payment_amounts: [],
+                          paid_date: null,
                         };
                         rows.push(
                           <Table.Tr

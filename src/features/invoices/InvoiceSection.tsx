@@ -132,6 +132,19 @@ export function InvoiceSection({
       .reduce((sum, inv) => sum + (inv.paid_amount ?? inv.amount), 0);
   }, [invoices, date]);
 
+  const printInvoices = useMemo(() => {
+    if (!hidePaid || !invoices) return invoices ?? [];
+    return invoices.flatMap((inv) => {
+      if (!inv.paid) return [inv];
+      const amounts = inv.payment_amounts ?? [];
+      if (amounts.length === 0) return [];
+      const totalPaid = amounts.reduce((s, a) => s + a, 0);
+      const remaining = inv.amount - totalPaid;
+      if (remaining <= 0) return [];
+      return [{ ...inv, amount: remaining, paid: false, paid_amount: null, payment_amounts: [], paid_date: null }];
+    });
+  }, [invoices, hidePaid]);
+
   if (!orgId) return null;
 
   if (!objects) return <Loader />;
@@ -219,7 +232,7 @@ export function InvoiceSection({
   if (isPrinting) {
     return (
       <PrintableInvoices
-        invoices={invoices ?? []}
+        invoices={printInvoices}
         objects={objects}
         date={date}
         visibleColumns={visibleColumns}
@@ -244,7 +257,7 @@ export function InvoiceSection({
             const totalPaid = amounts.reduce((s, a) => s + a, 0);
             const remaining = i.amount - totalPaid;
             if (remaining <= 0) return [];
-            return [{ ...i, amount: remaining, paid: false, paid_amount: null, payment_amounts: [] }];
+            return [{ ...i, amount: remaining, paid: false, paid_amount: null, payment_amounts: [], paid_date: null }];
           })
         : invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id)) ?? [];
     const isDraftOpen = draftObjectId === obj.id;
