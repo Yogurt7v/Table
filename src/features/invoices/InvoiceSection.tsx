@@ -323,7 +323,7 @@ export function InvoiceSection({
         onClose={() => setColumnSettingsOpen(false)}
       />
       {permissions.canViewPaymentMarks && markedTotal > 0 && (
-        <Affix position={{ top: 70, right: 20 }}>
+        <Affix position={{ top: 70, right: 20 }} zIndex={100}>
           <Paper withBorder p="sm" shadow="lg">
             <Text
               ta="right"

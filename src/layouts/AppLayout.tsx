@@ -7,6 +7,7 @@ import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
 import { InvoiceSearch } from '@/features/invoices/InvoiceSearch';
+import { NotificationsBell } from '@/features/notifications/NotificationsBell';
 
 export function AppLayout() {
   const { user, logout } = useAuth();
@@ -73,9 +74,9 @@ export function AppLayout() {
             <InvoiceSearch />
           </Group>
           <Group>
-            {/* <Anchor size="sm" onClick={() => navigate('/payment-report')}>
-              Отчёт по оплате
-            </Anchor> */}
+            {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
+              <NotificationsBell />
+            )}
             {currentOrgId && currentRole !== 'boss' && currentRole !== 'guest' && (
               <Anchor size="sm" onClick={() => navigate('/admin')}>
                 Панель администратора

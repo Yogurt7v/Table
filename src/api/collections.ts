@@ -9,6 +9,7 @@ import type {
   IInvoice,
   IInvoiceFile,
   IInvoiceHistory,
+  INotification,
   IPaymentMark,
   IUser,
   IUserSetting,
@@ -376,4 +377,27 @@ export function searchAllInvoices(orgId: string, text: string) {
     filter: `organization_id = "${orgId}" && (counterparty ~ "${text}" || purpose ~ "${text}" || contract_no ~ "${text}" || invoice_no ~ "${text}" || comment ~ "${text}")`,
     sort: '-date',
   });
+}
+
+// --- Notifications ---
+
+export function getNotifications(userId: string) {
+  return pb.collection('notifications').getList<INotification>(1, 50, {
+    filter: `user_id = "${userId}"`,
+    sort: '-created',
+  });
+}
+
+export function getUnreadNotificationsCount(userId: string) {
+  return pb
+    .collection('notifications')
+    .getList<INotification>(1, 1, {
+      filter: `user_id = "${userId}" && read = false`,
+      fields: 'id',
+    })
+    .then((res) => res.totalItems);
+}
+
+export function markNotificationAsRead(id: string) {
+  return pb.collection('notifications').update<INotification>(id, { read: true });
 }

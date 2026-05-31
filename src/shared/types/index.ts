@@ -44,6 +44,8 @@ export interface IInvoice {
   payment_amounts: number[];
   paid_date: string;
   comment: string;
+  created_by: string;
+  updated_by: string;
   created?: string;
 }
 
@@ -107,6 +109,19 @@ export interface IPaymentMark {
   expand?: {
     created_by?: IUser;
   };
+}
+
+export interface INotification {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  invoice_id: string;
+  type: 'invoice_created' | 'invoice_updated' | 'payment_marked';
+  event: string;
+  message: string;
+  actor_name: string;
+  read: boolean;
+  created: string;
 }
 
 export interface IUser {
