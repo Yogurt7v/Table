@@ -281,7 +281,7 @@ export function InvoiceTable({
     );
   };
 
-  const handleMarkPartialPayment = (invoiceId: string, amount: number, comment: string) => {
+  const handleMarkPartialPayment = (invoiceId: string, amount: number | undefined, comment: string) => {
     createPaymentMark.mutate(
       { invoice_id: invoiceId, amount, comment },
       {

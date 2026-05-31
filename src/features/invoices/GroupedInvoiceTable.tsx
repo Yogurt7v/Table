@@ -122,7 +122,7 @@ interface GroupedInvoiceTableProps {
   };
   paymentMarks?: IPaymentMark[];
   onMarkForPayment?: (invoice: IInvoice) => void;
-  onMarkPartialPayment?: (invoiceId: string, amount: number, comment: string) => void;
+  onMarkPartialPayment?: (invoiceId: string, amount: number | undefined, comment: string) => void;
   onClearPaymentMark?: (markId: string) => void;
   filesByInvoice?: Record<string, IInvoiceFile[]>;
   onFiles?: (invoice: IInvoice) => void;
@@ -169,12 +169,11 @@ export function GroupedInvoiceTable({
     return map;
   }, [paymentMarks]);
 
-  const [partialForm, setPartialForm] = useState<{
-    invoiceId: string;
+  const [partialModal, setPartialModal] = useState<{
+    invoice: IInvoice;
     amount: string;
     comment: string;
   } | null>(null);
-
   const [payModalInvoice, setPayModalInvoice] = useState<IInvoice | null>(null);
   const [payModalAmount, setPayModalAmount] = useState<string>('');
   const [clearConfirmInvoiceId, setClearConfirmInvoiceId] = useState<string | null>(null);
@@ -285,68 +284,31 @@ export function GroupedInvoiceTable({
 
   function renderPaymentMarkCell(invoice: IInvoice) {
     const mark = marksByInvoice[invoice.id];
-    const isPartialFormOpen = partialForm?.invoiceId === invoice.id;
 
     if (permissions.canMarkPayment) {
-      if (isPartialFormOpen) {
-        return (
-          <Group gap={4} wrap="nowrap">
-            <NumberInput
-              size="xs"
-              style={{ width: 100 }}
-              value={partialForm?.amount ?? ''}
-              onChange={(v) =>
-                setPartialForm((prev) => (prev ? { ...prev, amount: String(v ?? '') } : null))
-              }
-              thousandSeparator=" "
-              decimalSeparator=","
-              placeholder="Сумма"
-            />
-            <Textarea
-              size="xs"
-              style={{ width: 140 }}
-              value={partialForm?.comment ?? ''}
-              onChange={(e) =>
-                setPartialForm((prev) =>
-                  prev ? { ...prev, comment: e.currentTarget.value } : null,
-                )
-              }
-              placeholder="Комментарий"
-              autosize
-              minRows={1}
-              maxRows={3}
-            />
-            <Tooltip label="Сохранить">
-              <ActionIcon
-                size="md"
-                color="green"
-                variant="light"
-                onClick={() => {
-                  const amount = Number(partialForm?.amount);
-                  if (!amount || amount <= 0) return;
-                  onMarkPartialPayment?.(invoice.id, amount, partialForm?.comment ?? '');
-                  setPartialForm(null);
-                }}
-              >
-                <IconCheck size={14} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Отмена">
-              <ActionIcon
-                size="md"
-                color="gray"
-                variant="subtle"
-                onClick={() => setPartialForm(null)}
-              >
-                <IconX size={14} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        );
-      }
-
       if (mark) {
-        if (mark.amount == null) {
+        if (mark.amount == null || mark.amount === 0) {
+          if (mark.comment) {
+            return (
+              <Group gap={4} wrap="nowrap">
+                <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
+                  <Text size="xs" fw={600}>
+                    Оплатить: {mark.comment}
+                  </Text>
+                </Box>
+                <Tooltip label="Убрать отметку">
+                  <ActionIcon
+                    size="sm"
+                    color="red"
+                    variant="subtle"
+                    onClick={() => onClearPaymentMark?.(mark.id)}
+                  >
+                    <IconX size={12} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
+            );
+          }
           return (
             <Checkbox
               size="xs"
@@ -363,9 +325,11 @@ export function GroupedInvoiceTable({
                 ОПЛАТИТЬ: {formatAmountRub(mark.amount)}
               </Text>
               {mark.comment && (
-                <Text size="xs" c="dimmed">
-                  {mark.comment}
-                </Text>
+                <Tooltip label={mark.comment}>
+                  <Text size="xs" c="dimmed" lineClamp={2}>
+                    {mark.comment}
+                  </Text>
+                </Tooltip>
               )}
             </Box>
             <Tooltip label="Убрать отметку">
@@ -390,7 +354,7 @@ export function GroupedInvoiceTable({
           <Button
             size="xs"
             variant="light"
-            onClick={() => setPartialForm({ invoiceId: invoice.id, amount: '', comment: '' })}
+            onClick={() => setPartialModal({ invoice, amount: '', comment: '' })}
           >
             частично
           </Button>
@@ -399,7 +363,14 @@ export function GroupedInvoiceTable({
     }
 
     if (permissions.canViewPaymentMarks && mark) {
-      if (mark.amount == null) {
+      if (mark.amount == null || mark.amount === 0) {
+        if (mark.comment) {
+          return (
+            <Text size="xs" fw={600}>
+              Оплатить: {mark.comment}
+            </Text>
+          );
+        }
         return (
           <Text size="xs" fw={600}>
             {formatAmountRub(invoice.amount)}
@@ -1051,6 +1022,99 @@ export function GroupedInvoiceTable({
                 }}
               >
                 Оплатить
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+
+      <Modal
+        opened={!!partialModal}
+        onClose={() => setPartialModal(null)}
+        title="Частичная оплата"
+        size="sm"
+      >
+        {partialModal && (
+          <Stack gap="sm">
+            <Group gap={4}>
+              <Text size="sm" fw={600}>Контрагент:</Text>
+              <Text size="sm">{partialModal.invoice.counterparty}</Text>
+            </Group>
+            <Group gap={4}>
+              <Text size="sm" fw={600}>Назначение:</Text>
+              <Text size="sm">{partialModal.invoice.purpose}</Text>
+            </Group>
+            <Group gap={4}>
+              <Text size="sm" fw={600}>Номер счёта:</Text>
+              <Text size="sm">{partialModal.invoice.invoice_no}</Text>
+            </Group>
+            <Group gap={4}>
+              <Text size="sm" fw={600}>Дата:</Text>
+              <Text size="sm">{partialModal.invoice.date}</Text>
+            </Group>
+            <Group gap={4}>
+              <Text size="sm" fw={600}>Договор:</Text>
+              <Text size="sm">{partialModal.invoice.contract_no}</Text>
+            </Group>
+            <Group gap={4}>
+              <Text size="sm" fw={600}>Сумма счёта:</Text>
+              <Text size="sm">{formatAmountRub(partialModal.invoice.amount)}</Text>
+            </Group>
+            {partialModal.invoice.comment && (
+              <Group gap={4}>
+                <Text size="sm" fw={600}>Комментарий:</Text>
+                <Text size="sm">{partialModal.invoice.comment}</Text>
+              </Group>
+            )}
+            <NumberInput
+              label="Сумма к оплате"
+              value={partialModal.amount}
+              onChange={(v) =>
+                setPartialModal((prev) =>
+                  prev ? { ...prev, amount: String(v ?? '') } : null,
+                )
+              }
+              thousandSeparator=" "
+              decimalSeparator=","
+              min={0}
+              max={partialModal.invoice.amount}
+              clampBehavior="strict"
+            />
+            <Textarea
+              label="Комментарий к оплате"
+              value={partialModal.comment}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setPartialModal((prev) =>
+                  prev ? { ...prev, comment: value } : null,
+                );
+              }}
+              placeholder="Опционально"
+              autosize
+              minRows={2}
+              maxRows={5}
+            />
+            <Group justify="flex-end" mt="md">
+              <Button variant="default" onClick={() => setPartialModal(null)}>
+                Отмена
+              </Button>
+              <Button
+                color="green"
+                onClick={() => {
+                  const parsedAmount = Number(partialModal.amount);
+                  const hasAmount = parsedAmount > 0;
+                  const hasComment = partialModal.comment.trim().length > 0;
+                  if (!hasAmount && !hasComment) return;
+                  if (hasAmount) {
+                    const amount = Math.min(parsedAmount, partialModal.invoice.amount);
+                    onMarkPartialPayment?.(partialModal.invoice.id, amount, partialModal.comment);
+                  } else {
+                    onMarkPartialPayment?.(partialModal.invoice.id, undefined, partialModal.comment);
+                  }
+                  setPartialModal(null);
+                }}
+              >
+                Сохранить
               </Button>
             </Group>
           </Stack>

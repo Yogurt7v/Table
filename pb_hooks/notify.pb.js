@@ -170,12 +170,18 @@ onRecordCreate((e) => {
     }
     var counterparty = inv.get('counterparty');
     var pmAmount = pm.get('amount');
-    var amtStr = pmAmount !== null && pmAmount !== undefined
-      ? String(pmAmount)
-      : (inv.get('amount') !== null && inv.get('amount') !== undefined
+    var pmComment = pm.get('comment');
+    var eventText;
+    if (pmAmount !== null && pmAmount !== undefined && pmAmount !== 0) {
+      eventText = 'Отметка об оплате: ' + counterparty + ', ' + String(pmAmount) + ' \u20BD';
+    } else if (pmComment) {
+      eventText = 'Отметка об оплате: ' + counterparty + ', ' + pmComment;
+    } else {
+      var fallbackAmt = inv.get('amount') !== null && inv.get('amount') !== undefined
         ? String(Math.round(Number(inv.get('amount'))))
-        : '0');
-    var eventText = 'Отметка об оплате: ' + counterparty + ', ' + amtStr + ' \u20BD';
+        : '0';
+      eventText = 'Отметка об оплате: ' + counterparty + ', ' + fallbackAmt + ' \u20BD';
+    }
 
     var orgUsers = $app.findRecordsByFilter(
       'organization_users',

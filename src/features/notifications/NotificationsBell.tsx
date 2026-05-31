@@ -12,7 +12,7 @@ import {
   Center,
 } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
-import { notifications } from '@mantine/notifications';
+// import { notifications } from '@mantine/notifications';
 import { IconBell, IconBellFilled } from '@tabler/icons-react';
 import { useNotifications } from '@/shared/hooks/useNotifications';
 
@@ -33,21 +33,21 @@ export function NotificationsBell() {
     notifications: items,
     isLoading,
     unreadCount,
-    newNotification,
+    // newNotification,
     markAsRead,
     markAllAsRead,
   } = useNotifications();
 
   const unreadItems = items.filter((n) => !n.read);
 
-  if (newNotification && !opened) {
-    notifications.show({
-      title: newNotification.actor_name,
-      message: newNotification.event,
-      color: 'blue',
-      onClick: () => setOpened(true),
-    });
-  }
+  // if (newNotification && !opened) {
+  //   notifications.show({
+  //     title: newNotification.actor_name,
+  //     message: newNotification.event,
+  //     color: 'blue',
+  //     onClick: () => setOpened(true),
+  //   });
+  // }
 
   return (
     <>
