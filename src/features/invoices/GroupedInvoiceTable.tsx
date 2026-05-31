@@ -978,7 +978,16 @@ export function GroupedInvoiceTable({
         size="sm"
       >
         {payModalInvoice && (
-          <Stack gap="sm">
+          <Stack gap="sm" onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const amount = Math.min(Number(payModalAmount), payModalInvoice.amount);
+              if (!amount || amount <= 0) return;
+              handlePaySubmit(payModalInvoice, amount);
+              setPayModalInvoice(null);
+              setPayModalAmount('');
+            }
+          }}>
             <Group gap={4}>
               <Text size="sm" fw={600}>
                 Контрагент:
@@ -1035,7 +1044,22 @@ export function GroupedInvoiceTable({
         size="sm"
       >
         {partialModal && (
-          <Stack gap="sm">
+          <Stack gap="sm" onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+              e.preventDefault();
+              const parsedAmount = Number(partialModal.amount);
+              const hasAmount = parsedAmount > 0;
+              const hasComment = partialModal.comment.trim().length > 0;
+              if (!hasAmount && !hasComment) return;
+              if (hasAmount) {
+                const amount = Math.min(parsedAmount, partialModal.invoice.amount);
+                onMarkPartialPayment?.(partialModal.invoice.id, amount, partialModal.comment);
+              } else {
+                onMarkPartialPayment?.(partialModal.invoice.id, undefined, partialModal.comment);
+              }
+              setPartialModal(null);
+            }
+          }}>
             <Group gap={4}>
               <Text size="sm" fw={600}>Контрагент:</Text>
               <Text size="sm">{partialModal.invoice.counterparty}</Text>

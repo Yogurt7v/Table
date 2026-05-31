@@ -78,7 +78,12 @@ export function InvoiceEditModal({
       title={isEditMode ? 'Редактирование счёта' : 'Добавление нового счёта'}
       size="lg"
     >
-      <Stack gap="md">
+      <Stack gap="md" onKeyDown={(e) => {
+        if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          handleConfirm();
+        }
+      }}>
         {error && (
           <Alert icon={<IconAlertCircle size={16} />} color="red" title="Ошибка">
             {error}

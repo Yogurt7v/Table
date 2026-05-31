@@ -393,7 +393,16 @@ export function AdminPage() {
         title={`Удаление организации «${deleteOrgTarget?.name ?? ''}»`}
         size="sm"
       >
-        <Stack>
+        <Stack onKeyDown={(e) => {
+          if (e.key === 'Enter' && deleteOrgConfirmText === 'я осознаю последствия') {
+            e.preventDefault();
+            if (deleteOrgTarget) {
+              deleteOrg.mutate(deleteOrgTarget.id);
+            }
+            setDeleteOrgTarget(null);
+            setDeleteOrgConfirmText('');
+          }
+        }}>
           <Text size="sm">
             Это действие необратимо. Все счета, данные и настройки организации будут удалены.
           </Text>
@@ -445,7 +454,14 @@ export function AdminPage() {
         title="Добавить организацию"
         size="md"
       >
-        <Stack>
+        <Stack onKeyDown={async (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!orgName.trim()) return;
+            await handleCreateOrg();
+            setShowOrgForm(false);
+          }
+        }}>
           <TextInput
             label="Название"
             value={orgName}
@@ -524,7 +540,12 @@ export function AdminPage() {
         size="md"
       >
         {editOrgId && editAccounts && (
-          <Stack>
+          <Stack onKeyDown={(e) => {
+            if (e.key === 'Enter' && editName.trim()) {
+              e.preventDefault();
+              handleSaveOrg();
+            }
+          }}>
             <TextInput
               label="Название"
               value={editName}

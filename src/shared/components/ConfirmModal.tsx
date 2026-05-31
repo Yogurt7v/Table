@@ -24,7 +24,14 @@ export function ConfirmModal({
   loading = false,
 }: ConfirmModalProps) {
   return (
-    <Modal opened={opened} onClose={onClose} title={title} size="sm">
+    <Modal opened={opened} onClose={onClose} title={title} size="sm"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onConfirm();
+        }
+      }}
+    >
       <Text mb="lg">{message}</Text>
       <Group justify="flex-end" gap="sm">
         <Button variant="default" onClick={onClose} disabled={loading}>
