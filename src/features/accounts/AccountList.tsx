@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Paper, Title, Table, Loader, Text, Group, NumberInput, ActionIcon } from '@mantine/core';
+import { useState, useRef } from 'react';
+import { Paper, Title, Table, Loader, Text, Group, TextInput, ActionIcon } from '@mantine/core';
 import { IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import sumBy from 'lodash/sumBy';
 // import dayjs from 'dayjs';
@@ -21,6 +21,41 @@ function toFixed2(n: number) {
   return `${spaced}.${parts[1]} ₽`;
 }
 
+function cleanInput(raw: string): string {
+  let result = '';
+  let hasDecimal = false;
+  let decimalDigits = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i]!;
+    if (ch === ' ') continue;
+    if (ch >= '0' && ch <= '9') {
+      if (hasDecimal && decimalDigits >= 2) continue;
+      result += ch;
+      if (hasDecimal) decimalDigits++;
+    } else if ((ch === '.' || ch === ',') && !hasDecimal) {
+      hasDecimal = true;
+      result += ',';
+    }
+  }
+  return result;
+}
+
+function formatForDisplay(value: string): string {
+  const commaIdx = value.indexOf(',');
+  if (commaIdx === -1) {
+    return value.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  }
+  const intPart = value.slice(0, commaIdx);
+  const decPart = value.slice(commaIdx + 1);
+  const spaced = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return `${spaced},${decPart}`;
+}
+
+function parseToNumber(value: string): number {
+  const num = parseFloat(value.replace(/\s/g, '').replace(',', '.'));
+  return isNaN(num) ? 0 : num;
+}
+
 export function AccountList({ accounts, loading, date }: AccountListProps) {
   const { user } = useAuth();
   const { currentOrgId } = useOrg();
@@ -33,13 +68,14 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
   const canEdit = currentRole === 'admin' || currentRole === 'moderator';
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState<number>(0);
+  const [editInput, setEditInput] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const total = accounts ? sumBy(accounts, 'balance') : 0;
 
   const startEdit = (item: IAccountWithBalance) => {
     setEditingId(item.account.id);
-    setEditValue(item.balance);
+    setEditInput(item.balance.toFixed(2).replace('.', ','));
   };
 
   const cancelEdit = () => {
@@ -48,7 +84,8 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
 
   const saveEdit = async () => {
     if (!editingId) return;
-    await updateBalance.mutateAsync({ accountId: editingId, date, balance: editValue });
+    const balance = parseToNumber(editInput);
+    await updateBalance.mutateAsync({ accountId: editingId, date, balance });
     setEditingId(null);
   };
 
@@ -79,20 +116,42 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
                 <Table.Td ta="right">
                   {editingId === item.account.id ? (
                     <div style={{ width: '50%', marginLeft: 'auto' }}>
-                      <NumberInput
+                      <TextInput
+                        ref={inputRef}
                         size="xs"
-                        value={editValue}
-                        onChange={(v) => {
-                          if (typeof v === 'string') {
-                            const cleaned = v.replace(/\s/g, '').replace(',', '.');
-                            setEditValue(parseFloat(cleaned) || 0);
-                          } else {
-                            setEditValue(v);
+                        value={formatForDisplay(editInput)}
+                        onChange={(e) => {
+                          const pos = e.target.selectionStart ?? editInput.length;
+                          const raw = e.currentTarget.value;
+                          const oldRaw = editInput;
+                          const cleaned = cleanInput(raw);
+                          if (cleaned === oldRaw) {
+                            requestAnimationFrame(() => {
+                              inputRef.current?.setSelectionRange(pos, pos);
+                            });
+                            return;
                           }
+
+                          const oldFormatted = formatForDisplay(oldRaw);
+                          const newFormatted = formatForDisplay(cleaned);
+                          let nonSpace = 0;
+                          for (let i = 0; i < oldFormatted.length && i < pos; i++) {
+                            if (oldFormatted[i] !== ' ') nonSpace++;
+                          }
+
+                          setEditInput(cleaned);
+
+                          requestAnimationFrame(() => {
+                            if (!inputRef.current) return;
+                            let count = 0;
+                            let newPos = newFormatted.length;
+                            for (let i = 0; i < newFormatted.length; i++) {
+                              if (newFormatted[i] !== ' ') count++;
+                              if (count > nonSpace) { newPos = i; break; }
+                            }
+                            inputRef.current.setSelectionRange(newPos, newPos);
+                          });
                         }}
-                        decimalScale={2}
-                        // fixedDecimalScale
-                        thousandSeparator=" "
                         styles={{ input: { textAlign: 'right' } }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') saveEdit();
