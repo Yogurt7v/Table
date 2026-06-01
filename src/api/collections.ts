@@ -1,5 +1,5 @@
 import { pb } from './client.ts';
-import { invoiceDateFilter, normalizeInvoice } from '@/shared/utils/normalize-invoice';
+import { normalizeInvoice } from '@/shared/utils/normalize-invoice';
 import type {
   IOrganization,
   IBankAccount,

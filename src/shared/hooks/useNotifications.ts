@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { pb } from '@/api/client';
 import { getNotifications } from '@/api/collections';
@@ -16,7 +16,7 @@ export function useNotifications() {
     enabled: !!user,
   });
 
-  const items = notificationsQuery.data?.items ?? [];
+  const items = useMemo(() => notificationsQuery.data?.items ?? [], [notificationsQuery.data?.items]);
   const unreadCount = items.filter((n) => !n.read).length;
 
   useEffect(() => {

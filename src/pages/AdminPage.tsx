@@ -63,18 +63,7 @@ export function AdminPage() {
   const { user: currentUser } = useAuth();
   const currentRole = useCurrentUserRole(currentOrgId);
 
-  if (currentOrgId && (currentRole === 'boss' || currentRole === 'guest')) {
-    return (
-      <Container py="xl">
-        <Title order={3} ta="center" c="red">
-          Доступ запрещён
-        </Title>
-        <Text ta="center" mt="sm">
-          У вас нет прав для просмотра этой страницы.
-        </Text>
-      </Container>
-    );
-  }
+  const isRestricted = !!(currentOrgId && (currentRole === 'boss' || currentRole === 'guest'));
   const createOrg = useCreateOrganization();
   const updateOrg = useUpdateOrganization();
   const deleteOrg = useDeleteOrganization();
@@ -164,6 +153,19 @@ export function AdminPage() {
     setAccountNames([]);
     setNewAccountName('');
   };
+
+  if (isRestricted) {
+    return (
+      <Container py="xl">
+        <Title order={3} ta="center" c="red">
+          Доступ запрещён
+        </Title>
+        <Text ta="center" mt="sm">
+          У вас нет прав для просмотра этой страницы.
+        </Text>
+      </Container>
+    );
+  }
 
   return (
     <Container size="xl" py="md">

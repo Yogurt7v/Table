@@ -204,7 +204,6 @@ export function InvoiceTable({
     const invoice = invoices.find((i) => i.id === invoiceId);
     if (!invoice) return;
     const newAmounts = [...(invoice.payment_amounts ?? []), amount];
-    const totalPaid = newAmounts.reduce((s, a) => s + a, 0);
     const previousData: Record<string, unknown> = {
       paid: invoice.paid,
       payment_amounts: invoice.payment_amounts,
@@ -239,7 +238,6 @@ export function InvoiceTable({
     const amounts = invoice.payment_amounts ?? [];
     if (amounts.length === 0) return;
     const newAmounts = amounts.slice(0, -1);
-    const totalPaid = newAmounts.reduce((s, a) => s + a, 0);
     const previousData: Record<string, unknown> = {
       paid: invoice.paid,
       payment_amounts: invoice.payment_amounts,

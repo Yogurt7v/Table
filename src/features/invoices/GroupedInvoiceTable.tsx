@@ -208,6 +208,7 @@ export function GroupedInvoiceTable({
 
   useEffect(() => {
     const sizing = loadColumnSizing(orgId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setColumnSizing(sizing);
     columnSizingRef.current = sizing;
   }, [orgId]);
@@ -460,7 +461,7 @@ export function GroupedInvoiceTable({
     counterparty: {
       width: 180,
       header: 'Контрагент',
-      renderCell: (_invoice) => null,
+      renderCell: () => null,
       renderDraft: () => (
         <Autocomplete
           size="xs"

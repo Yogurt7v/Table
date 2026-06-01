@@ -6,12 +6,14 @@ export function useCounterpartySearch(orgId: string, query: string) {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!query.trim()) {
       setResults([]);
       return;
     }
 
     setIsLoading(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
     const timeout = setTimeout(() => {
       searchCounterparties(orgId, query)
         .then(setResults)

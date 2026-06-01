@@ -37,6 +37,7 @@ export function InvoiceEditModal({
   const isEditMode = !!invoice;
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (opened) {
       if (invoice) {
         setForm({
@@ -54,6 +55,7 @@ export function InvoiceEditModal({
       }
       setError(null);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [opened, invoice]);
 
   const handleConfirm = () => {

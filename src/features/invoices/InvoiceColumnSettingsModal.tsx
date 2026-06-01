@@ -75,7 +75,6 @@ function SortableColumn({
 }
 
 function buildInitialItems(value: InvoiceColumnId[]): ColumnItem[] {
-  const visibleSet = new Set(value);
   const result: ColumnItem[] = [];
   const added = new Set<InvoiceColumnId>();
 

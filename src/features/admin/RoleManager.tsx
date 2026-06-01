@@ -15,7 +15,6 @@ import type { IOrganizationUser } from '@/shared/types';
 
 interface RoleManagerProps {
   userId: string;
-  userName: string;
 }
 
 const ROLE_COLORS: Record<IOrganizationUser['role'], string> = {
@@ -32,7 +31,7 @@ const ROLE_LABELS: Record<IOrganizationUser['role'], string> = {
   guest: 'Гость',
 };
 
-export function RoleManager({ userId, userName }: RoleManagerProps) {
+export function RoleManager({ userId }: RoleManagerProps) {
   const { data: orgUsers } = useOrganizationUsers();
   const createOrgUser = useCreateOrganizationUser();
   const deleteOrgUser = useDeleteOrganizationUser();

@@ -14,12 +14,9 @@ const OrgContext = createContext<OrgContextValue | null>(null);
 const STORAGE_KEY = 'currentOrgId';
 
 export function OrgProvider({ children }: { children: ReactNode }) {
-  const [currentOrgId, setCurrentOrgIdState] = useState<string>('');
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) setCurrentOrgIdState(saved);
-  }, []);
+  const [currentOrgId, setCurrentOrgIdState] = useState<string>(
+    () => localStorage.getItem(STORAGE_KEY) || '',
+  );
 
   const setCurrentOrgId = useCallback((id: string) => {
     setCurrentOrgIdState(id);
@@ -30,6 +27,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!currentOrgId && organizations.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentOrgId(organizations[0]!.id);
     }
   }, [organizations, currentOrgId, setCurrentOrgId]);
@@ -43,6 +41,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOrg() {
   const ctx = useContext(OrgContext);
   if (!ctx) throw new Error('useOrg must be used within OrgProvider');
