@@ -1,20 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Container,
   Title,
-  Table,
-  Button,
   Group,
   Text,
-  ActionIcon,
   Stack,
-  TextInput,
-  Select,
-  Modal,
-  Alert,
-  Box,
 } from '@mantine/core';
-import { IconTrash, IconUserPlus, IconBuilding, IconPlus, IconPencil, IconInfoCircle } from '@tabler/icons-react';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useUsers, useDeleteUser } from '@/shared/hooks/useUsers';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
@@ -26,10 +17,12 @@ import {
 } from '@/shared/hooks/useOrganizations';
 import { useAuth } from '@/shared/context/AuthContext';
 import { CreateUserModal } from '@/features/admin/CreateUserModal';
-import { InlineRoleCell } from '@/features/admin/InlineRoleCell';
+import { CreateOrgModal } from '@/features/admin/CreateOrgModal';
+import { EditOrgModal } from '@/features/admin/EditOrgModal';
+import { DeleteOrgModal } from '@/features/admin/DeleteOrgModal';
+import { OrganizationAdminTable } from '@/features/admin/OrganizationAdminTable';
+import { UserAdminTable } from '@/features/admin/UserAdminTable';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import { BankAccountManager } from '@/features/admin/BankAccountManager';
-import { AccountingObjectManager } from '@/features/admin/AccountingObjectManager';
 import { useQuery } from '@tanstack/react-query';
 import {
   getBankAccounts,
@@ -69,15 +62,10 @@ export function AdminPage() {
   const deleteOrg = useDeleteOrganization();
   const [createOpened, setCreateOpened] = useState(false);
   const [showOrgForm, setShowOrgForm] = useState(false);
-  const [orgName, setOrgName] = useState('');
-  const [orgColor, setOrgColor] = useState<string>(COLORS[0]!.value);
-  const [accountNames, setAccountNames] = useState<string[]>([]);
-  const [newAccountName, setNewAccountName] = useState('');
   const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: string; name: string } | null>(
     null,
   );
   const [deleteOrgTarget, setDeleteOrgTarget] = useState<{ id: string; name: string } | null>(null);
-  const [deleteOrgConfirmText, setDeleteOrgConfirmText] = useState('');
   const [editOrgId, setEditOrgId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState<string>('');
@@ -92,15 +80,21 @@ export function AdminPage() {
     queryFn: getAllAccountingObjects,
   });
 
-  const accountsByOrg: Record<string, IBankAccount[]> = {};
-  for (const acc of allAccounts) {
-    (accountsByOrg[acc.organization_id] ??= []).push(acc);
-  }
+  const accountsByOrg = useMemo(() => {
+    const map: Record<string, IBankAccount[]> = {};
+    for (const acc of allAccounts) {
+      (map[acc.organization_id] ??= []).push(acc);
+    }
+    return map;
+  }, [allAccounts]);
 
-  const objectsByOrg: Record<string, IAccountingObject[]> = {};
-  for (const obj of allObjects) {
-    (objectsByOrg[obj.organization_id] ??= []).push(obj);
-  }
+  const objectsByOrg = useMemo(() => {
+    const map: Record<string, IAccountingObject[]> = {};
+    for (const obj of allObjects) {
+      (map[obj.organization_id] ??= []).push(obj);
+    }
+    return map;
+  }, [allObjects]);
 
   const { data: editAccounts } = useQuery({
     queryKey: ['bank_accounts', editOrgId],
@@ -144,16 +138,6 @@ export function AdminPage() {
     closeEditOrg();
   };
 
-  const handleCreateOrg = async () => {
-    if (!orgName.trim()) return;
-    const org = await createOrg.mutateAsync({ name: orgName.trim(), color: orgColor });
-    await Promise.all(accountNames.map((name) => createBankAccount(org.id, name)));
-    setOrgName('');
-    setOrgColor(COLORS[0]!.value);
-    setAccountNames([]);
-    setNewAccountName('');
-  };
-
   if (isRestricted) {
     return (
       <Container py="xl">
@@ -175,204 +159,24 @@ export function AdminPage() {
 
       <Stack gap="xl">
         {/* --- Организации --- */}
-        <div>
-          <Group justify="space-between" mb="sm">
-            <Group>
-              <IconBuilding size={20} />
-              <Title order={4}>Организации</Title>
-            </Group>
-            <Button leftSection={<IconPlus size={16} />} onClick={() => setShowOrgForm(true)}>
-              Добавить организацию
-            </Button>
-          </Group>
-
-          <Box style={{ overflowX: 'auto' }}>
-            <Table striped highlightOnHover withTableBorder mb="sm">
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Название</Table.Th>
-                  <Table.Th>Счета</Table.Th>
-                  <Table.Th>Объекты</Table.Th>
-                  <Table.Th>Цвет</Table.Th>
-                  <Table.Th w={100} />
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {organizations.map((org) => (
-                  <Table.Tr key={org.id}>
-                    <Table.Td>
-                      <Text size="mt">{org.name}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Stack gap={2}>
-                        {(accountsByOrg[org.id] ?? []).length === 0 ? (
-                          <Text size="xs" c="dimmed">
-                            Нет счетов
-                          </Text>
-                        ) : (
-                          (accountsByOrg[org.id] ?? []).map((acc) => (
-                            <Text key={acc.id} size="sm">
-                              {acc.account_number}
-                            </Text>
-                          ))
-                        )}
-                      </Stack>
-                    </Table.Td>
-                    <Table.Td>
-                      <Stack gap={2}>
-                        {(objectsByOrg[org.id] ?? []).length === 0 ? (
-                          <Text size="xs" c="dimmed">
-                            Нет объектов
-                          </Text>
-                        ) : (
-                          (objectsByOrg[org.id] ?? []).map((obj) => (
-                            <Text key={obj.id} size="sm">
-                              {obj.name}
-                            </Text>
-                          ))
-                        )}
-                      </Stack>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <div
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 4,
-                            backgroundColor: org.color,
-                          }}
-                        />
-                        <Text size="sm">{COLOR_NAME[org.color] || org.color}</Text>
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <ActionIcon
-                          color="blue"
-                          variant="subtle"
-                          size="lg"
-                          onClick={() => openEditOrg(org.id)}
-                        >
-                          <IconPencil size={22} />
-                        </ActionIcon>
-                        <ActionIcon
-                          color="red"
-                          variant="subtle"
-                          size="lg"
-                          onClick={() => {
-                            setDeleteOrgTarget({ id: org.id, name: org.name });
-                            setDeleteOrgConfirmText('');
-                          }}
-                        >
-                          <IconTrash size={22} />
-                        </ActionIcon>
-                      </Group>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Box>
-        </div>
+        <OrganizationAdminTable
+          organizations={organizations}
+          accountsByOrg={accountsByOrg}
+          objectsByOrg={objectsByOrg}
+          colorName={COLOR_NAME}
+          onAdd={() => setShowOrgForm(true)}
+          onEdit={openEditOrg}
+          onDelete={(org) => setDeleteOrgTarget({ id: org.id, name: org.name })}
+        />
 
         {/* --- Пользователи --- */}
-        <div>
-          <Group justify="space-between" mb="sm">
-            <Group>
-              <IconUserPlus size={20} />
-              <Title order={4}>Пользователи</Title>
-            </Group>
-            <Button leftSection={<IconUserPlus size={16} />} onClick={() => setCreateOpened(true)}>
-              Добавить пользователя
-            </Button>
-          </Group>
-
-          <details style={{ marginBottom: 'var(--mantine-spacing-sm)' }}>
-            <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
-              Описание ролей
-            </summary>
-            <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light" mt="sm" pb={6}>
-              <Stack gap={2}>
-                <Text size="sm">
-                  <Text span c="red" fw={500}>
-                    Администратор
-                  </Text>{' '}
-                  — полный доступ
-                </Text>
-                <Text size="sm">
-                  <Text span c="blue" fw={500}>
-                    Модератор
-                  </Text>{' '}
-                  — Пользователь + удаление, перенос, история
-                </Text>
-                <Text size="sm">
-                  <Text span c="green" fw={500}>
-                    Пользователь
-                  </Text>{' '}
-                  — создание/редактирование счетов
-                </Text>
-                <Text size="sm">
-                  <Text span c="orange" fw={500}>
-                    Босс
-                  </Text>{' '}
-                  — отметка оплаты
-                </Text>
-                <Text size="sm">
-                  <Text span c="gray" fw={500}>
-                    Гость
-                  </Text>{' '}
-                  — только просмотр
-                </Text>
-              </Stack>
-            </Alert>
-          </details>
-
-          <Box style={{ overflowX: 'auto' }}>
-            <Table striped highlightOnHover withTableBorder>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Имя</Table.Th>
-                  <Table.Th>Логин</Table.Th>
-                  <Table.Th>Роли в организациях</Table.Th>
-                  <Table.Th>Дата регистрации</Table.Th>
-                  <Table.Th w={60} />
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {users?.map((user) => {
-                  const userOrgUsers = (orgUsers ?? []).filter((ou) => ou.user_id === user.id);
-
-                  return (
-                    <Table.Tr key={user.id}>
-                      <Table.Td>
-                        <Text>{user.name || '—'}</Text>
-                      </Table.Td>
-                      <Table.Td>{user.login}</Table.Td>
-                      <Table.Td>
-                        <InlineRoleCell userId={user.id} assignments={userOrgUsers} />
-                      </Table.Td>
-                      <Table.Td>{new Date(user.created).toLocaleString('ru-RU')}</Table.Td>
-                      <Table.Td>
-                        {currentUser?.id !== user.id && (
-                          <ActionIcon
-                            color="red"
-                            variant="subtle"
-                            onClick={() =>
-                              setDeleteUserTarget({ id: user.id, name: user.name || user.login })
-                            }
-                          >
-                            <IconTrash size={16} />
-                          </ActionIcon>
-                        )}
-                      </Table.Td>
-                    </Table.Tr>
-                  );
-                })}
-              </Table.Tbody>
-            </Table>
-          </Box>
-        </div>
+        <UserAdminTable
+          users={users}
+          orgUsers={orgUsers}
+          currentUserId={currentUser?.id}
+          onAdd={() => setCreateOpened(true)}
+          onDelete={(target) => setDeleteUserTarget(target)}
+        />
       </Stack>
 
       <CreateUserModal opened={createOpened} onClose={() => setCreateOpened(false)} />
@@ -391,196 +195,47 @@ export function AdminPage() {
         loading={deleteUser.isPending}
       />
 
-      <Modal
+      <DeleteOrgModal
         opened={!!deleteOrgTarget}
+        orgName={deleteOrgTarget?.name ?? ''}
+        isPending={deleteOrg.isPending}
         onClose={() => {
           setDeleteOrgTarget(null);
-          setDeleteOrgConfirmText('');
         }}
-        title={`Удаление организации «${deleteOrgTarget?.name ?? ''}»`}
-        size="sm"
-      >
-        <Stack onKeyDown={(e) => {
-          if (e.key === 'Enter' && deleteOrgConfirmText === 'я осознаю последствия') {
-            e.preventDefault();
-            if (deleteOrgTarget) {
-              deleteOrg.mutate(deleteOrgTarget.id);
-            }
-            setDeleteOrgTarget(null);
-            setDeleteOrgConfirmText('');
+        onConfirm={() => {
+          if (deleteOrgTarget) {
+            deleteOrg.mutate(deleteOrgTarget.id);
           }
-        }}>
-          <Text size="sm">
-            Это действие необратимо. Все счета, данные и настройки организации будут удалены.
-          </Text>
-          <Text size="sm" fw={500}>
-            Введите «я осознаю последствия» для подтверждения:
-          </Text>
-          <TextInput
-            value={deleteOrgConfirmText}
-            onChange={(e) => setDeleteOrgConfirmText(e.currentTarget.value)}
-            placeholder="я осознаю последствия"
-          />
-          <Group justify="flex-end" gap="sm">
-            <Button
-              variant="default"
-              onClick={() => {
-                setDeleteOrgTarget(null);
-                setDeleteOrgConfirmText('');
-              }}
-              disabled={deleteOrg.isPending}
-            >
-              Отмена
-            </Button>
-            <Button
-              color="red"
-              disabled={deleteOrgConfirmText !== 'я осознаю последствия' || deleteOrg.isPending}
-              loading={deleteOrg.isPending}
-              onClick={() => {
-                if (deleteOrgTarget) {
-                  deleteOrg.mutate(deleteOrgTarget.id);
-                }
-                setDeleteOrgTarget(null);
-                setDeleteOrgConfirmText('');
-              }}
-            >
-              Удалить
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+          setDeleteOrgTarget(null);
+        }}
+      />
 
-      {/* Create Org Modal */}
-      <Modal
+      <CreateOrgModal
         opened={showOrgForm}
         onClose={() => {
           setShowOrgForm(false);
-          setAccountNames([]);
-          setNewAccountName('');
         }}
-        title="Добавить организацию"
-        size="md"
-      >
-        <Stack onKeyDown={async (e: React.KeyboardEvent) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            if (!orgName.trim()) return;
-            await handleCreateOrg();
-            setShowOrgForm(false);
-          }
-        }}>
-          <TextInput
-            label="Название"
-            value={orgName}
-            onChange={(e) => setOrgName(e.currentTarget.value)}
-            required
-          />
-          <Select
-            label="Цвет"
-            data={COLORS}
-            value={orgColor}
-            onChange={(v) => v && setOrgColor(v)}
-          />
+        onSave={async (data) => {
+          const org = await createOrg.mutateAsync({ name: data.name, color: data.color });
+          await Promise.all(data.accountNames.map((name) => createBankAccount(org.id, name)));
+        }}
+      />
 
-          <Text size="sm" fw={500} mt="sm">
-            Расчётные счета
-          </Text>
-
-          {accountNames.map((name, i) => (
-            <Group key={i} gap={6} wrap="nowrap">
-              <Text size="sm" style={{ flex: 1 }}>
-                {name}
-              </Text>
-              <ActionIcon
-                size="sm"
-                color="red"
-                variant="subtle"
-                onClick={() => setAccountNames(accountNames.filter((_, j) => j !== i))}
-              >
-                <IconTrash size={14} />
-              </ActionIcon>
-            </Group>
-          ))}
-
-          <Group gap={6} wrap="nowrap">
-            <TextInput
-              size="xs"
-              placeholder="Название счёта"
-              value={newAccountName}
-              onChange={(e) => setNewAccountName(e.currentTarget.value)}
-              style={{ flex: 1 }}
-            />
-            <Button
-              size="compact-xs"
-              onClick={() => {
-                if (newAccountName.trim()) {
-                  setAccountNames([...accountNames, newAccountName.trim()]);
-                  setNewAccountName('');
-                }
-              }}
-              disabled={!newAccountName.trim()}
-            >
-              Добавить
-            </Button>
-          </Group>
-
-          <Button
-            fullWidth
-            mt="sm"
-            onClick={async () => {
-              await handleCreateOrg();
-              setShowOrgForm(false);
-            }}
-            loading={createOrg.isPending}
-            disabled={!orgName.trim()}
-          >
-            Создать
-          </Button>
-        </Stack>
-      </Modal>
-
-      {/* Edit Org Modal */}
-      <Modal
+      <EditOrgModal
         opened={!!editOrgId}
+        orgName={editOrg?.name}
+        editName={editName}
+        editColor={editColor}
+        editOrgId={editOrgId ?? ''}
+        editAccounts={editAccounts}
+        editObjects={editObjects}
+        canEditAccountingObjects={canEditAccountingObjects}
+        isPending={updateOrg.isPending}
         onClose={closeEditOrg}
-        title={`Редактирование: ${editOrg?.name ?? ''}`}
-        size="md"
-      >
-        {editOrgId && editAccounts && (
-          <Stack onKeyDown={(e) => {
-            if (e.key === 'Enter' && editName.trim()) {
-              e.preventDefault();
-              handleSaveOrg();
-            }
-          }}>
-            <TextInput
-              label="Название"
-              value={editName}
-              onChange={(e) => setEditName(e.currentTarget.value)}
-            />
-            <Select
-              label="Цвет"
-              data={COLORS}
-              value={editColor}
-              onChange={(v) => v && setEditColor(v)}
-            />
-            <BankAccountManager organizationId={editOrgId} accounts={editAccounts} />
-            <AccountingObjectManager
-              organizationId={editOrgId}
-              objects={editObjects}
-              canEdit={canEditAccountingObjects}
-            />
-            <Button
-              fullWidth
-              onClick={handleSaveOrg}
-              loading={updateOrg.isPending}
-              disabled={!editName.trim()}
-            >
-              Сохранить
-            </Button>
-          </Stack>
-        )}
-      </Modal>
+        onNameChange={setEditName}
+        onColorChange={setEditColor}
+        onSave={handleSaveOrg}
+      />
     </Container>
   );
 }

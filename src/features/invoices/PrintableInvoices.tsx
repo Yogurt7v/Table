@@ -4,6 +4,7 @@ import { useOrg } from '@/shared/context/OrgContext';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
+import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import dayjs from 'dayjs';
 
@@ -69,10 +70,8 @@ export function PrintableInvoices({
         const groups = groupInvoicesByCounterparty(objInvoices);
         const unpaidTotal = objInvoices.reduce((sum, inv) => {
           if (!inv.paid) return sum + inv.amount;
-          const amounts = inv.payment_amounts ?? [];
+          const { amounts, remaining } = getInvoicePaymentInfo(inv);
           if (amounts.length === 0) return sum;
-          const totalPaid = amounts.reduce((s, a) => s + a, 0);
-          const remaining = inv.amount - totalPaid;
           return remaining > 0 ? sum + remaining : sum;
         }, 0);
         return { obj, groups, unpaidTotal };
@@ -232,11 +231,7 @@ export function PrintableInvoices({
                   return groups.map((group) => (
                     <Fragment key={group.counterparty}>
                       {group.invoices.flatMap((invoice) => {
-                        const amounts = invoice.payment_amounts ?? [];
-                        const totalPaid = amounts.reduce((s, a) => s + a, 0);
-                        const remaining = invoice.amount - totalPaid;
-                        const hasCopies = amounts.length > 1;
-                        const hasRemainder = totalPaid > 0 && remaining > 0;
+                        const { amounts, remaining, hasCopies, hasRemainder } = getInvoicePaymentInfo(invoice);
 
                         const expandedRows: React.ReactNode[] = [];
 

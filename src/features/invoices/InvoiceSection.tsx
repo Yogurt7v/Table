@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Affix, Paper, Title, Button, Group, Loader, Text, Table, ActionIcon, Tooltip, Switch, Box } from '@mantine/core';
-import { IconPlus, IconPrinter, IconSettings } from '@tabler/icons-react';
-import dayjs from 'dayjs';
+import { Affix, Paper, Title, Group, Loader, Text, ActionIcon, Tooltip, Switch, Box } from '@mantine/core';
+import { IconPrinter, IconSettings } from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
 import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
@@ -9,12 +8,13 @@ import { useOrgInvoiceFiles } from '@/shared/hooks/useInvoiceFiles';
 import { useUserSetting, useUpsertUserSetting } from '@/shared/hooks/useUserSettings';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
-import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { InvoiceColumnSettingsModal } from '@/features/invoices/InvoiceColumnSettingsModal';
 import { PrintableInvoices } from '@/features/invoices/PrintableInvoices';
+import { SearchResultsView } from '@/features/invoices/components/SearchResultsView';
+import { InvoiceObjectBlock } from '@/features/invoices/components/InvoiceObjectBlock';
 import { DEFAULT_VISIBLE_COLUMNS } from '@/features/invoices/invoice-columns';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
+import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import type { IInvoice, IInvoiceFile, InvoiceColumnId } from '@/shared/types';
 
 interface InvoiceSectionProps {
@@ -136,10 +136,8 @@ export function InvoiceSection({
     if (!hidePaid || !invoices) return invoices ?? [];
     return invoices.flatMap((inv) => {
       if (!inv.paid) return [inv];
-      const amounts = inv.payment_amounts ?? [];
+      const { amounts, remaining } = getInvoicePaymentInfo(inv);
       if (amounts.length === 0) return [];
-      const totalPaid = amounts.reduce((s, a) => s + a, 0);
-      const remaining = inv.amount - totalPaid;
       if (remaining <= 0) return [];
       return [{ ...inv, amount: remaining, paid: false, paid_amount: null, payment_amounts: [], paid_date: null }];
     });
@@ -192,40 +190,12 @@ export function InvoiceSection({
 
   if (searchAll && searchResults) {
     return (
-      <Paper withBorder p="sm">
-        <Title order={5} mb="sm">
-          Результаты поиска: "{searchText}"
-        </Title>
-        {searchResults.length === 0 ? (
-          <Text c="dimmed">Ничего не найдено</Text>
-        ) : (
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Дата</Table.Th>
-                <Table.Th>Контрагент</Table.Th>
-                <Table.Th>Назначение</Table.Th>
-                <Table.Th>Сумма</Table.Th>
-                <Table.Th>Статус</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {searchResults.map((inv) => (
-                <Table.Tr key={inv.id}>
-                  <Table.Td>{dayjs(inv.date).format('DD.MM.YYYY')}</Table.Td>
-                  <Table.Td>{inv.counterparty}</Table.Td>
-                  <Table.Td>{inv.purpose}</Table.Td>
-                  <Table.Td>{formatAmountRub(inv.amount)}</Table.Td>
-                  <Table.Td>{inv.paid ? 'Оплачено' : 'Ожидает'}</Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        )}
-        <Text size="xs" c="blue" style={{ cursor: 'pointer', marginTop: 8 }} onClick={onBackToDate}>
-          ← Вернуться к {dayjs(date).format('DD.MM.YYYY')}
-        </Text>
-      </Paper>
+      <SearchResultsView
+        searchText={searchText}
+        searchResults={searchResults}
+        date={date}
+        onBackToDate={onBackToDate}
+      />
     );
   }
 
@@ -246,76 +216,25 @@ export function InvoiceSection({
   return (
     <>
       {tableHeader}
-      {objects.map((obj) => {
-    const objInvoices =
-      (hidePaid
-        ? invoices?.flatMap((i) => {
-            if (normalizeRelationId(i.accounting_object_id) !== obj.id) return [];
-            if (!i.paid) return [i];
-            const amounts = i.payment_amounts ?? [];
-            if (amounts.length === 0) return [];
-            const totalPaid = amounts.reduce((s, a) => s + a, 0);
-            const remaining = i.amount - totalPaid;
-            if (remaining <= 0) return [];
-            return [{ ...i, amount: remaining, paid: false, paid_amount: null, payment_amounts: [], paid_date: null }];
-          })
-        : invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id)) ?? [];
-    const isDraftOpen = draftObjectId === obj.id;
-    const totalAmount = objInvoices.reduce((sum, inv) => {
-      if (!inv.paid) return sum + inv.amount;
-      const amounts = inv.payment_amounts ?? [];
-      if (amounts.length > 0) {
-        const totalPaid = amounts.reduce((s, a) => s + a, 0);
-        const remaining = inv.amount - totalPaid;
-        if (remaining > 0) return sum + remaining;
-      }
-      return sum;
-    }, 0);
-
-    return (
-      <Paper key={obj.id} withBorder p="sm" style={{ borderLeft: '3px solid var(--org-color, #228be6)' }}>
-        <Group justify="space-between" mb="sm">
-          <Title order={5}>{obj.name}</Title>
-          {permissions.canCreate && (
-            <Button
-              size="compact-xs"
-              variant="light"
-              leftSection={<IconPlus size={14} />}
-              disabled={isDraftOpen || draftObjectId !== null}
-              onClick={() => setDraftObjectId(obj.id)}
-            >
-              Добавить счёт
-            </Button>
-          )}
-        </Group>
-        {!invoices ? (
-          <Loader size="sm" />
-        ) : (
-          <>
-            <InvoiceTable
-              orgId={orgId}
-              objectId={obj.id}
-              date={date}
-              invoices={objInvoices}
-              highlightedIds={highlightedIds}
-              isDraftOpen={isDraftOpen}
-              onOpenDraft={(id) => setDraftObjectId(id)}
-              onCancelDraft={() => setDraftObjectId(null)}
-              accountingObjects={objects}
-              paymentMarks={paymentMarks}
-              filesByInvoice={filesByInvoice}
-              visibleColumns={visibleColumns}
-            />
-            {objInvoices.length > 0 && (
-              <Text ta="right" fw={700} mt="md">
-                Итого по "{obj.name}": {formatAmountRub(totalAmount)}
-              </Text>
-            )}
-          </>
-        )}
-      </Paper>
-    );
-  })}
+      {objects.map((obj) => (
+        <InvoiceObjectBlock
+          key={obj.id}
+          obj={obj}
+          invoices={invoices}
+          hidePaid={hidePaid}
+          orgId={orgId}
+          date={date}
+          highlightedIds={highlightedIds}
+          draftObjectId={draftObjectId}
+          permissions={{ canCreate: permissions.canCreate }}
+          accountingObjects={objects}
+          paymentMarks={paymentMarks}
+          filesByInvoice={filesByInvoice}
+          visibleColumns={visibleColumns}
+          onOpenDraft={(id) => setDraftObjectId(id)}
+          onCancelDraft={() => setDraftObjectId(null)}
+        />
+      ))}
       <InvoiceColumnSettingsModal
         opened={columnSettingsOpen}
         value={visibleColumns}

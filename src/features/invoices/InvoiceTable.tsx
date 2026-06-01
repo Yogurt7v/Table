@@ -17,6 +17,7 @@ import { InvoiceHistoryModal } from './InvoiceHistoryModal';
 import { InvoiceMoveModal } from './InvoiceMoveModal';
 import { InvoiceEditModal } from './InvoiceEditModal';
 import { InvoiceFilesModal } from './InvoiceFilesModal';
+import { buildInvoiceDelta } from '@/features/invoices/utils/build-invoice-delta';
 import { GroupedInvoiceTable } from './GroupedInvoiceTable';
 
 interface InvoiceTableProps {
@@ -135,57 +136,11 @@ export function InvoiceTable({
 
   const handleEditInvoice = (data: DraftInvoiceForm) => {
     if (!editInvoice) return;
-    const updates: Record<string, unknown> = {};
-    let changed = false;
-
-    if (data.counterparty !== editInvoice.counterparty) {
-      updates.counterparty = data.counterparty.trim();
-      changed = true;
-    }
-    if (data.purpose !== editInvoice.purpose) {
-      updates.purpose = data.purpose.trim();
-      changed = true;
-    }
-    if (data.contract_no !== (editInvoice.contract_no || '')) {
-      updates.contract_no = data.contract_no.trim();
-      changed = true;
-    }
-    if (data.invoice_no !== editInvoice.invoice_no) {
-      updates.invoice_no = data.invoice_no.trim();
-      changed = true;
-    }
-    if (data.amount !== editInvoice.amount) {
-      updates.amount = data.amount;
-      changed = true;
-    }
-    if (data.paid !== editInvoice.paid) {
-      updates.paid = data.paid;
-      if (data.paid && !editInvoice.paid) {
-        updates.paid_date = data.paid_date || date.slice(0, 10);
-      }
-      changed = true;
-    }
-    if (data.paid_date !== (editInvoice.paid_date || '')) {
-      updates.paid_date = data.paid_date;
-      changed = true;
-    }
-    if (data.comment !== (editInvoice.comment || '')) {
-      updates.comment = data.comment.trim();
-      changed = true;
-    }
-
+    const { updates, previousData, changed } = buildInvoiceDelta(data, editInvoice, date.slice(0, 10));
     if (!changed) {
       setEditInvoice(null);
       return;
     }
-
-    const previousData: Record<string, unknown> = {};
-    Object.keys(updates).forEach((key) => {
-      if (key in editInvoice) {
-        previousData[key] = editInvoice[key as keyof IInvoice];
-      }
-    });
-
     updateInvoice.mutate(
       { id: editInvoice.id, previousData, ...updates },
       {

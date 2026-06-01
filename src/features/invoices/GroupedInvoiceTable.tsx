@@ -7,28 +7,11 @@ import {
   ActionIcon,
   Group,
   Tooltip,
-  TextInput,
-  Autocomplete,
-  NumberInput,
-  Textarea,
-  Checkbox,
-  Button,
-  Menu,
-  Stack,
   Anchor,
-  Modal,
-  Paper,
 } from '@mantine/core';
 import {
-  IconTrash,
-  IconCheck,
   IconX,
-  IconHistory,
-  IconArrowRight,
-  IconPencil,
-  IconSettings,
-  IconFile,
-  IconCopy,
+  IconCheck,
 } from '@tabler/icons-react';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import {
@@ -44,6 +27,11 @@ import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type { DraftInvoiceForm } from './invoice-field-access';
+import { PaymentMarkCell } from './components/PaymentMarkCell';
+import { InvoiceActionsCell } from './components/InvoiceActionsCell';
+import { PayModal } from './components/PayModal';
+import { PartialPaymentModal } from './components/PartialPaymentModal';
+import { InvoiceMobileCardView } from './components/InvoiceMobileCardView';
 import {
   loadColumnSizing,
   saveColumnSizing,
@@ -284,171 +272,6 @@ export function GroupedInvoiceTable({
     );
   }
 
-  function renderPaymentMarkCell(invoice: IInvoice) {
-    const mark = marksByInvoice[invoice.id];
-
-    if (permissions.canMarkPayment) {
-      if (mark) {
-        if (mark.amount == null || mark.amount === 0) {
-          if (mark.comment) {
-            return (
-              <Group gap={4} wrap="nowrap">
-                <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
-                  <Text size="xs" fw={600}>
-                    Оплатить: {mark.comment}
-                  </Text>
-                </Box>
-                <Tooltip label="Убрать отметку">
-                  <ActionIcon
-                    size="sm"
-                    color="red"
-                    variant="subtle"
-                    onClick={() => onClearPaymentMark?.(mark.id)}
-                  >
-                    <IconX size={12} />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-            );
-          }
-          return (
-            <Checkbox
-              size="xs"
-              label={formatAmountRub(invoice.amount)}
-              checked
-              onChange={() => onClearPaymentMark?.(mark.id)}
-            />
-          );
-        }
-        return (
-          <Group gap={4} wrap="nowrap">
-            <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
-              <Text size="xs" fw={600}>
-                ОПЛАТИТЬ: {formatAmountRub(mark.amount)}
-              </Text>
-              {mark.comment && (
-                <Tooltip label={mark.comment}>
-                  <Text size="xs" c="dimmed" lineClamp={2}>
-                    {mark.comment}
-                  </Text>
-                </Tooltip>
-              )}
-            </Box>
-            <Tooltip label="Убрать отметку">
-              <ActionIcon
-                size="sm"
-                color="red"
-                variant="subtle"
-                onClick={() => onClearPaymentMark?.(mark.id)}
-              >
-                <IconX size={12} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        );
-      }
-
-      return (
-        <Group gap={4} wrap="nowrap">
-          <Button size="xs" onClick={() => onMarkForPayment?.(invoice)}>
-            Оплатить
-          </Button>
-          <Button
-            size="xs"
-            variant="light"
-            onClick={() => setPartialModal({ invoice, amount: '', comment: '' })}
-          >
-            частично
-          </Button>
-        </Group>
-      );
-    }
-
-    if (permissions.canViewPaymentMarks && mark) {
-      if (mark.amount == null || mark.amount === 0) {
-        if (mark.comment) {
-          return (
-            <Text size="xs" fw={600}>
-              Оплатить: {mark.comment}
-            </Text>
-          );
-        }
-        return (
-          <Text size="xs" fw={600}>
-            {formatAmountRub(invoice.amount)}
-          </Text>
-        );
-      }
-      return (
-        <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
-          <Text size="xs" fw={600}>
-            {formatAmountRub(mark.amount)}
-          </Text>
-          {mark.comment && (
-            <Text size="xs" c="dimmed">
-              {mark.comment}
-            </Text>
-          )}
-        </Box>
-      );
-    }
-
-    return (
-      <Text size="xs" c="dimmed">
-        —
-      </Text>
-    );
-  }
-
-  function renderActionsCell(invoice: IInvoice) {
-    return (
-      <Menu position="bottom-end" shadow="md" width={200} withinPortal>
-        <Menu.Target>
-          <Tooltip label="Действия">
-            <ActionIcon ml="15px" size="sm" variant="subtle" color="gray">
-              <IconSettings size={24} />
-            </ActionIcon>
-          </Tooltip>
-        </Menu.Target>
-
-        <Menu.Dropdown>
-          {permissions.canUpdate && (
-            <Menu.Item leftSection={<IconPencil size={14} />} onClick={() => onEdit(invoice)}>
-              Редактировать
-            </Menu.Item>
-          )}
-          {permissions.canViewHistory && (
-            <Menu.Item leftSection={<IconHistory size={14} />} onClick={() => onHistory(invoice)}>
-              История
-            </Menu.Item>
-          )}
-          {permissions.canMove && (
-            <Menu.Item leftSection={<IconArrowRight size={14} />} onClick={() => onMove(invoice)}>
-              Перенести
-            </Menu.Item>
-          )}
-          <Menu.Item leftSection={<IconFile size={14} />} onClick={() => onFiles?.(invoice)}>
-            Файлы
-          </Menu.Item>
-          {permissions.canCreate && (
-            <Menu.Item leftSection={<IconCopy size={14} />} onClick={() => onCopy?.(invoice)}>
-              Копировать
-            </Menu.Item>
-          )}
-          {permissions.canDelete && (
-            <Menu.Item
-              leftSection={<IconTrash size={14} />}
-              color="red"
-              onClick={() => onDelete(invoice)}
-            >
-              Удалить
-            </Menu.Item>
-          )}
-        </Menu.Dropdown>
-      </Menu>
-    );
-  }
-
   const columnRenderers: Record<
     InvoiceColumnId,
     {
@@ -637,280 +460,72 @@ export function GroupedInvoiceTable({
     actions: {
       width: 50,
       header: 'Действия',
-      renderCell: renderActionsCell,
+      renderCell: (invoice) => (
+        <InvoiceActionsCell
+          invoice={invoice}
+          canUpdate={permissions.canUpdate}
+          canDelete={permissions.canDelete}
+          canViewHistory={permissions.canViewHistory}
+          canMove={permissions.canMove}
+          canCreate={permissions.canCreate}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onHistory={onHistory}
+          onMove={onMove}
+          onFiles={onFiles}
+          onCopy={onCopy}
+        />
+      ),
       renderDraft: () => null,
     },
     payment_mark: {
       width: 180,
       header: 'Отметка',
-      renderCell: renderPaymentMarkCell,
+      renderCell: (invoice) => (
+        <PaymentMarkCell
+          invoice={invoice}
+          mark={marksByInvoice[invoice.id]}
+          canMarkPayment={permissions.canMarkPayment}
+          canViewPaymentMarks={permissions.canViewPaymentMarks}
+          onMarkForPayment={onMarkForPayment}
+          onOpenPartialModal={(inv) => setPartialModal({ invoice: inv, amount: '', comment: '' })}
+          onClearPaymentMark={onClearPaymentMark}
+        />
+      ),
       renderDraft: () => null,
     },
   };
 
   return (
     <>
-      {/* Mobile card view */}
-      <Stack hiddenFrom="sm" gap="md">
-        {groups.map((group) => {
-          const groupTotal = group.invoices.reduce((sum, inv) => sum + inv.amount, 0);
-          return (
-            <Paper
-              key={group.counterparty}
-              withBorder
-              p="sm"
-              style={{ borderLeft: '3px solid var(--org-color, #228be6)' }}
-            >
-              <Text fw={700} size="md" mb="xs">
-                {group.counterparty}
-              </Text>
-
-              {group.invoices.map((invoice) => {
-                const invoiceNumber = getInvoiceNumber(groups, invoice.id);
-                const amounts = invoice.payment_amounts ?? [];
-                const totalPaid = amounts.reduce((s, a) => s + a, 0);
-                const hasRemainder = totalPaid > 0 && invoice.amount - totalPaid > 0;
-                const invoiceFiles = filesByInvoice?.[invoice.id];
-
-                return (
-                  <Paper
-                    key={invoice.id}
-                    withBorder
-                    p="xs"
-                    mb="sm"
-                    style={{
-                      backgroundColor: invoice.paid
-                        ? 'var(--mantine-color-yellow-0)'
-                        : marksByInvoice[invoice.id]
-                          ? 'var(--mantine-color-green-0)'
-                          : highlightedIds.includes(invoice.id)
-                            ? 'var(--mantine-color-yellow-0)'
-                            : undefined,
-                    }}
-                  >
-                    <Group justify="space-between" wrap="nowrap" gap={4}>
-                      <Group gap={4} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-                        <Text size="xs" c="dimmed">
-                          {invoiceNumber})
-                        </Text>
-                        <Text size="sm" fw={700}>
-                          {formatAmountRub(invoice.amount)}
-                        </Text>
-                      </Group>
-                      {invoice.paid ? (
-                        <Badge color="green" variant="light" size="sm">
-                          {formatAmountRub(invoice.paid_amount ?? invoice.amount)}
-                        </Badge>
-                      ) : amounts.length > 0 ? (
-                        <Badge
-                          color="green"
-                          variant="light"
-                          size="sm"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => {
-                            if (amounts.length === 1) {
-                              setClearConfirmInvoiceId(invoice.id);
-                            }
-                          }}
-                        >
-                          {formatAmountRub(amounts[0]!)}
-                        </Badge>
-                      ) : (
-                        <Badge
-                          color="orange"
-                          variant="light"
-                          size="sm"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => {
-                            setPayModalInvoice(invoice);
-                            setPayModalAmount(String(invoice.amount));
-                          }}
-                        >
-                          Не оплачен
-                        </Badge>
-                      )}
-                    </Group>
-
-                    {invoice.purpose && (
-                      <Text size="md" lineClamp={2} mt={2}>
-                        {invoice.purpose}
-                      </Text>
-                    )}
-
-                    <Group gap="xs" mt={2}>
-                      {invoice.contract_no && (
-                        <Text size="xs" c="dimmed">
-                          Договор: {invoice.contract_no}
-                        </Text>
-                      )}
-                      {invoice.invoice_no && (
-                        <Text size="xs" c="dimmed">
-                          Счёт: {invoice.invoice_no}
-                        </Text>
-                      )}
-                    </Group>
-
-                    {permissions.canViewPaidDate && invoice.paid_date && (
-                      <Text size="xs" c="dimmed">
-                        Оплачено: {invoice.paid_date}
-                      </Text>
-                    )}
-
-                    {invoice.comment && (
-                      <Text size="xs" c="dimmed" lineClamp={1}>
-                        {invoice.comment}
-                      </Text>
-                    )}
-
-                    {invoiceFiles && invoiceFiles.length > 0 && (
-                      <Stack gap={2} mt={2}>
-                        {invoiceFiles.map((f) => (
-                          <Anchor
-                            key={f.id}
-                            href={getInvoiceFileUrl(f)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            size="xs"
-                          >
-                            {shortenFileName(f.name)}
-                          </Anchor>
-                        ))}
-                      </Stack>
-                    )}
-
-                    {hasRemainder && (
-                      <Text size="xs" c="orange" mt={2}>
-                        Остаток: {formatAmountRub(invoice.amount - totalPaid)}
-                      </Text>
-                    )}
-
-                    <Group justify="space-between" mt={4} wrap="nowrap">
-                      <Box style={{ flex: 1, minWidth: 0 }}>{renderPaymentMarkCell(invoice)}</Box>
-                      <Menu position="bottom-end" shadow="md" width={200} withinPortal>
-                        <Menu.Target>
-                          <ActionIcon size="md" variant="subtle" color="gray">
-                            <IconSettings size={20} />
-                          </ActionIcon>
-                        </Menu.Target>
-                        <Menu.Dropdown>
-                          {permissions.canUpdate && (
-                            <Menu.Item
-                              leftSection={<IconPencil size={14} />}
-                              onClick={() => onEdit(invoice)}
-                            >
-                              Редактировать
-                            </Menu.Item>
-                          )}
-                          {permissions.canViewHistory && (
-                            <Menu.Item
-                              leftSection={<IconHistory size={14} />}
-                              onClick={() => onHistory(invoice)}
-                            >
-                              История
-                            </Menu.Item>
-                          )}
-                          {permissions.canMove && (
-                            <Menu.Item
-                              leftSection={<IconArrowRight size={14} />}
-                              onClick={() => onMove(invoice)}
-                            >
-                              Перенести
-                            </Menu.Item>
-                          )}
-                          <Menu.Item
-                            leftSection={<IconFile size={14} />}
-                            onClick={() => onFiles?.(invoice)}
-                          >
-                            Файлы
-                          </Menu.Item>
-                          {permissions.canCreate && (
-                            <Menu.Item
-                              leftSection={<IconCopy size={14} />}
-                              onClick={() => onCopy?.(invoice)}
-                            >
-                              Копировать
-                            </Menu.Item>
-                          )}
-                          {permissions.canDelete && (
-                            <Menu.Item
-                              leftSection={<IconTrash size={14} />}
-                              color="red"
-                              onClick={() => onDelete(invoice)}
-                            >
-                              Удалить
-                            </Menu.Item>
-                          )}
-                        </Menu.Dropdown>
-                      </Menu>
-                    </Group>
-                  </Paper>
-                );
-              })}
-
-              <Text ta="right" fw={700} size="sm" mt="xs">
-                Итого: {formatAmountRub(groupTotal)}
-              </Text>
-            </Paper>
-          );
-        })}
-
-        {isDraftOpen && draftForm && (
-          <Paper withBorder p="sm" style={{ backgroundColor: 'var(--mantine-color-blue-0)' }}>
-            <Text fw={600} size="sm" mb="xs">
-              Новый счёт
-            </Text>
-            <Stack gap="xs">
-              <Autocomplete
-                size="xs"
-                value={draftForm?.counterparty ?? ''}
-                onChange={(v) => onDraftChange?.('counterparty', v)}
-                data={counterpartyResults || []}
-                placeholder="Контрагент"
-              />
-              <TextInput
-                size="xs"
-                value={draftForm?.purpose ?? ''}
-                onChange={(e) => onDraftChange?.('purpose', e.currentTarget.value)}
-                placeholder="Назначение"
-              />
-              <TextInput
-                size="xs"
-                value={draftForm?.contract_no ?? ''}
-                onChange={(e) => onDraftChange?.('contract_no', e.currentTarget.value)}
-                placeholder="Договор"
-              />
-              <TextInput
-                size="xs"
-                value={draftForm?.invoice_no ?? ''}
-                onChange={(e) => onDraftChange?.('invoice_no', e.currentTarget.value)}
-                placeholder="Счёт"
-              />
-              <NumberInput
-                size="xs"
-                value={draftForm?.amount ?? 0}
-                onChange={(v) => onDraftChange?.('amount', v ?? 0)}
-                thousandSeparator=" "
-                decimalSeparator=","
-                placeholder="Сумма"
-              />
-              <TextInput
-                size="xs"
-                value={draftForm?.comment ?? ''}
-                onChange={(e) => onDraftChange?.('comment', e.currentTarget.value)}
-                placeholder="Комментарий"
-              />
-              <Group justify="flex-end" gap={4} mt="xs">
-                <Button size="compact-sm" variant="default" onClick={onDraftCancel}>
-                  Отмена
-                </Button>
-                <Button size="compact-sm" color="green" onClick={onDraftSave}>
-                  Сохранить
-                </Button>
-              </Group>
-            </Stack>
-          </Paper>
-        )}
-      </Stack>
+      <InvoiceMobileCardView
+        invoices={invoices}
+        marksByInvoice={marksByInvoice}
+        filesByInvoice={filesByInvoice}
+        highlightedIds={highlightedIds}
+        permissions={permissions}
+        isDraftOpen={isDraftOpen}
+        draftForm={draftForm}
+        counterpartyResults={counterpartyResults}
+        onDraftChange={onDraftChange}
+        onDraftSave={onDraftSave}
+        onDraftCancel={onDraftCancel}
+        onEdit={onEdit}
+        onHistory={onHistory}
+        onMove={onMove}
+        onFiles={onFiles}
+        onCopy={onCopy}
+        onDelete={onDelete}
+        onMarkForPayment={onMarkForPayment}
+        onMarkPartialPayment={onMarkPartialPayment}
+        onClearPaymentMark={onClearPaymentMark}
+        onOpenPayModal={(invoice) => {
+          setPayModalInvoice(invoice);
+          setPayModalAmount(String(invoice.amount));
+        }}
+        onClearPaymentConfirm={(id) => setClearConfirmInvoiceId(id)}
+        onOpenPartialModal={(inv) => setPartialModal({ invoice: inv, amount: '', comment: '' })}
+      />
 
       {/* Desktop table */}
       <Box visibleFrom="sm" style={{ overflowX: 'auto', overflowY: 'hidden' }}>
@@ -1238,199 +853,27 @@ export function GroupedInvoiceTable({
       </Box>
 
       {/* Modals */}
-      <Modal
+      <PayModal
         opened={!!payModalInvoice}
-        onClose={() => setPayModalInvoice(null)}
-        title="Оплата счёта"
-        size="sm"
-      >
-        {payModalInvoice && (
-          <Stack
-            gap="sm"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const amount = Math.min(Number(payModalAmount), payModalInvoice.amount);
-                if (!amount || amount <= 0) return;
-                handlePaySubmit(payModalInvoice, amount);
-                setPayModalInvoice(null);
-                setPayModalAmount('');
-              }
-            }}
-          >
-            <Group gap={4}>
-              <Text size="sm" fw={600}>
-                Контрагент:
-              </Text>
-              <Text size="sm">{payModalInvoice.counterparty}</Text>
-            </Group>
-            <Group gap={4}>
-              <Text size="sm" fw={600}>
-                Назначение:
-              </Text>
-              <Text size="sm">{payModalInvoice.purpose}</Text>
-            </Group>
-            <Group gap={4}>
-              <Text size="sm" fw={600}>
-                Сумма счёта:
-              </Text>
-              <Text size="sm">{formatAmountRub(payModalInvoice.amount)}</Text>
-            </Group>
-            <NumberInput
-              label="Сумма к оплате"
-              value={payModalAmount}
-              onChange={(v) => setPayModalAmount(String(v ?? ''))}
-              thousandSeparator=" "
-              decimalSeparator=","
-              min={0}
-              max={payModalInvoice.amount}
-              clampBehavior="strict"
-            />
-            <Group justify="flex-end" mt="md">
-              <Button variant="default" onClick={() => setPayModalInvoice(null)}>
-                Отмена
-              </Button>
-              <Button
-                color="green"
-                onClick={() => {
-                  const amount = Math.min(Number(payModalAmount), payModalInvoice.amount);
-                  if (!amount || amount <= 0) return;
-                  handlePaySubmit(payModalInvoice, amount);
-                  setPayModalInvoice(null);
-                  setPayModalAmount('');
-                }}
-              >
-                Оплатить
-              </Button>
-            </Group>
-          </Stack>
-        )}
-      </Modal>
+        onClose={() => { setPayModalInvoice(null); setPayModalAmount(''); }}
+        invoice={payModalInvoice}
+        amount={payModalAmount}
+        onAmountChange={(v) => setPayModalAmount(v)}
+        onPay={(invoice, amount) => {
+          handlePaySubmit(invoice, amount);
+        }}
+      />
 
-      <Modal
+      <PartialPaymentModal
         opened={!!partialModal}
         onClose={() => setPartialModal(null)}
-        title="Частичная оплата"
-        size="sm"
-      >
-        {partialModal && (
-          <Stack
-            gap="sm"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
-                e.preventDefault();
-                const parsedAmount = Number(partialModal.amount);
-                const hasAmount = parsedAmount > 0;
-                const hasComment = partialModal.comment.trim().length > 0;
-                if (!hasAmount && !hasComment) return;
-                if (hasAmount) {
-                  const amount = Math.min(parsedAmount, partialModal.invoice.amount);
-                  onMarkPartialPayment?.(partialModal.invoice.id, amount, partialModal.comment);
-                } else {
-                  onMarkPartialPayment?.(partialModal.invoice.id, undefined, partialModal.comment);
-                }
-                setPartialModal(null);
-              }
-            }}
-          >
-            <Group gap={4}>
-              <Text size="sm" fw={600}>
-                Контрагент:
-              </Text>
-              <Text size="sm">{partialModal.invoice.counterparty}</Text>
-            </Group>
-            <Group gap={4}>
-              <Text size="sm" fw={600}>
-                Назначение:
-              </Text>
-              <Text size="sm">{partialModal.invoice.purpose}</Text>
-            </Group>
-            <Group gap={4}>
-              <Text size="sm" fw={600}>
-                Номер счёта:
-              </Text>
-              <Text size="sm">{partialModal.invoice.invoice_no}</Text>
-            </Group>
-            <Group gap={4}>
-              <Text size="sm" fw={600}>
-                Дата:
-              </Text>
-              <Text size="sm">{partialModal.invoice.date}</Text>
-            </Group>
-            <Group gap={4}>
-              <Text size="sm" fw={600}>
-                Договор:
-              </Text>
-              <Text size="sm">{partialModal.invoice.contract_no}</Text>
-            </Group>
-            <Group gap={4}>
-              <Text size="sm" fw={600}>
-                Сумма счёта:
-              </Text>
-              <Text size="sm">{formatAmountRub(partialModal.invoice.amount)}</Text>
-            </Group>
-            {partialModal.invoice.comment && (
-              <Group gap={4}>
-                <Text size="sm" fw={600}>
-                  Комментарий:
-                </Text>
-                <Text size="sm">{partialModal.invoice.comment}</Text>
-              </Group>
-            )}
-            <NumberInput
-              label="Сумма к оплате"
-              value={partialModal.amount}
-              onChange={(v) =>
-                setPartialModal((prev) => (prev ? { ...prev, amount: String(v ?? '') } : null))
-              }
-              thousandSeparator=" "
-              decimalSeparator=","
-              min={0}
-              max={partialModal.invoice.amount}
-              clampBehavior="strict"
-            />
-            <Textarea
-              label="Комментарий к оплате"
-              value={partialModal.comment}
-              onChange={(e) => {
-                const value = e.currentTarget.value;
-                setPartialModal((prev) => (prev ? { ...prev, comment: value } : null));
-              }}
-              placeholder="Опционально"
-              autosize
-              minRows={2}
-              maxRows={5}
-            />
-            <Group justify="flex-end" mt="md">
-              <Button variant="default" onClick={() => setPartialModal(null)}>
-                Отмена
-              </Button>
-              <Button
-                color="green"
-                onClick={() => {
-                  const parsedAmount = Number(partialModal.amount);
-                  const hasAmount = parsedAmount > 0;
-                  const hasComment = partialModal.comment.trim().length > 0;
-                  if (!hasAmount && !hasComment) return;
-                  if (hasAmount) {
-                    const amount = Math.min(parsedAmount, partialModal.invoice.amount);
-                    onMarkPartialPayment?.(partialModal.invoice.id, amount, partialModal.comment);
-                  } else {
-                    onMarkPartialPayment?.(
-                      partialModal.invoice.id,
-                      undefined,
-                      partialModal.comment,
-                    );
-                  }
-                  setPartialModal(null);
-                }}
-              >
-                Сохранить
-              </Button>
-            </Group>
-          </Stack>
-        )}
-      </Modal>
+        data={partialModal}
+        onAmountChange={(v) => setPartialModal((prev) => (prev ? { ...prev, amount: v } : null))}
+        onCommentChange={(v) => setPartialModal((prev) => (prev ? { ...prev, comment: v } : null))}
+        onSave={(invoiceId, amount, comment) => {
+          onMarkPartialPayment?.(invoiceId, amount, comment);
+        }}
+      />
 
       <ConfirmModal
         opened={!!clearConfirmInvoiceId}
