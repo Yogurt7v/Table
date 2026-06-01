@@ -12,6 +12,7 @@ import {
   Select,
   Modal,
   Alert,
+  Box,
 } from '@mantine/core';
 import { IconTrash, IconUserPlus, IconBuilding, IconPlus, IconPencil, IconInfoCircle } from '@tabler/icons-react';
 import { useOrg } from '@/shared/context/OrgContext';
@@ -183,92 +184,94 @@ export function AdminPage() {
             </Button>
           </Group>
 
-          <Table striped highlightOnHover withTableBorder mb="sm">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Название</Table.Th>
-                <Table.Th>Счета</Table.Th>
-                <Table.Th>Объекты</Table.Th>
-                <Table.Th>Цвет</Table.Th>
-                <Table.Th w={100} />
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {organizations.map((org) => (
-                <Table.Tr key={org.id}>
-                  <Table.Td>
-                    <Text size="mt">{org.name}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Stack gap={2}>
-                      {(accountsByOrg[org.id] ?? []).length === 0 ? (
-                        <Text size="xs" c="dimmed">
-                          Нет счетов
-                        </Text>
-                      ) : (
-                        (accountsByOrg[org.id] ?? []).map((acc) => (
-                          <Text key={acc.id} size="sm">
-                            {acc.account_number}
-                          </Text>
-                        ))
-                      )}
-                    </Stack>
-                  </Table.Td>
-                  <Table.Td>
-                    <Stack gap={2}>
-                      {(objectsByOrg[org.id] ?? []).length === 0 ? (
-                        <Text size="xs" c="dimmed">
-                          Нет объектов
-                        </Text>
-                      ) : (
-                        (objectsByOrg[org.id] ?? []).map((obj) => (
-                          <Text key={obj.id} size="sm">
-                            {obj.name}
-                          </Text>
-                        ))
-                      )}
-                    </Stack>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <div
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 4,
-                          backgroundColor: org.color,
-                        }}
-                      />
-                      <Text size="sm">{COLOR_NAME[org.color] || org.color}</Text>
-                    </Group>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <ActionIcon
-                        color="blue"
-                        variant="subtle"
-                        size="lg"
-                        onClick={() => openEditOrg(org.id)}
-                      >
-                        <IconPencil size={22} />
-                      </ActionIcon>
-                      <ActionIcon
-                        color="red"
-                        variant="subtle"
-                        size="lg"
-                        onClick={() => {
-                          setDeleteOrgTarget({ id: org.id, name: org.name });
-                          setDeleteOrgConfirmText('');
-                        }}
-                      >
-                        <IconTrash size={22} />
-                      </ActionIcon>
-                    </Group>
-                  </Table.Td>
+          <Box style={{ overflowX: 'auto' }}>
+            <Table striped highlightOnHover withTableBorder mb="sm">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Название</Table.Th>
+                  <Table.Th>Счета</Table.Th>
+                  <Table.Th>Объекты</Table.Th>
+                  <Table.Th>Цвет</Table.Th>
+                  <Table.Th w={100} />
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+              </Table.Thead>
+              <Table.Tbody>
+                {organizations.map((org) => (
+                  <Table.Tr key={org.id}>
+                    <Table.Td>
+                      <Text size="mt">{org.name}</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Stack gap={2}>
+                        {(accountsByOrg[org.id] ?? []).length === 0 ? (
+                          <Text size="xs" c="dimmed">
+                            Нет счетов
+                          </Text>
+                        ) : (
+                          (accountsByOrg[org.id] ?? []).map((acc) => (
+                            <Text key={acc.id} size="sm">
+                              {acc.account_number}
+                            </Text>
+                          ))
+                        )}
+                      </Stack>
+                    </Table.Td>
+                    <Table.Td>
+                      <Stack gap={2}>
+                        {(objectsByOrg[org.id] ?? []).length === 0 ? (
+                          <Text size="xs" c="dimmed">
+                            Нет объектов
+                          </Text>
+                        ) : (
+                          (objectsByOrg[org.id] ?? []).map((obj) => (
+                            <Text key={obj.id} size="sm">
+                              {obj.name}
+                            </Text>
+                          ))
+                        )}
+                      </Stack>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
+                        <div
+                          style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: 4,
+                            backgroundColor: org.color,
+                          }}
+                        />
+                        <Text size="sm">{COLOR_NAME[org.color] || org.color}</Text>
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
+                        <ActionIcon
+                          color="blue"
+                          variant="subtle"
+                          size="lg"
+                          onClick={() => openEditOrg(org.id)}
+                        >
+                          <IconPencil size={22} />
+                        </ActionIcon>
+                        <ActionIcon
+                          color="red"
+                          variant="subtle"
+                          size="lg"
+                          onClick={() => {
+                            setDeleteOrgTarget({ id: org.id, name: org.name });
+                            setDeleteOrgConfirmText('');
+                          }}
+                        >
+                          <IconTrash size={22} />
+                        </ActionIcon>
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Box>
         </div>
 
         {/* --- Пользователи --- */}
@@ -323,48 +326,50 @@ export function AdminPage() {
             </Alert>
           </details>
 
-          <Table striped highlightOnHover withTableBorder>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Имя</Table.Th>
-                <Table.Th>Логин</Table.Th>
-                <Table.Th>Роли в организациях</Table.Th>
-                <Table.Th>Дата регистрации</Table.Th>
-                <Table.Th w={60} />
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {users?.map((user) => {
-                const userOrgUsers = (orgUsers ?? []).filter((ou) => ou.user_id === user.id);
+          <Box style={{ overflowX: 'auto' }}>
+            <Table striped highlightOnHover withTableBorder>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Имя</Table.Th>
+                  <Table.Th>Логин</Table.Th>
+                  <Table.Th>Роли в организациях</Table.Th>
+                  <Table.Th>Дата регистрации</Table.Th>
+                  <Table.Th w={60} />
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {users?.map((user) => {
+                  const userOrgUsers = (orgUsers ?? []).filter((ou) => ou.user_id === user.id);
 
-                return (
-                  <Table.Tr key={user.id}>
-                    <Table.Td>
-                      <Text>{user.name || '—'}</Text>
-                    </Table.Td>
-                    <Table.Td>{user.login}</Table.Td>
-                    <Table.Td>
-                      <InlineRoleCell userId={user.id} assignments={userOrgUsers} />
-                    </Table.Td>
-                    <Table.Td>{new Date(user.created).toLocaleString('ru-RU')}</Table.Td>
-                    <Table.Td>
-                      {currentUser?.id !== user.id && (
-                        <ActionIcon
-                          color="red"
-                          variant="subtle"
-                          onClick={() =>
-                            setDeleteUserTarget({ id: user.id, name: user.name || user.login })
-                          }
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      )}
-                    </Table.Td>
-                  </Table.Tr>
-                );
-              })}
-            </Table.Tbody>
-          </Table>
+                  return (
+                    <Table.Tr key={user.id}>
+                      <Table.Td>
+                        <Text>{user.name || '—'}</Text>
+                      </Table.Td>
+                      <Table.Td>{user.login}</Table.Td>
+                      <Table.Td>
+                        <InlineRoleCell userId={user.id} assignments={userOrgUsers} />
+                      </Table.Td>
+                      <Table.Td>{new Date(user.created).toLocaleString('ru-RU')}</Table.Td>
+                      <Table.Td>
+                        {currentUser?.id !== user.id && (
+                          <ActionIcon
+                            color="red"
+                            variant="subtle"
+                            onClick={() =>
+                              setDeleteUserTarget({ id: user.id, name: user.name || user.login })
+                            }
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        )}
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+          </Box>
         </div>
       </Stack>
 

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Affix, Paper, Title, Button, Group, Loader, Text, Table, ActionIcon, Tooltip, Switch } from '@mantine/core';
+import { Affix, Paper, Title, Button, Group, Loader, Text, Table, ActionIcon, Tooltip, Switch, Box } from '@mantine/core';
 import { IconPlus, IconPrinter, IconSettings } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useInvoices } from '@/shared/hooks/useInvoices';
@@ -150,8 +150,8 @@ export function InvoiceSection({
   if (!objects) return <Loader />;
 
   const tableHeader = (
-    <Group justify="space-between" mb="sm">
-      <Group gap="sm">
+    <Group justify="space-between" mb="sm" wrap="wrap">
+      <Group gap={4}>
         <Title order={5}>Счета</Title>
         <Tooltip label="Настройка колонок">
           <ActionIcon
@@ -323,18 +323,20 @@ export function InvoiceSection({
         onClose={() => setColumnSettingsOpen(false)}
       />
       {permissions.canViewPaymentMarks && markedTotal > 0 && (
-        <Affix position={{ top: 70, right: 20 }} zIndex={100}>
-          <Paper withBorder p="sm" shadow="lg">
-            <Text
-              ta="right"
-              fw={700}
-              size="md"
-              c={isOverBalance ? 'red' : undefined}
-            >
-              Итого к оплате: {formatAmountRub(markedTotal)}
-            </Text>
-          </Paper>
-        </Affix>
+        <Box visibleFrom="sm">
+          <Affix position={{ top: 90, right: 20 }} zIndex={100}>
+            <Paper withBorder p="sm" shadow="lg">
+              <Text
+                ta="right"
+                fw={700}
+                size="md"
+                c={isOverBalance ? 'red' : undefined}
+              >
+                Итого к оплате: {formatAmountRub(markedTotal)}
+              </Text>
+            </Paper>
+          </Affix>
+        </Box>
       )}
     </>
   );

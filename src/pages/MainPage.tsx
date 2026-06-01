@@ -26,7 +26,8 @@ export function MainPage() {
           leftSection={<IconCalendar size={20} />}
           value={date}
           onChange={(v) => v && setDate(v)}
-          w={280}
+          w={{ base: '100%', sm: 280 }}
+          maw={280}
           styles={{
           input: {
             fontWeight: 'bold',

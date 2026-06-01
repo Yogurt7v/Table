@@ -15,7 +15,7 @@ export function InvoiceSearch() {
           setSearchText(e.currentTarget.value);
           setSearchAll(false);
         }}
-        w={260}
+        w={{ base: '100%', sm: 260 }}
         size="sm"
       />
       {searchText && !searchAll && (

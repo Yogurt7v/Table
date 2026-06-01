@@ -94,7 +94,7 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
   const canEditHere = canEdit; // && isToday
 
   return (
-    <Paper withBorder p="sm" w="50%">
+    <Paper withBorder p="sm" w={{ base: '100%', md: '50%' }}>
       <Title order={6} mb="xs">
         Расчётные счета
       </Title>
