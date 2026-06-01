@@ -173,7 +173,7 @@ export function InvoiceSection({
             <IconPrinter size={20} />
           </ActionIcon>
         </Tooltip>
-        {(permissions.role === 'admin' || permissions.role === 'moderator') && (
+        {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && (
           <Switch
             size="xs"
             label="Скрыть оплаченные"
