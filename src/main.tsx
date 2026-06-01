@@ -10,6 +10,7 @@ import 'dayjs/locale/ru';
 import { AuthProvider } from '@/shared/context/AuthContext';
 import { OrgProvider } from '@/shared/context/OrgContext';
 import { SearchProvider } from '@/shared/context/SearchContext';
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 import App from './App.tsx';
 
 dayjs.locale('ru');
@@ -38,7 +39,9 @@ createRoot(document.getElementById('root')!).render(
             <AuthProvider>
               <OrgProvider>
                 <SearchProvider>
-                  <App />
+                  <ErrorBoundary>
+                    <App />
+                  </ErrorBoundary>
                 </SearchProvider>
               </OrgProvider>
             </AuthProvider>
