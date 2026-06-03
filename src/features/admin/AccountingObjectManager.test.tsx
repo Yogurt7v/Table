@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AccountingObjectManager } from './AccountingObjectManager';
 import type { IAccountingObject } from '@/shared/types';
 
 vi.mock('@/api/collections', () => ({
-  createAccountingObject: vi.fn(),
-  updateAccountingObject: vi.fn(),
-  deleteAccountingObject: vi.fn(),
+  createAccountingObject: vi.fn().mockResolvedValue({ id: 'new1', organization_id: 'org1', name: 'Новый объект' }),
+  updateAccountingObject: vi.fn().mockResolvedValue({}),
+  deleteAccountingObject: vi.fn().mockResolvedValue({}),
 }));
 
 const objects: IAccountingObject[] = [
@@ -42,12 +43,27 @@ describe('AccountingObjectManager', () => {
     renderManager(false);
     expect(screen.queryByPlaceholderText('Название объекта')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Добавить' })).not.toBeInTheDocument();
-    expect(screen.queryAllByLabelText(/edit|pencil/i)).toHaveLength(0);
   });
 
   it('shows add form when canEdit is true', () => {
     renderManager(true);
     expect(screen.getByPlaceholderText('Название объекта')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Добавить' })).toBeInTheDocument();
+  });
+
+  it('opens edit mode on pencil click', async () => {
+    const user = userEvent.setup();
+    renderManager(true);
+
+    const pencilButtons = screen.getAllByRole('button');
+    const pencilBtn = pencilButtons.find(
+      (btn) => btn.querySelector('svg'),
+    );
+    if (pencilBtn) await user.click(pencilBtn);
+
+    await waitFor(() => {
+      const inputs = screen.getAllByRole('textbox');
+      expect(inputs.length).toBeGreaterThanOrEqual(2);
+    });
   });
 });

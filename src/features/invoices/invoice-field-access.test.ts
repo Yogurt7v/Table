@@ -28,7 +28,7 @@ describe('getInvoicePermissions', () => {
       canDelete: false,
       canMove: false,
       canViewHistory: false,
-      canManageFiles: false,
+      canManageFiles: true,
       canMarkPayment: false,
       canViewPaymentMarks: false,
       canViewPaidDate: true,

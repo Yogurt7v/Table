@@ -1,4 +1,12 @@
 import '@testing-library/jest-dom';
+import { server } from '@/mocks/server';
+
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+window.ResizeObserver = ResizeObserverMock;
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -13,3 +21,7 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 });
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
