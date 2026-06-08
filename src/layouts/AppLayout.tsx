@@ -79,7 +79,7 @@ export function AppLayout() {
                 {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
                   <NotificationsBell />
                 )}
-                {currentOrgId && currentRole !== 'boss' && currentRole !== 'guest' && (
+                {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
                   <Tooltip label="Панель администратора">
                     <ActionIcon variant="subtle" color="gray" onClick={() => navigate('/admin')}>
                       <IconSettings size={22} />
@@ -150,7 +150,7 @@ export function AppLayout() {
               {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
                 <NotificationsBell />
               )}
-              {currentOrgId && currentRole !== 'boss' && currentRole !== 'guest' && (
+              {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
                 <Anchor size="sm" onClick={() => navigate('/admin')}>
                   Панель администратора
                 </Anchor>

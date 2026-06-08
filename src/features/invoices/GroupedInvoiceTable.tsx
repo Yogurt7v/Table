@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import {
+  Autocomplete,
+  NumberInput,
   Table,
   Text,
   Badge,
@@ -8,6 +10,7 @@ import {
   Group,
   Tooltip,
   Anchor,
+  TextInput,
 } from '@mantine/core';
 import {
   IconX,

@@ -84,7 +84,9 @@ export function CreateUserModal({ opened, onClose }: CreateUserModalProps) {
     setLoading(true);
     try {
       const user = await createUser(login, password, name);
-      await Promise.all(assignments.map((a) => createOrganizationUser(user.id, a.orgId, a.role)));
+      for (const a of assignments) {
+        await createOrganizationUser(user.id, a.orgId, a.role);
+      }
       qc.resetQueries({ queryKey: ['users'] });
       qc.resetQueries({ queryKey: ['organization_users'] });
       setLogin('');

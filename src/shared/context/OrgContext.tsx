@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useOrganizations } from '@/shared/hooks/useOrganizations';
+import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useAuth } from '@/shared/context/AuthContext';
 import type { IOrganization } from '@/shared/types';
 
 interface OrgContextValue {
@@ -23,7 +25,19 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, id);
   }, []);
 
-  const { data: organizations = [] } = useOrganizations();
+  const { user } = useAuth();
+  const { data: allOrganizations = [] } = useOrganizations();
+  const { data: orgUsers } = useOrganizationUsers();
+
+  const organizations = useMemo(() => {
+    if (!user || !orgUsers) return allOrganizations;
+    const userOrgIds = new Set(
+      orgUsers
+        .filter((ou) => ou.user_id === user.id)
+        .map((ou) => ou.organization_id),
+    );
+    return allOrganizations.filter((o) => userOrgIds.has(o.id));
+  }, [allOrganizations, user, orgUsers]);
 
   useEffect(() => {
     if (!currentOrgId && organizations.length > 0) {
@@ -31,6 +45,17 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       setCurrentOrgId(organizations[0]!.id);
     }
   }, [organizations, currentOrgId, setCurrentOrgId]);
+
+  useEffect(() => {
+    if (
+      currentOrgId &&
+      organizations.length > 0 &&
+      !organizations.some((o) => o.id === currentOrgId)
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrentOrgId(organizations[0]!.id);
+    }
+  }, [currentOrgId, organizations, setCurrentOrgId]);
 
   const currentOrg = organizations.find((o) => o.id === currentOrgId);
 

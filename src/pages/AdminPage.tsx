@@ -56,7 +56,9 @@ export function AdminPage() {
   const { user: currentUser } = useAuth();
   const currentRole = useCurrentUserRole(currentOrgId);
 
-  const isRestricted = !!(currentOrgId && (currentRole === 'boss' || currentRole === 'guest'));
+  const isRestricted = !!(
+    currentOrgId && currentRole !== 'admin' && currentRole !== 'moderator'
+  );
   const createOrg = useCreateOrganization();
   const updateOrg = useUpdateOrganization();
   const deleteOrg = useDeleteOrganization();

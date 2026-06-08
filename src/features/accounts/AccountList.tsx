@@ -28,7 +28,9 @@ function cleanInput(raw: string): string {
   for (let i = 0; i < raw.length; i++) {
     const ch = raw[i]!;
     if (ch === ' ') continue;
-    if (ch >= '0' && ch <= '9') {
+    if (ch === '-' && result === '') {
+      result += '-';
+    } else if (ch >= '0' && ch <= '9') {
       if (hasDecimal && decimalDigits >= 2) continue;
       result += ch;
       if (hasDecimal) decimalDigits++;
