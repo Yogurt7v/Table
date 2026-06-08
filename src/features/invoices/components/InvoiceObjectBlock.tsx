@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { Paper, Title, Group, Button, Loader, Text } from '@mantine/core';
-import { IconPlus } from '@tabler/icons-react';
+import { Paper, Title, Group, Button, Loader, Text, ActionIcon, Tooltip } from '@mantine/core';
+import { IconPlus, IconPrinter, IconFileExport } from '@tabler/icons-react';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -22,6 +22,8 @@ interface InvoiceObjectBlockProps {
   visibleColumns: InvoiceColumnId[];
   onOpenDraft: (id: string) => void;
   onCancelDraft: () => void;
+  onPrint?: (objId: string) => void;
+  onExport?: (objId: string) => void;
 }
 
 export function InvoiceObjectBlock({
@@ -39,6 +41,8 @@ export function InvoiceObjectBlock({
   visibleColumns,
   onOpenDraft,
   onCancelDraft,
+  onPrint,
+  onExport,
 }: InvoiceObjectBlockProps) {
   const objInvoices = useMemo(() => {
     if (hidePaid && invoices) {
@@ -74,7 +78,23 @@ export function InvoiceObjectBlock({
       style={{ borderLeft: '3px solid var(--org-color, #228be6)' }}
     >
       <Group justify="space-between" mb="sm">
-        <Title order={5}>{obj.name}</Title>
+        <Group gap={4}>
+          <Title order={5}>{obj.name}</Title>
+          {onPrint && (
+            <Tooltip label="Печать">
+              <ActionIcon size="sm" variant="subtle" color="gray" onClick={() => onPrint(obj.id)}>
+                <IconPrinter size={16} />
+              </ActionIcon>
+            </Tooltip>
+          )}
+          {onExport && (
+            <Tooltip label="Экспорт в Excel">
+              <ActionIcon size="sm" variant="subtle" color="gray" onClick={() => onExport(obj.id)}>
+                <IconFileExport size={16} />
+              </ActionIcon>
+            </Tooltip>
+          )}
+        </Group>
         {permissions.canCreate && (
           <Button
             size="compact-xs"

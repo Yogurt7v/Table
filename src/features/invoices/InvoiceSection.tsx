@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Affix, Paper, Title, Group, Loader, Text, ActionIcon, Tooltip, Switch, Box } from '@mantine/core';
-import { IconPrinter, IconSettings } from '@tabler/icons-react';
+import { IconPrinter, IconSettings, IconFileExport } from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
 import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
@@ -10,11 +10,14 @@ import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { InvoiceColumnSettingsModal } from '@/features/invoices/InvoiceColumnSettingsModal';
 import { PrintableInvoices } from '@/features/invoices/PrintableInvoices';
+import { exportInvoicesToExcel } from '@/features/invoices/exportInvoicesToExcel';
 import { SearchResultsView } from '@/features/invoices/components/SearchResultsView';
 import { InvoiceObjectBlock } from '@/features/invoices/components/InvoiceObjectBlock';
 import { DEFAULT_VISIBLE_COLUMNS } from '@/features/invoices/invoice-columns';
+import { useOrg } from '@/shared/context/OrgContext';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
+import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import type { IInvoice, IInvoiceFile, InvoiceColumnId } from '@/shared/types';
 
 interface InvoiceSectionProps {
@@ -63,24 +66,47 @@ export function InvoiceSection({
   const { data: paymentMarks } = usePaymentMarks(orgId);
   const { data: orgFiles } = useOrgInvoiceFiles(orgId);
   const permissions = useInvoicePermissions(orgId);
+  const { currentOrg } = useOrg();
   const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
+  const [printingTarget, setPrintingTarget] = useState<null | 'all' | string>(null);
   const [hidePaid, setHidePaid] = useState(false);
 
-  const handlePrint = () => {
-    setIsPrinting(true);
+  const isPrinting = printingTarget !== null;
+
+  const handlePrint = (objectId?: string) => {
+    setPrintingTarget(objectId ?? 'all');
+  };
+
+  const handleExportExcel = (objectId?: string) => {
+    if (!currentOrg || !invoices || !objects) return;
+    const targetObjects = objectId
+      ? objects.filter((obj) => obj.id === objectId)
+      : objects;
+    const targetInvoices = objectId
+      ? printInvoices.filter((inv) => normalizeRelationId(inv.accounting_object_id) === objectId)
+      : printInvoices;
+    exportInvoicesToExcel({
+      invoices: targetInvoices,
+      objects: targetObjects,
+      date,
+      visibleColumns,
+      paymentMarks,
+      canViewPaymentMarks: permissions.canViewPaymentMarks,
+      canViewPaidDate: permissions.canViewPaidDate,
+      orgName: currentOrg.name,
+    });
   };
 
   useEffect(() => {
-    if (isPrinting) {
+    if (printingTarget) {
       const timer = setTimeout(() => window.print(), 100);
       return () => clearTimeout(timer);
     }
-  }, [isPrinting]);
+  }, [printingTarget]);
 
   useEffect(() => {
-    const onAfterPrint = () => setIsPrinting(false);
+    const onAfterPrint = () => setPrintingTarget(null);
     window.addEventListener('afterprint', onAfterPrint);
     return () => window.removeEventListener('afterprint', onAfterPrint);
   }, []);
@@ -171,6 +197,16 @@ export function InvoiceSection({
             <IconPrinter size={20} />
           </ActionIcon>
         </Tooltip>
+        <Tooltip label="Экспорт в Excel">
+          <ActionIcon
+            size="md"
+            variant="subtle"
+            color="gray"
+            onClick={handleExportExcel}
+          >
+            <IconFileExport size={20} />
+          </ActionIcon>
+        </Tooltip>
         {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && (
           <Switch
             size="xs"
@@ -200,10 +236,19 @@ export function InvoiceSection({
   }
 
   if (isPrinting) {
+    const printObjects = objects.filter(
+      (obj) => printingTarget === 'all' || obj.id === printingTarget,
+    );
+    const printInvoicesFiltered =
+      printingTarget === 'all'
+        ? printInvoices
+        : printInvoices.filter(
+            (inv) => normalizeRelationId(inv.accounting_object_id) === printingTarget,
+          );
     return (
       <PrintableInvoices
-        invoices={printInvoices}
-        objects={objects}
+        invoices={printInvoicesFiltered}
+        objects={printObjects}
         date={date}
         visibleColumns={visibleColumns}
         paymentMarks={paymentMarks}
@@ -233,6 +278,8 @@ export function InvoiceSection({
           visibleColumns={visibleColumns}
           onOpenDraft={(id) => setDraftObjectId(id)}
           onCancelDraft={() => setDraftObjectId(null)}
+          onPrint={(objId) => handlePrint(objId)}
+          onExport={(objId) => handleExportExcel(objId)}
         />
       ))}
       <InvoiceColumnSettingsModal
