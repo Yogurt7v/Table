@@ -98,20 +98,30 @@ export async function upsertBalance(accountId: string, date: string, balance: nu
 }
 
 export function getAllAccountingObjects() {
-  return pb.collection('accounting_objects').getFullList<IAccountingObject>({ sort: 'created' });
+  return pb.collection('accounting_objects').getFullList<IAccountingObject>({
+    sort: 'sort,created',
+  });
 }
 
 export function getAccountingObjects(orgId: string) {
   return pb.collection('accounting_objects').getFullList<IAccountingObject>({
     filter: `organization_id = "${orgId}"`,
-    sort: 'created',
+    sort: 'sort,created',
   });
 }
 
-export function createAccountingObject(organizationId: string, name: string) {
+export async function createAccountingObject(organizationId: string, name: string) {
+  const highest = await pb.collection('accounting_objects').getList<IAccountingObject>(1, 1, {
+    filter: `organization_id = "${organizationId}" && sort != null`,
+    sort: '-sort',
+    fields: 'sort',
+  });
+  const maxSort = highest.items[0]?.sort ?? 0;
+
   return pb.collection('accounting_objects').create<IAccountingObject>({
     organization_id: organizationId,
     name,
+    sort: maxSort + 1,
   });
 }
 
@@ -121,6 +131,14 @@ export function updateAccountingObject(id: string, name: string) {
 
 export function deleteAccountingObject(id: string) {
   return pb.collection('accounting_objects').delete(id);
+}
+
+export async function updateAccountingObjectsOrder(orderedIds: string[]) {
+  return Promise.all(
+    orderedIds.map((id, i) =>
+      pb.collection('accounting_objects').update<IAccountingObject>(id, { sort: i + 1 }),
+    ),
+  );
 }
 
 export function getInvoices(orgId: string, date: string) {

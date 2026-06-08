@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Group, Stack, Button, TextInput, Text, ActionIcon } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconTrash, IconPencil, IconCheck, IconX } from '@tabler/icons-react';
+import { IconTrash, IconPencil, IconCheck, IconX, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
 import {
   createAccountingObject,
   deleteAccountingObject,
   updateAccountingObject,
+  updateAccountingObjectsOrder,
 } from '@/api/collections';
 import { useQueryClient } from '@tanstack/react-query';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -58,6 +59,32 @@ export function AccountingObjectManager({
     }
   };
 
+  const handleMoveUp = async (index: number) => {
+    if (index <= 0) return;
+    const newOrder = [...objects];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index]!, newOrder[index - 1]!];
+    try {
+      await updateAccountingObjectsOrder(newOrder.map((o) => o.id));
+      refresh();
+    } catch {
+      notifications.show({ color: 'red', message: 'Не удалось изменить порядок' });
+      refresh();
+    }
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index >= objects.length - 1) return;
+    const newOrder = [...objects];
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1]!, newOrder[index]!];
+    try {
+      await updateAccountingObjectsOrder(newOrder.map((o) => o.id));
+      refresh();
+    } catch {
+      notifications.show({ color: 'red', message: 'Не удалось изменить порядок' });
+      refresh();
+    }
+  };
+
   return (
     <Stack gap={4}>
       <Text size="sm" fw={500}>
@@ -70,7 +97,7 @@ export function AccountingObjectManager({
         </Text>
       )}
 
-      {objects.map((obj) => (
+      {objects.map((obj, index) => (
         <Group key={obj.id} gap={6} wrap="nowrap">
           {canEdit && editingId === obj.id ? (
             <>
@@ -104,6 +131,24 @@ export function AccountingObjectManager({
               </Text>
               {canEdit && (
                 <>
+                  <ActionIcon
+                    size="sm"
+                    color="gray"
+                    variant="subtle"
+                    disabled={index === 0}
+                    onClick={() => handleMoveUp(index)}
+                  >
+                    <IconArrowUp size={14} />
+                  </ActionIcon>
+                  <ActionIcon
+                    size="sm"
+                    color="gray"
+                    variant="subtle"
+                    disabled={index === objects.length - 1}
+                    onClick={() => handleMoveDown(index)}
+                  >
+                    <IconArrowDown size={14} />
+                  </ActionIcon>
                   <ActionIcon
                     size="sm"
                     color="blue"

@@ -26,6 +26,7 @@ export interface IAccountingObject {
   id: string;
   organization_id: string;
   name: string;
+  sort?: number;
 }
 
 export interface IInvoice {

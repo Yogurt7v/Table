@@ -567,7 +567,7 @@ export function GroupedInvoiceTable({
             >
               {groups.map((group) => {
                 const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
-                const BORDER = `1.5px dashed var(--mantine-primary-color-filled)`;
+                const BORDER = `1.5px dashed var(--org-color, var(--mantine-primary-color-filled))`;
                 return (
                   <SortableGroupBody key={group.counterparty} id={group.counterparty}>
                     {({ listeners, isOver }) =>
