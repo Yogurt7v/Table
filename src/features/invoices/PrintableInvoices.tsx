@@ -112,7 +112,7 @@ export function PrintableInvoices({
         return 'Нет';
       }
       case 'paid_date':
-        return invoice.paid_date || '—';
+        return invoice.paid_date ? dayjs(invoice.paid_date).format('DD.MM.YYYY') : '—';
       case 'comment':
         return invoice.comment || '—';
       case 'payment_mark':

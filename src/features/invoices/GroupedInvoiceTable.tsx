@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import dayjs from 'dayjs';
 import {
   Autocomplete,
   NumberInput,
@@ -414,7 +415,7 @@ export function GroupedInvoiceTable({
     paid_date: {
       width: 120,
       header: 'Дата оплаты',
-      renderCell: (invoice) => <>{invoice.paid_date || '—'}</>,
+      renderCell: (invoice) => <>{invoice.paid_date ? dayjs(invoice.paid_date).format('DD.MM.YYYY') : '—'}</>,
       renderDraft: () => null,
     },
     comment: {

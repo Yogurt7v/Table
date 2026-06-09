@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import {
   Stack,
   Paper,
@@ -191,7 +192,7 @@ export function InvoiceMobileCardView({
 
                   {permissions.canViewPaidDate && invoice.paid_date && (
                     <Text size="xs" c="dimmed">
-                      Оплачено: {invoice.paid_date}
+                      Оплачено: {dayjs(invoice.paid_date).format('DD.MM.YYYY')}
                     </Text>
                   )}
 
