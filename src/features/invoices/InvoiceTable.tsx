@@ -145,6 +145,27 @@ export function InvoiceTable({
 
   const handleEditInvoice = (data: DraftInvoiceForm) => {
     if (!editInvoice) return;
+
+    const suffix = (editInvoice as IInvoice & { _syntheticSuffix?: string | null })._syntheticSuffix;
+
+    if (suffix) {
+      const copyComments = { ...(editInvoice.copy_comments ?? {}), [suffix]: data.comment };
+      if (!data.comment) delete copyComments[suffix];
+      updateInvoice.mutate(
+        { id: editInvoice.id, previousData: { copy_comments: editInvoice.copy_comments }, copy_comments: copyComments },
+        {
+          onSuccess: () => {
+            setEditInvoice(null);
+            notifications.show({ color: 'green', message: 'Комментарий обновлён' });
+          },
+          onError: () => {
+            notifications.show({ color: 'red', message: 'Не удалось обновить комментарий' });
+          },
+        },
+      );
+      return;
+    }
+
     const { updates, previousData, changed } = buildInvoiceDelta(data, editInvoice, date.slice(0, 10));
     if (!changed) {
       setEditInvoice(null);
@@ -292,7 +313,19 @@ export function InvoiceTable({
         onDraftSave={handleSaveDraft}
         onDraftCancel={onCancelDraft}
         highlightedIds={highlightedIds}
-        onEdit={(inv) => setEditInvoice(inv)}
+        onEdit={(inv) => {
+          const hasSuffix = inv.id.includes('__');
+          const suffix = hasSuffix ? inv.id.slice(inv.id.indexOf('__')) : null;
+          const realId = hasSuffix ? inv.id.slice(0, inv.id.indexOf('__')) : inv.id;
+          const realInvoice = hasSuffix ? invoices.find((i) => i.id === realId) : null;
+          const copyComment = suffix ? realInvoice?.copy_comments?.[suffix] ?? '' : undefined;
+          setEditInvoice({
+            ...inv,
+            id: realId,
+            comment: copyComment ?? inv.comment,
+            _syntheticSuffix: suffix,
+          } as IInvoice & { _syntheticSuffix?: string | null });
+        }}
         onCopy={handleCopy}
         onDelete={(inv) => setDeleteTarget(inv)}
         onHistory={(inv) => setHistoryInvoice(inv)}

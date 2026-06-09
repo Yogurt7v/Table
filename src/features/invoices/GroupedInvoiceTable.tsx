@@ -14,10 +14,7 @@ import {
   TextInput,
   FileInput,
 } from '@mantine/core';
-import {
-  IconX,
-  IconCheck,
-} from '@tabler/icons-react';
+import { IconX, IconCheck } from '@tabler/icons-react';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -391,7 +388,7 @@ export function GroupedInvoiceTable({
                 setPayModalAmount(String(invoice.amount));
               }}
             >
-              Нет
+              Не оплачено
             </Badge>
           );
         }
@@ -416,7 +413,9 @@ export function GroupedInvoiceTable({
     paid_date: {
       width: 120,
       header: 'Дата оплаты',
-      renderCell: (invoice) => <>{invoice.paid_date ? dayjs(invoice.paid_date).format('DD.MM.YYYY') : '—'}</>,
+      renderCell: (invoice) => (
+        <>{invoice.paid_date ? dayjs(invoice.paid_date).format('DD.MM.YYYY') : '—'}</>
+      ),
       renderDraft: () => null,
     },
     comment: {
@@ -689,6 +688,7 @@ export function GroupedInvoiceTable({
                             const copyAmt = amounts[i]!;
                             const isLastCopy = i === amounts.length - 1;
                             const copyId = `${invoice.id}__p${i - 1}`;
+                            const suffix = `__p${i - 1}`;
                             rows.push(
                               <Table.Tr
                                 key={copyId}
@@ -740,6 +740,7 @@ export function GroupedInvoiceTable({
                                           col.renderCell({
                                             ...invoice,
                                             id: copyId,
+                                            comment: invoice.copy_comments?.[suffix] ?? invoice.comment,
                                             amount: copyAmt,
                                             paid: true,
                                             paid_amount: null,
@@ -803,7 +804,10 @@ export function GroupedInvoiceTable({
                                           {invoice.purpose}
                                         </Text>
                                       ) : (
-                                        col.renderCell(remainderInvoice)
+                                        col.renderCell({
+                                          ...remainderInvoice,
+                                          comment: invoice.copy_comments?.['__r'] ?? invoice.comment,
+                                        })
                                       )}
                                     </div>
                                   </Table.Td>
@@ -872,7 +876,10 @@ export function GroupedInvoiceTable({
       {/* Modals */}
       <PayModal
         opened={!!payModalInvoice}
-        onClose={() => { setPayModalInvoice(null); setPayModalAmount(''); }}
+        onClose={() => {
+          setPayModalInvoice(null);
+          setPayModalAmount('');
+        }}
         invoice={payModalInvoice}
         amount={payModalAmount}
         onAmountChange={(v) => setPayModalAmount(v)}

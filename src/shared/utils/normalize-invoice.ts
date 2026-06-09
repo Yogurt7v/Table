@@ -29,6 +29,10 @@ export function normalizeInvoice(record: IInvoice): IInvoice {
     payment_amounts: Array.isArray(record.payment_amounts)
       ? record.payment_amounts.map(Number)
       : [],
+    copy_comments:
+      record.copy_comments && typeof record.copy_comments === 'object'
+        ? (record.copy_comments as Record<string, string>)
+        : {},
   };
 }
 

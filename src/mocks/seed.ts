@@ -47,21 +47,21 @@ export const invoice1: IInvoice = {
   date: '2026-06-01', seq: 1, counterparty: 'ООО "Контрагент А"',
   purpose: 'Оплата услуг', contract_no: 'Д-001', invoice_no: 'СФ-001',
   amount: 50000, paid: false, paid_amount: null, payment_amounts: [],
-  paid_date: '', comment: '', created_by: 'admin1', updated_by: 'admin1',
+  paid_date: '', comment: '', copy_comments: {}, created_by: 'admin1', updated_by: 'admin1',
 };
 export const invoice2: IInvoice = {
   id: 'inv2', organization_id: 'org1', accounting_object_id: 'ao1',
   date: '2026-06-01', seq: 2, counterparty: 'ООО "Контрагент А"',
   purpose: 'Материалы', contract_no: 'Д-001', invoice_no: 'СФ-002',
   amount: 30000, paid: true, paid_amount: 30000, payment_amounts: [30000],
-  paid_date: '2026-06-02', comment: '', created_by: 'admin1', updated_by: 'admin1',
+  paid_date: '2026-06-02', comment: '', copy_comments: {}, created_by: 'admin1', updated_by: 'admin1',
 };
 export const invoice3: IInvoice = {
   id: 'inv3', organization_id: 'org1', accounting_object_id: 'ao2',
   date: '2026-06-01', seq: 1, counterparty: 'ООО "Поставщик Б"',
   purpose: 'Ремонт', contract_no: 'Д-002', invoice_no: 'СФ-003',
   amount: 120000, paid: false, paid_amount: null, payment_amounts: [],
-  paid_date: '', comment: 'Срочно', created_by: 'admin1', updated_by: 'admin1',
+  paid_date: '', comment: 'Срочно', copy_comments: {}, created_by: 'admin1', updated_by: 'admin1',
 };
 
 export const history1: IInvoiceHistory = {

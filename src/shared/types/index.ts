@@ -45,6 +45,7 @@ export interface IInvoice {
   payment_amounts: number[];
   paid_date: string;
   comment: string;
+  copy_comments: Record<string, string>;
   created_by: string;
   updated_by: string;
   created?: string;
