@@ -153,6 +153,13 @@ export function getInvoices(orgId: string, date: string) {
     .then((list) => list.map(normalizeInvoice));
 }
 
+export function getInvoice(invoiceId: string) {
+  return pb
+    .collection('invoices')
+    .getOne<IInvoice>(invoiceId)
+    .then(normalizeInvoice);
+}
+
 export function searchCounterparties(orgId: string, query: string) {
   if (!query.trim()) return Promise.resolve([]);
   const lowerQuery = query.toLowerCase();
