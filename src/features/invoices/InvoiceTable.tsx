@@ -176,6 +176,10 @@ export function InvoiceTable({
       },
       {
         onSuccess: () => {
+          const existingMark = paymentMarks?.find((m) => m.invoice_id === invoiceId);
+          if (existingMark) {
+            deletePaymentMark.mutate(existingMark.id);
+          }
           notifications.show({ color: 'green', message: 'Статус счёта обновлён' });
         },
         onError: (error) => {
@@ -221,8 +225,9 @@ export function InvoiceTable({
   };
 
   const handleMarkForPayment = (invoice: IInvoice) => {
+    const realId = invoice.id.endsWith('__r') ? invoice.id.slice(0, -3) : invoice.id;
     createPaymentMark.mutate(
-      { invoice_id: invoice.id, amount: invoice.amount },
+      { invoice_id: realId, amount: invoice.amount },
       {
         onSuccess: () => {
           notifications.show({ color: 'green', message: 'Счёт отмечен к оплате' });
@@ -235,8 +240,9 @@ export function InvoiceTable({
   };
 
   const handleMarkPartialPayment = (invoiceId: string, amount: number | undefined, comment: string) => {
+    const realId = invoiceId.endsWith('__r') ? invoiceId.slice(0, -3) : invoiceId;
     createPaymentMark.mutate(
-      { invoice_id: invoiceId, amount, comment },
+      { invoice_id: realId, amount, comment },
       {
         onSuccess: () => {
           notifications.show({ color: 'green', message: 'Частичная оплата отмечена' });

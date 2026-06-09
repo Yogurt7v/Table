@@ -484,17 +484,21 @@ export function GroupedInvoiceTable({
     payment_mark: {
       width: 180,
       header: 'Отметка',
-      renderCell: (invoice) => (
-        <PaymentMarkCell
-          invoice={invoice}
-          mark={marksByInvoice[invoice.id]}
-          canMarkPayment={permissions.canMarkPayment}
-          canViewPaymentMarks={permissions.canViewPaymentMarks}
-          onMarkForPayment={onMarkForPayment}
-          onOpenPartialModal={(inv) => setPartialModal({ invoice: inv, amount: '', comment: '' })}
-          onClearPaymentMark={onClearPaymentMark}
-        />
-      ),
+      renderCell: (invoice) => {
+        const lookupId = invoice.id.endsWith('__r') ? invoice.id.slice(0, -3) : invoice.id;
+        const mark = invoice.paid ? undefined : marksByInvoice[lookupId];
+        return (
+          <PaymentMarkCell
+            invoice={invoice}
+            mark={mark}
+            canMarkPayment={permissions.canMarkPayment}
+            canViewPaymentMarks={permissions.canViewPaymentMarks}
+            onMarkForPayment={onMarkForPayment}
+            onOpenPartialModal={(inv) => setPartialModal({ invoice: inv, amount: '', comment: '' })}
+            onClearPaymentMark={onClearPaymentMark}
+          />
+        );
+      },
       renderDraft: () => null,
     },
   };
@@ -730,7 +734,7 @@ export function GroupedInvoiceTable({
                                             paid: true,
                                             paid_amount: null,
                                             payment_amounts: [],
-                                            paid_date: null,
+                                            paid_date: invoice.paid_date,
                                           })
                                         )}
                                       </div>
