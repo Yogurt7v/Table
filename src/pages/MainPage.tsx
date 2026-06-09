@@ -27,14 +27,14 @@ export function MainPage() {
           value={date}
           onChange={(v) => v && setDate(v)}
           valueFormat="D MMMM YYYY, dddd"
-          w={{ base: '100%', sm: 280 }}
-          maw={280}
+          w={{ base: '100%', sm: 320 }}
+          maw={320}
           styles={{
-          input: {
-            fontWeight: 'bold',
-            fontSize: '1.1rem', // или '18px', '1.2em' и т.д.
-          },
-        }}
+            input: {
+              fontWeight: 'bold',
+              fontSize: '1.1rem', // или '18px', '1.2em' и т.д.
+            },
+          }}
           renderDay={(renderDate) => {
             const isToday = dayjs(renderDate).isSame(dayjs(), 'day');
             return (

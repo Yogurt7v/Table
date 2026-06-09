@@ -627,13 +627,13 @@ export function GroupedInvoiceTable({
                           borderRight: BORDER,
                           ...(isGroupFirst ? { borderTop: BORDER } : {}),
                           ...(isLastRow ? { borderBottom: BORDER } : {}),
-                          ...(paid
-                            ? { backgroundColor: 'var(--mantine-color-yellow-1)' }
-                            : hasMark
-                              ? { backgroundColor: 'var(--mantine-color-green-0)' }
-                              : isHighlighted
-                                ? { backgroundColor: 'var(--mantine-color-yellow-0)' }
-                                : {}),
+                            ...(paid
+                              ? { backgroundColor: 'var(--mantine-color-yellow-1)' }
+                              : hasMark
+                                ? { backgroundColor: 'var(--mantine-color-green-0)' }
+                                : isHighlighted
+                                  ? { backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)' }
+                                  : {}),
                           ...(isOver && isGroupFirst
                             ? { borderTop: '3px solid var(--mantine-color-blue-6)' }
                             : {}),

@@ -128,7 +128,7 @@ export function InvoiceMobileCardView({
                       : marksByInvoice[invoice.id]
                         ? 'var(--mantine-color-green-0)'
                         : highlightedIds.includes(invoice.id)
-                          ? 'var(--mantine-color-yellow-0)'
+                          ? 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)'
                           : undefined,
                   }}
                 >
