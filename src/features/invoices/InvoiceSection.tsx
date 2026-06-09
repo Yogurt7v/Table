@@ -215,7 +215,7 @@ export function InvoiceSection({
             onChange={(e) => setHidePaid(e.currentTarget.checked)}
           />
         )}
-        {paidTodayTotal > 0 && (
+        {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && paidTodayTotal > 0 && (
           <Text size="sm" c="dimmed">
             Оплачено: {formatAmountRub(paidTodayTotal)}
           </Text>
