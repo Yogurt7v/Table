@@ -26,6 +26,7 @@ export function MainPage() {
           leftSection={<IconCalendar size={20} />}
           value={date}
           onChange={(v) => v && setDate(v)}
+          valueFormat="D MMMM YYYY, dddd"
           w={{ base: '100%', sm: 280 }}
           maw={280}
           styles={{
@@ -34,6 +35,26 @@ export function MainPage() {
             fontSize: '1.1rem', // или '18px', '1.2em' и т.д.
           },
         }}
+          renderDay={(renderDate) => {
+            const isToday = dayjs(renderDate).isSame(dayjs(), 'day');
+            return (
+              <div
+                style={{
+                  ...(isToday && {
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    border: '2px solid var(--mantine-primary-color-filled)',
+                  }),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {dayjs(renderDate).date()}
+              </div>
+            );
+          }}
         />
 
         <AccountList accounts={accounts} loading={accountsLoading} date={dateStr} />
