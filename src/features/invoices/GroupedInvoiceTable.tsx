@@ -12,6 +12,7 @@ import {
   Tooltip,
   Anchor,
   TextInput,
+  FileInput,
 } from '@mantine/core';
 import {
   IconX,
@@ -459,7 +460,15 @@ export function GroupedInvoiceTable({
           </Text>
         );
       },
-      renderDraft: () => null,
+      renderDraft: () => (
+        <FileInput
+          size="xs"
+          placeholder="Файл"
+          value={draftForm?.file ?? null}
+          onChange={(v) => onDraftChange?.('file', v)}
+          clearable
+        />
+      ),
     },
     actions: {
       width: 50,

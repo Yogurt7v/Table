@@ -45,6 +45,7 @@ export interface DraftInvoiceForm {
   paid: boolean;
   paid_date: string;
   comment: string;
+  file: File | null;
 }
 
 export function createEmptyDraft(): DraftInvoiceForm {
@@ -57,6 +58,7 @@ export function createEmptyDraft(): DraftInvoiceForm {
     paid: false,
     paid_date: '',
     comment: '',
+    file: null,
   };
 }
 

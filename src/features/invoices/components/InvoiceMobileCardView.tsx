@@ -11,6 +11,7 @@ import {
   TextInput,
   NumberInput,
   Button,
+  FileInput,
 } from '@mantine/core';
 import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -307,6 +308,13 @@ export function InvoiceMobileCardView({
               value={draftForm?.comment ?? ''}
               onChange={(e) => onDraftChange?.('comment', e.currentTarget.value)}
               placeholder="Комментарий"
+            />
+            <FileInput
+              size="xs"
+              placeholder="Файл"
+              value={draftForm?.file ?? null}
+              onChange={(v) => onDraftChange?.('file', v)}
+              clearable
             />
             <Group justify="flex-end" gap={4} mt="xs">
               <Button size="compact-sm" variant="default" onClick={onDraftCancel}>

@@ -11,6 +11,7 @@ import { useReorderInvoices } from '@/shared/hooks/useReorderInvoices';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { useCreatePaymentMark, useDeletePaymentMark } from '@/shared/hooks/usePaymentMarks';
+import { useCreateInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
 import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { InvoiceHistoryModal } from './InvoiceHistoryModal';
@@ -56,6 +57,7 @@ export function InvoiceTable({
   const moveInvoice = useMoveInvoice(orgId, date);
   const createPaymentMark = useCreatePaymentMark(orgId);
   const deletePaymentMark = useDeletePaymentMark(orgId);
+  const createInvoiceFile = useCreateInvoiceFile(orgId);
   const reorderInvoices = useReorderInvoices(orgId, date);
 
   const handleReorderGroups = (counterpartyOrder: string[]) => {
@@ -113,7 +115,7 @@ export function InvoiceTable({
       return;
     }
     try {
-      await createInvoice.mutateAsync({
+      const created = await createInvoice.mutateAsync({
         organization_id: orgId,
         accounting_object_id: objectId,
         date,
@@ -126,6 +128,13 @@ export function InvoiceTable({
         paid_date: draftForm.paid_date,
         comment: draftForm.comment.trim(),
       });
+      if (draftForm.file && created?.id) {
+        await createInvoiceFile.mutateAsync({
+          invoiceId: created.id,
+          file: draftForm.file,
+          name: draftForm.file.name,
+        });
+      }
       onCancelDraft();
       notifications.show({ color: 'green', message: 'Счёт добавлен' });
     } catch (err) {
