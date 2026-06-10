@@ -95,17 +95,6 @@ export function InvoiceObjectBlock({
             </Tooltip>
           )}
         </Group>
-        {permissions.canCreate && (
-          <Button
-            size="compact-xs"
-            variant="light"
-            leftSection={<IconPlus size={14} />}
-            disabled={isDraftOpen || hasDraftElsewhere}
-            onClick={() => onOpenDraft(obj.id)}
-          >
-            Добавить счёт
-          </Button>
-        )}
       </Group>
       {!invoices ? (
         <Loader size="sm" />
@@ -125,6 +114,19 @@ export function InvoiceObjectBlock({
             filesByInvoice={filesByInvoice}
             visibleColumns={visibleColumns}
           />
+          {permissions.canCreate && (
+            <Group justify="flex-end" mt="sm">
+              <Button
+                size="compact-xs"
+                variant="light"
+                leftSection={<IconPlus size={14} />}
+                disabled={isDraftOpen || hasDraftElsewhere}
+                onClick={() => onOpenDraft(obj.id)}
+              >
+                Добавить счёт
+              </Button>
+            </Group>
+          )}
           {objInvoices.length > 0 && (
             <Text ta="right" fw={700} mt="md">
               Итого по "{obj.name}": {formatAmountRub(totalAmount)}
