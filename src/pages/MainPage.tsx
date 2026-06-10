@@ -23,6 +23,7 @@ export function MainPage() {
     <Container size="fluid" py="md">
       <Stack gap="lg">
         <DatePickerInput
+          maxDate={new Date()}
           leftSection={<IconCalendar size={20} />}
           value={date}
           onChange={(v) => v && setDate(v)}
