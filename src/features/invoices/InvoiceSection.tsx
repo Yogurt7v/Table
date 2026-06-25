@@ -155,7 +155,12 @@ export function InvoiceSection({
     if (!invoices) return 0;
     return invoices
       .filter((inv) => inv.paid && inv.paid_date === date)
-      .reduce((sum, inv) => sum + (inv.paid_amount ?? inv.amount), 0);
+      .reduce((sum, inv) => {
+        if (inv.payment_amounts?.length) {
+          return sum + inv.payment_amounts.reduce((s, a) => s + a, 0);
+        }
+        return sum + (inv.paid_amount ?? inv.amount);
+      }, 0);
   }, [invoices, date]);
 
   const printInvoices = useMemo(() => {

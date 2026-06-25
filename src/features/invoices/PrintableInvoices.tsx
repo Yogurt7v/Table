@@ -281,7 +281,7 @@ export function PrintableInvoices({
                               {printColumns.map((colId) => {
                                 if (colId === 'amount') {
                                   return (
-                                    <td key={colId}>Остаток: {formatAmountRub(remaining)}</td>
+                                    <td key={colId}><b>Остаток:</b> {formatAmountRub(remaining)}</td>
                                   );
                                 }
                                 if (colId === 'paid') {

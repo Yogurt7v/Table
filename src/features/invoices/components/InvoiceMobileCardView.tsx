@@ -11,8 +11,11 @@ import {
   TextInput,
   NumberInput,
   Button,
-  FileInput,
+  FileButton,
+  ActionIcon,
+  Tooltip,
 } from '@mantine/core';
+import { IconPaperclip } from '@tabler/icons-react';
 import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
@@ -220,8 +223,8 @@ export function InvoiceMobileCardView({
                   )}
 
                   {hasRemainder && (
-                    <Text size="xs" c="orange" mt={2}>
-                      Остаток: {formatAmountRub(invoice.amount - totalPaid)}
+                    <Text mt={2}>
+                      <Text component="span" fw={700}>Остаток:</Text> {formatAmountRub(invoice.amount - totalPaid)}
                     </Text>
                   )}
 
@@ -309,13 +312,27 @@ export function InvoiceMobileCardView({
               onChange={(e) => onDraftChange?.('comment', e.currentTarget.value)}
               placeholder="Комментарий"
             />
-            <FileInput
-              size="xs"
-              placeholder="Файл"
-              value={draftForm?.file ?? null}
-              onChange={(v) => onDraftChange?.('file', v)}
-              clearable
-            />
+            <Group gap={4}>
+              <FileButton onChange={(v) => onDraftChange?.('file', v)}>
+                {(props) => (
+                  <Tooltip label={draftForm?.file?.name ?? 'Прикрепить файл'}>
+                    <ActionIcon
+                      {...props}
+                      variant={draftForm?.file ? 'light' : 'subtle'}
+                      color={draftForm?.file ? 'blue' : 'gray'}
+                      size="sm"
+                    >
+                      <IconPaperclip size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </FileButton>
+              {draftForm?.file && (
+                <Text size="xs" c="dimmed" lineClamp={1}>
+                  {draftForm.file.name}
+                </Text>
+              )}
+            </Group>
             <Group justify="flex-end" gap={4} mt="xs">
               <Button size="compact-sm" variant="default" onClick={onDraftCancel}>
                 Отмена

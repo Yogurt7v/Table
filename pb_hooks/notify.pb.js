@@ -20,21 +20,25 @@ onRecordUpdateRequest((e) => {
 
 onRecordCreate((e) => {
   // --- Seq auto-numbering ---
-  var seqRecord = e.record;
-  if (!(seqRecord.get('seq') > 0)) {
-    var seqOrgId = seqRecord.get('organization_id');
-    var seqDate = seqRecord.get('date');
-    if (seqOrgId && seqDate) {
-      var seqRecords = $app.findRecordsByFilter(
-        'invoices',
-        'organization_id = "' + seqOrgId + '" && date = "' + seqDate + '"',
-        '-seq',
-        1,
-        0,
-      );
-      var seqMax = seqRecords.length > 0 ? parseInt(seqRecords[0].get('seq') || '0', 10) : 0;
-      seqRecord.set('seq', seqMax + 1);
+  try {
+    var seqRecord = e.record;
+    if (!(seqRecord.get('seq') > 0)) {
+      var seqOrgId = seqRecord.get('organization_id');
+      var seqDate = seqRecord.get('date');
+      if (seqOrgId && seqDate) {
+        var seqRecords = $app.findRecordsByFilter(
+          'invoices',
+          'organization_id = "' + seqOrgId + '" && date = "' + seqDate + '"',
+          '-seq',
+          1,
+          0,
+        );
+        var seqMax = seqRecords.length > 0 ? parseInt(seqRecords[0].get('seq') || '0', 10) : 0;
+        seqRecord.set('seq', seqMax + 1);
+      }
     }
+  } catch (err) {
+    console.error('[notify:seq]', String(err));
   }
 
   // --- Notification ---

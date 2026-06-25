@@ -12,9 +12,9 @@ import {
   Tooltip,
   Anchor,
   TextInput,
-  FileInput,
+  FileButton,
 } from '@mantine/core';
-import { IconX, IconCheck } from '@tabler/icons-react';
+import { IconX, IconCheck, IconPaperclip } from '@tabler/icons-react';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -432,7 +432,7 @@ export function GroupedInvoiceTable({
       ),
     },
     files: {
-      width: 160,
+      width: 40,
       header: 'Файлы',
       renderCell: (invoice) => {
         const invoiceFiles = filesByInvoice?.[invoice.id];
@@ -460,13 +460,20 @@ export function GroupedInvoiceTable({
         );
       },
       renderDraft: () => (
-        <FileInput
-          size="xs"
-          placeholder="Файл"
-          value={draftForm?.file ?? null}
-          onChange={(v) => onDraftChange?.('file', v)}
-          clearable
-        />
+        <FileButton onChange={(v) => onDraftChange?.('file', v)}>
+          {(props) => (
+            <Tooltip label={draftForm?.file?.name ?? 'Прикрепить файл'}>
+              <ActionIcon
+                {...props}
+                variant={draftForm?.file ? 'light' : 'subtle'}
+                color={draftForm?.file ? 'blue' : 'gray'}
+                size="sm"
+              >
+                <IconPaperclip size={16} />
+              </ActionIcon>
+            </Tooltip>
+          )}
+        </FileButton>
       ),
     },
     actions: {
@@ -796,8 +803,8 @@ export function GroupedInvoiceTable({
                                   <Table.Td key={colId} style={{ width }}>
                                     <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
                                       {colId === 'counterparty' ? null : colId === 'amount' ? (
-                                        <Text size="xs" c="dimmed">
-                                          Остаток: {formatAmountRub(remaining)}
+                                        <Text size="xs">
+                                          <Text component="span" fw={700}>Остаток:</Text> {formatAmountRub(remaining)}
                                         </Text>
                                       ) : colId === 'purpose' ? (
                                         <Text size="xs" c="dimmed" fs="italic">
