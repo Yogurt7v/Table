@@ -9,11 +9,14 @@ import {
   Group,
   Select,
   ActionIcon,
+  Tooltip,
 } from '@mantine/core';
-import { IconTrash, IconPlus } from '@tabler/icons-react';
+import { useDisclosure } from '@mantine/hooks';
+import { IconTrash, IconPlus, IconCopy, IconEye, IconEyeOff, IconX } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { createUser } from '@/api/collections';
 import { createOrganizationUser } from '@/api/collections';
+import { generatePassword } from '@/shared/utils/generate-password';
 import { useOrg } from '@/shared/context/OrgContext';
 import type { IOrganizationUser } from '@/shared/types';
 
@@ -42,6 +45,7 @@ export function CreateUserModal({ opened, onClose }: CreateUserModalProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [visible, { toggle }] = useDisclosure(false);
   const { organizations } = useOrg();
   const qc = useQueryClient();
 
@@ -122,7 +126,49 @@ export function CreateUserModal({ opened, onClose }: CreateUserModalProps) {
             value={password}
             onChange={(e) => setPassword(e.currentTarget.value)}
             required
+            visible={visible}
+            onVisibilityChange={toggle}
+            rightSectionWidth={88}
+            rightSection={
+              <Group gap={2} mr={2}>
+                {password && (
+                  <>
+                    <Tooltip label="Копировать пароль">
+                      <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                        onClick={() => navigator.clipboard.writeText(password)}
+                      >
+                        <IconCopy size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggle}>
+                      {visible ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+                    </ActionIcon>
+                    <Tooltip label="Очистить">
+                      <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        size="sm"
+                        onClick={() => setPassword('')}
+                      >
+                        <IconX size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </>
+                )}
+              </Group>
+            }
           />
+          <Button
+            size="compact-xs"
+            variant="subtle"
+            onClick={() => setPassword(generatePassword())}
+            px={0}
+          >
+            Сгенерировать
+          </Button>
 
           <Text fw={500} size="sm" mt="sm">
             Назначение в организации

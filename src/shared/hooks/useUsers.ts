@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notifications } from '@mantine/notifications';
 import { getUsers, createUser, deleteUser } from '@/api/collections';
 
 export function useUsers() {
@@ -25,6 +26,13 @@ export function useDeleteUser() {
     mutationFn: (id: string) => deleteUser(id),
     onSuccess: () => {
       qc.resetQueries({ queryKey: ['users'] });
+    },
+    onError: (err) => {
+      notifications.show({
+        title: 'Ошибка',
+        message: err instanceof Error ? err.message : 'Не удалось удалить пользователя',
+        color: 'red',
+      });
     },
   });
 }
