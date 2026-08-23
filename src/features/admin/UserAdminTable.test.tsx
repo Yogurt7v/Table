@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { UserAdminTable } from './UserAdminTable';
-import { adminUser, userUser, orgUserAdmin, orgUserUser } from '@/mocks/seed';
+import { adminUser, userUser, guestUser, orgUserAdmin, orgUserUser } from '@/mocks/seed';
 import type { IOrganizationUser } from '@/shared/types';
 
 vi.mock('@/api/client');
@@ -51,8 +51,46 @@ describe('UserAdminTable', () => {
       />,
     );
 
-    const deleteButtons = screen.getAllByRole('button', { name: '' });
-    expect(deleteButtons.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('button', { name: 'Удалить пользователя Пользователь' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Удалить пользователь Админ' })).not.toBeInTheDocument();
+  });
+
+  it('filters users by search query', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <UserAdminTable
+        users={[adminUser, userUser, guestUser]}
+        orgUsers={[orgUserAdmin, orgUserUser] as IOrganizationUser[]}
+        currentUserId="admin1"
+        onAdd={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await user.type(screen.getByLabelText('Поиск пользователей'), 'гост');
+
+    expect(screen.getByText('guest')).toBeInTheDocument();
+    expect(screen.queryByText('admin')).not.toBeInTheDocument();
+    expect(screen.queryByText('user')).not.toBeInTheDocument();
+  });
+
+  it('shows empty state when nothing matches', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <UserAdminTable
+        users={[adminUser]}
+        orgUsers={[]}
+        currentUserId="admin1"
+        onAdd={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    await user.type(screen.getByLabelText('Поиск пользователей'), 'несуществующий');
+
+    expect(screen.getByText('Никого не найдено')).toBeInTheDocument();
   });
 
   it('calls onAdd when add button clicked', async () => {

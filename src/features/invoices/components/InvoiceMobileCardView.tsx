@@ -172,11 +172,12 @@ export function InvoiceMobileCardView({
                 <Paper
                   key={invoice.id}
                   withBorder
+                  radius="sm"
                   p="xs"
                   mb="sm"
                   style={{
                     backgroundColor: invoice.paid
-                      ? 'var(--mantine-color-yellow-0)'
+                      ? 'var(--mantine-color-yellow-1)'
                       : marksByInvoice[invoice.id]
                         ? 'var(--mantine-color-green-0)'
                         : highlightedIds.includes(invoice.id)
@@ -198,29 +199,35 @@ export function InvoiceMobileCardView({
                         {formatAmountRub(invoice.paid_amount ?? invoice.amount)}
                       </Badge>
                     ) : amounts.length > 0 ? (
-                      <Badge
-                        color="green"
-                        variant="light"
-                        size="sm"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => {
-                          if (amounts.length === 1) {
-                            onClearPaymentConfirm(invoice.id);
-                          }
-                        }}
-                      >
-                        {formatAmountRub(amounts[0]!)}
-                      </Badge>
+                      <Tooltip label="Снять оплату">
+                        <Badge
+                          color="green"
+                          variant="light"
+                          size="sm"
+                          aria-label="Снять оплату"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            if (amounts.length === 1) {
+                              onClearPaymentConfirm(invoice.id);
+                            }
+                          }}
+                        >
+                          {formatAmountRub(amounts[0]!)}
+                        </Badge>
+                      </Tooltip>
                     ) : (
-                      <Badge
-                        color="orange"
-                        variant="light"
-                        size="sm"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => onOpenPayModal(invoice)}
-                      >
-                        Не оплачен
-                      </Badge>
+                      <Tooltip label="Отметить оплату">
+                        <Badge
+                          color="orange"
+                          variant="light"
+                          size="sm"
+                          aria-label="Отметить оплату"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => onOpenPayModal(invoice)}
+                        >
+                          Не оплачен
+                        </Badge>
+                      </Tooltip>
                     )}
                   </Group>
 
@@ -343,7 +350,7 @@ export function InvoiceMobileCardView({
           </Text>
           <Stack gap="xs">
             <Autocomplete
-              size="xs"
+              size="sm"
               value={draftForm?.counterparty ?? ''}
               onChange={(v) => handleDraftChange('counterparty', v)}
               onKeyDown={handleDraftKeyDown}
@@ -352,7 +359,7 @@ export function InvoiceMobileCardView({
               error={draftErrors.counterparty}
             />
             <TextInput
-              size="xs"
+              size="sm"
               value={draftForm?.purpose ?? ''}
               onChange={(e) => handleDraftChange('purpose', e.currentTarget.value)}
               onKeyDown={handleDraftKeyDown}
@@ -360,14 +367,14 @@ export function InvoiceMobileCardView({
               error={draftErrors.purpose}
             />
             <TextInput
-              size="xs"
+              size="sm"
               value={draftForm?.contract_no ?? ''}
               onChange={(e) => handleDraftChange('contract_no', e.currentTarget.value)}
               onKeyDown={handleDraftKeyDown}
               placeholder="Договор"
             />
             <TextInput
-              size="xs"
+              size="sm"
               value={draftForm?.invoice_no ?? ''}
               onChange={(e) => handleDraftChange('invoice_no', e.currentTarget.value)}
               onKeyDown={handleDraftKeyDown}
@@ -375,7 +382,7 @@ export function InvoiceMobileCardView({
               error={draftErrors.invoice_no}
             />
             <NumberInput
-              size="xs"
+              size="sm"
               value={draftForm?.amount ?? 0}
               onChange={(v) => handleDraftChange('amount', v ?? 0)}
               onKeyDown={handleDraftKeyDown}
@@ -385,7 +392,7 @@ export function InvoiceMobileCardView({
               error={draftErrors.amount}
             />
             <TextInput
-              size="xs"
+              size="sm"
               value={draftForm?.comment ?? ''}
               onChange={(e) => handleDraftChange('comment', e.currentTarget.value)}
               onKeyDown={handleDraftKeyDown}

@@ -14,8 +14,9 @@ import {
   Anchor,
   TextInput,
   FileButton,
+  Stack,
 } from '@mantine/core';
-import { IconX, IconCheck, IconPaperclip } from '@tabler/icons-react';
+import { IconX, IconCheck, IconPaperclip, IconGripVertical, IconInbox } from '@tabler/icons-react';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -121,6 +122,7 @@ interface GroupedInvoiceTableProps {
   onFiles?: (invoice: IInvoice) => void;
   visibleColumns: InvoiceColumnId[];
   onReorderGroups?: (counterpartyOrder: string[]) => void;
+  onAddClick?: () => void;
 }
 
 export function GroupedInvoiceTable({
@@ -149,8 +151,9 @@ export function GroupedInvoiceTable({
   onFiles,
   visibleColumns,
   onReorderGroups,
+  onAddClick,
 }: GroupedInvoiceTableProps) {
-  const groups = groupInvoicesByCounterparty(invoices);
+  const groups = useMemo(() => groupInvoicesByCounterparty(invoices), [invoices]);
 
   const marksByInvoice = useMemo(() => {
     const map: Record<string, IPaymentMark> = {};
@@ -248,6 +251,8 @@ export function GroupedInvoiceTable({
   }, [orgId]);
 
   const resizingRef = useRef<{ colId: string; startX: number; startWidth: number } | null>(null);
+  const resizeFrameRef = useRef<number | null>(null);
+  const resizePosRef = useRef<number>(0);
 
   const handleResizeStart = (colId: InvoiceColumnId, e: React.MouseEvent) => {
     e.preventDefault();
@@ -257,12 +262,20 @@ export function GroupedInvoiceTable({
     const startWidth = columnSizing[colId] ?? col.width;
     resizingRef.current = { colId, startX: e.clientX, startWidth };
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const applyResize = () => {
+      resizeFrameRef.current = null;
       const state = resizingRef.current;
       if (!state) return;
-      const delta = e.clientX - state.startX;
+      const delta = resizePosRef.current - state.startX;
       const newWidth = Math.max(50, state.startWidth + delta);
       setColumnSizing((prev) => ({ ...prev, [state.colId]: newWidth }));
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingRef.current) return;
+      resizePosRef.current = e.clientX;
+      if (resizeFrameRef.current !== null) return;
+      resizeFrameRef.current = requestAnimationFrame(applyResize);
     };
 
     const handleMouseUp = () => {
@@ -270,6 +283,10 @@ export function GroupedInvoiceTable({
         saveColumnSizing(orgId, columnSizingRef.current);
       }
       resizingRef.current = null;
+      if (resizeFrameRef.current !== null) {
+        cancelAnimationFrame(resizeFrameRef.current);
+        resizeFrameRef.current = null;
+      }
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -312,9 +329,17 @@ export function GroupedInvoiceTable({
 
   if (groups.length === 0 && !isDraftOpen) {
     return (
-      <Text c="dimmed" ta="center" py="md">
-        Нет счетов
-      </Text>
+      <Box ta="center" py="xl">
+        <IconInbox size={36} stroke={1.5} style={{ color: 'var(--mantine-color-gray-5)' }} />
+        <Text c="dimmed" mt="xs">
+          Нет счетов на эту дату
+        </Text>
+        {permissions.canCreate && onAddClick && (
+          <Button variant="light" size="compact-sm" mt="sm" onClick={onAddClick}>
+            Добавить счёт
+          </Button>
+        )}
+      </Box>
     );
   }
 
@@ -616,25 +641,47 @@ export function GroupedInvoiceTable({
       />
 
       {/* Desktop table */}
-      <Box visibleFrom="sm" style={{ overflowX: 'auto', overflowY: 'hidden' }}>
-        <Table highlightOnHover style={{ width: '100%', maxWidth: '100%', tableLayout: 'fixed' }}>
+      <Box visibleFrom="sm">
+        <Table highlightOnHover className="invoices-table" style={{ width: '100%', maxWidth: '100%', tableLayout: 'fixed' }}>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th style={{ width: 50, overflow: 'hidden' }}>№</Table.Th>
+              <Table.Th
+                style={{
+                  width: 50,
+                  position: 'sticky',
+                  top: 56,
+                  zIndex: 1,
+                  backgroundColor: 'var(--mantine-color-body)',
+                  overflow: 'hidden',
+                }}
+              >
+                №
+              </Table.Th>
               {filteredColumns.map((colId) => {
                 const col = columnRenderers[colId];
                 const width = columnSizing[colId] ?? col.width;
                 return (
-                  <Table.Th key={colId} style={{ width, position: 'relative', overflow: 'hidden' }}>
+                  <Table.Th
+                    key={colId}
+                    style={{
+                      width,
+                      position: 'sticky',
+                      top: 56,
+                      zIndex: 1,
+                      backgroundColor: 'var(--mantine-color-body)',
+                      overflow: 'hidden',
+                    }}
+                  >
                     <div style={{ overflow: 'hidden', maxWidth: '100%' }}>{col.header}</div>
                     <div
                       onMouseDown={(e) => handleResizeStart(colId, e)}
+                      className="col-resize-handle"
                       style={{
                         position: 'absolute',
                         right: 0,
                         top: 0,
                         bottom: 0,
-                        width: 6,
+                        width: 10,
                         cursor: 'col-resize',
                         userSelect: 'none',
                         borderRight: '1px solid var(--mantine-color-gray-3)',
@@ -724,7 +771,20 @@ export function GroupedInvoiceTable({
                                 maxWidth: '100%',
                               }}
                             >
-                              <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                              <div
+                                style={{
+                                  overflow: 'hidden',
+                                  maxWidth: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 2,
+                                }}
+                              >
+                                <IconGripVertical
+                                  size={12}
+                                  className="row-grip-icon"
+                                  style={{ flexShrink: 0, color: 'var(--mantine-color-gray-5)' }}
+                                />
                                 {invoiceNumber})
                               </div>
                             </Table.Td>
@@ -790,20 +850,23 @@ export function GroupedInvoiceTable({
                                     <Table.Td key={colId} style={{ width }}>
                                       <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
                                         {colId === 'counterparty' ? null : colId === 'paid' ? (
-                                          <Badge
-                                            color="green"
-                                            variant="light"
-                                            style={{
-                                              cursor: isLastCopy ? 'pointer' : 'default',
-                                            }}
-                                            onClick={
-                                              isLastCopy
-                                                ? () => setClearConfirmInvoiceId(copyId)
-                                                : undefined
-                                            }
-                                          >
-                                            {formatAmountRub(copyAmt)}
-                                          </Badge>
+                                          <Tooltip label="Снять оплату">
+                                            <Badge
+                                              color="green"
+                                              variant="light"
+                                              aria-label="Снять оплату"
+                                              style={{
+                                                cursor: isLastCopy ? 'pointer' : 'default',
+                                              }}
+                                              onClick={
+                                                isLastCopy
+                                                  ? () => setClearConfirmInvoiceId(copyId)
+                                                  : undefined
+                                              }
+                                            >
+                                              {formatAmountRub(copyAmt)}
+                                            </Badge>
+                                          </Tooltip>
                                         ) : colId === 'purpose' ? (
                                           <Text size="xs" c="dimmed" fs="italic">
                                             {invoice.purpose}

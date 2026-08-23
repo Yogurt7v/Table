@@ -32,7 +32,7 @@ describe('PaymentMarkCell', () => {
     );
 
     expect(screen.getByText('Оплатить')).toBeInTheDocument();
-    expect(screen.getByText('частично')).toBeInTheDocument();
+    expect(screen.getByText('Частично')).toBeInTheDocument();
   });
 
   it('shows mark details when mark exists', () => {

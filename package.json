@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "concurrently -n pb,vite -c yellow,cyan \"pnpm pb\" \"vite\"",
     "pb": "./pocketbase serve",
     "pbt": "./pocketbase serve --dir=pb_data_test --http=127.0.0.1:8090",
     "pbe": "pocketbase.exe serve",
@@ -53,6 +54,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/xlsx": "^0.0.36",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^10.0.5",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",

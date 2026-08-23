@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Container, Stack, Loader, Paper, Text, Button } from '@mantine/core';
+import { Container, Stack, Loader, Paper, Text, Button, Center } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar } from '@tabler/icons-react';
 import dayjs from 'dayjs';
@@ -20,7 +20,12 @@ export function MainPage() {
   const { data: accounts, isLoading: accountsLoading } = useBankAccounts(currentOrgId, dateStr);
 
   if (!currentOrgId) {
-    if (organizationsLoading) return <Loader />;
+    if (organizationsLoading)
+      return (
+        <Center py="xl">
+          <Loader />
+        </Center>
+      );
     return (
       <Container size="sm" py="xl">
         <Paper withBorder p="xl" ta="center">
@@ -49,8 +54,8 @@ export function MainPage() {
           maw={320}
           styles={{
             input: {
-              fontWeight: 'bold',
-              fontSize: '1.1rem', // или '18px', '1.2em' и т.д.
+              fontWeight: 700,
+              fontSize: 'var(--mantine-font-size-lg)',
             },
           }}
           renderDay={(renderDate) => {

@@ -1,5 +1,5 @@
 import { TextInput, Button, Group } from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
+import { IconArrowsHorizontal, IconSearch } from '@tabler/icons-react';
 import { useSearch } from '@/shared/context/SearchContext';
 
 export function InvoiceSearch() {
@@ -22,9 +22,10 @@ export function InvoiceSearch() {
         <Button
           variant="light"
           size="compact-sm"
+          leftSection={<IconArrowsHorizontal size={16} />}
           onClick={() => setSearchAll(true)}
         >
-          🔍 Искать везде
+          Искать везде
         </Button>
       )}
     </Group>

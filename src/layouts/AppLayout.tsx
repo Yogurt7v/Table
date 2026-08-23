@@ -176,14 +176,9 @@ export function AppLayout() {
                 </Anchor>
               )}
               <Text size="sm">{user?.name || user?.login || 'Пользователь'}</Text>
-              <Text
-                size="sm"
-                c="dimmed"
-                style={{ cursor: 'pointer' }}
-                onClick={handleLogout}
-              >
+              <Anchor size="sm" component="button" type="button" onClick={handleLogout}>
                 Выйти
-              </Text>
+              </Anchor>
             </Group>
           </Group>
         </Box>

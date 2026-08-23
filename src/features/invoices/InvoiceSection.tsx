@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Affix, Paper, Title, Group, Loader, Text, ActionIcon, Tooltip, Switch, Box } from '@mantine/core';
+import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Switch, Box } from '@mantine/core';
 import { IconPrinter, IconSettings, IconFileExport } from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
@@ -176,7 +176,14 @@ export function InvoiceSection({
 
   if (!orgId) return null;
 
-  if (!objects) return <Loader />;
+  if (!objects)
+    return (
+      <Stack gap="sm" py="xs">
+        <Skeleton height={32} radius="sm" />
+        <Skeleton height={140} radius="md" />
+        <Skeleton height={140} radius="md" />
+      </Stack>
+    );
 
   const tableHeader = (
     <Group justify="space-between" mb="sm" wrap="wrap">

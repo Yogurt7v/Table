@@ -1,5 +1,17 @@
-import { Table, Text, Group, Stack, Button, ActionIcon, Box, Title, Alert } from '@mantine/core';
-import { IconUserPlus, IconTrash, IconInfoCircle } from '@tabler/icons-react';
+import { useState } from 'react';
+import {
+  Table,
+  Text,
+  Group,
+  Stack,
+  Button,
+  ActionIcon,
+  Box,
+  Title,
+  Alert,
+  TextInput,
+} from '@mantine/core';
+import { IconUserPlus, IconTrash, IconInfoCircle, IconSearch } from '@tabler/icons-react';
 import { InlineRoleCell } from './InlineRoleCell';
 import type { IUser, IOrganizationUser } from '@/shared/types';
 
@@ -18,16 +30,37 @@ export function UserAdminTable({
   onAdd,
   onDelete,
 }: UserAdminTableProps) {
+  const [search, setSearch] = useState('');
+  const query = search.trim().toLowerCase();
+  const filteredUsers = users?.filter((user) => {
+    if (!query) return true;
+    return (
+      (user.name || '').toLowerCase().includes(query) ||
+      user.login.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div>
-      <Group justify="space-between" mb="sm">
-        <Group>
+      <Group justify="space-between" mb="sm" wrap="nowrap">
+        <Group gap="xs">
           <IconUserPlus size={20} />
           <Title order={4}>Пользователи</Title>
         </Group>
-        <Button leftSection={<IconUserPlus size={16} />} onClick={onAdd}>
-          Добавить пользователя
-        </Button>
+        <Group gap="sm" wrap="nowrap">
+          <TextInput
+            w={240}
+            size="xs"
+            leftSection={<IconSearch size={14} />}
+            placeholder="Поиск по имени или логину"
+            value={search}
+            onChange={(e) => setSearch(e.currentTarget.value)}
+            aria-label="Поиск пользователей"
+          />
+          <Button leftSection={<IconUserPlus size={16} />} onClick={onAdd}>
+            Добавить пользователя
+          </Button>
+        </Group>
       </Group>
 
       <details style={{ marginBottom: 'var(--mantine-spacing-sm)' }}>
@@ -82,7 +115,16 @@ export function UserAdminTable({
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {users?.map((user) => {
+            {filteredUsers?.length === 0 && query && (
+              <Table.Tr>
+                <Table.Td colSpan={5}>
+                  <Text ta="center" c="dimmed" size="sm" py="sm">
+                    Никого не найдено
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+            {filteredUsers?.map((user) => {
               const userOrgUsers = (orgUsers ?? []).filter((ou) => ou.user_id === user.id);
 
               return (
@@ -100,6 +142,7 @@ export function UserAdminTable({
                       <ActionIcon
                         color="red"
                         variant="subtle"
+                        aria-label={`Удалить пользователя ${user.name || user.login}`}
                         onClick={() =>
                           onDelete({ id: user.id, name: user.name || user.login })
                         }

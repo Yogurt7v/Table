@@ -99,6 +99,7 @@ export function OrganizationAdminTable({
                       color="blue"
                       variant="subtle"
                       size="lg"
+                      aria-label={`Редактировать «${org.name}»`}
                       onClick={() => onEdit(org.id)}
                     >
                       <IconPencil size={22} />
@@ -107,6 +108,7 @@ export function OrganizationAdminTable({
                       color="red"
                       variant="subtle"
                       size="lg"
+                      aria-label={`Удалить организацию «${org.name}»`}
                       onClick={() => onDelete(org)}
                     >
                       <IconTrash size={22} />

@@ -35,6 +35,7 @@ interface InvoiceTableProps {
   paymentMarks?: IPaymentMark[];
   filesByInvoice?: Record<string, IInvoiceFile[]>;
   visibleColumns: InvoiceColumnId[];
+  onAddClick?: () => void;
 }
 
 export function InvoiceTable({
@@ -50,6 +51,7 @@ export function InvoiceTable({
   paymentMarks,
   filesByInvoice,
   visibleColumns,
+  onAddClick,
 }: InvoiceTableProps) {
   const permissions = useInvoicePermissions(orgId);
   const createInvoice = useCreateInvoice(orgId, date);
@@ -352,6 +354,7 @@ export function InvoiceTable({
         onFiles={(inv) => setFilesInvoice(inv)}
         visibleColumns={visibleColumns}
         onReorderGroups={handleReorderGroups}
+        onAddClick={onAddClick}
       />
       <ConfirmModal
         opened={!!deleteTarget}

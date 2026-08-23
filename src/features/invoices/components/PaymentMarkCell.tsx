@@ -60,7 +60,7 @@ export function PaymentMarkCell({
         <Group gap={4} wrap="nowrap">
           <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
             <Text size="xs" fw={600}>
-              ОПЛАТИТЬ: {formatAmountRub(mark.amount)}
+              Оплатить: {formatAmountRub(mark.amount)}
             </Text>
             {mark.comment && (
               <Tooltip label={mark.comment}>
@@ -101,7 +101,7 @@ export function PaymentMarkCell({
           variant="light"
           onClick={() => onOpenPartialModal?.(invoice)}
         >
-          частично
+          Частично
         </Button>
       </Group>
     );

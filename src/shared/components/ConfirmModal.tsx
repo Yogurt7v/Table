@@ -1,11 +1,12 @@
-import { Modal, Text, Group, Button } from '@mantine/core';
+import { Modal, Group, Button, Box } from '@mantine/core';
+import type { ReactNode } from 'react';
 
 interface ConfirmModalProps {
   opened: boolean;
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  message: string;
+  message?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   color?: string;
@@ -25,7 +26,7 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   return (
     <Modal opened={opened} onClose={onClose} title={title} size="sm">
-      <Text mb="lg">{message}</Text>
+      {message != null && <Box mb="lg">{message}</Box>}
       <Group justify="flex-end" gap="sm">
         <Button variant="default" onClick={onClose} disabled={loading}>
           {cancelLabel}

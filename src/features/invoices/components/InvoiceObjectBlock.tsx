@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Paper, Title, Group, Button, Loader, Text, ActionIcon, Tooltip } from '@mantine/core';
+import { Paper, Title, Group, Button, Skeleton, Stack, Text, ActionIcon, Tooltip } from '@mantine/core';
 import { IconPlus, IconPrinter, IconFileExport } from '@tabler/icons-react';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
@@ -97,7 +97,11 @@ export function InvoiceObjectBlock({
         </Group>
       </Group>
       {!invoices ? (
-        <Loader size="sm" />
+        <Stack gap="xs">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Skeleton key={i} height={22} radius="sm" />
+          ))}
+        </Stack>
       ) : (
         <>
           <InvoiceTable
@@ -113,6 +117,7 @@ export function InvoiceObjectBlock({
             paymentMarks={paymentMarks}
             filesByInvoice={filesByInvoice}
             visibleColumns={visibleColumns}
+            onAddClick={permissions.canCreate ? () => onOpenDraft(obj.id) : undefined}
           />
           {permissions.canCreate && (
             <Group justify="flex-end" mt="sm">

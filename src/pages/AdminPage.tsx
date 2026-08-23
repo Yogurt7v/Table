@@ -5,8 +5,10 @@ import {
   Group,
   Text,
   Stack,
+  Tabs,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import { useQuery } from '@tanstack/react-query';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useUsers, useDeleteUser } from '@/shared/hooks/useUsers';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
@@ -23,14 +25,15 @@ import { EditOrgModal } from '@/features/admin/EditOrgModal';
 import { DeleteOrgModal } from '@/features/admin/DeleteOrgModal';
 import { OrganizationAdminTable } from '@/features/admin/OrganizationAdminTable';
 import { UserAdminTable } from '@/features/admin/UserAdminTable';
+import { buildUserDeleteConsequences } from '@/features/admin/user-delete-consequences';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import { useQuery } from '@tanstack/react-query';
 import {
   getBankAccounts,
   getAllBankAccounts,
   getAccountingObjects,
   getAllAccountingObjects,
   createBankAccount,
+  countInvoicesByOrg,
 } from '@/api/collections';
 import type { IBankAccount, IAccountingObject } from '@/shared/types';
 
@@ -111,6 +114,21 @@ export function AdminPage() {
     enabled: !!editOrgId,
   });
 
+  const { data: deleteOrgInvoicesCount } = useQuery({
+    queryKey: ['invoices_count', deleteOrgTarget?.id],
+    queryFn: () => countInvoicesByOrg(deleteOrgTarget!.id),
+    enabled: !!deleteOrgTarget,
+  });
+
+  const deleteUserConsequences = useMemo(() => {
+    if (!deleteUserTarget) return null;
+    return buildUserDeleteConsequences(
+      deleteUserTarget.id,
+      orgUsers ?? [],
+      organizations,
+    );
+  }, [deleteUserTarget, orgUsers, organizations]);
+
   const editOrgRole = orgUsers?.find(
     (ou) => ou.user_id === currentUser?.id && ou.organization_id === editOrgId,
   )?.role;
@@ -164,27 +182,34 @@ export function AdminPage() {
         <Title order={3}>Администрирование</Title>
       </Group>
 
-      <Stack gap="xl">
-        {/* --- Организации --- */}
-        <OrganizationAdminTable
-          organizations={organizations}
-          accountsByOrg={accountsByOrg}
-          objectsByOrg={objectsByOrg}
-          colorName={COLOR_NAME}
-          onAdd={() => setShowOrgForm(true)}
-          onEdit={openEditOrg}
-          onDelete={(org) => setDeleteOrgTarget({ id: org.id, name: org.name })}
-        />
+      <Tabs defaultValue="organizations">
+        <Tabs.List>
+          <Tabs.Tab value="organizations">Организации</Tabs.Tab>
+          <Tabs.Tab value="users">Пользователи</Tabs.Tab>
+        </Tabs.List>
 
-        {/* --- Пользователи --- */}
-        <UserAdminTable
-          users={users}
-          orgUsers={orgUsers}
-          currentUserId={currentUser?.id}
-          onAdd={() => setCreateOpened(true)}
-          onDelete={(target) => setDeleteUserTarget(target)}
-        />
-      </Stack>
+        <Tabs.Panel value="organizations" pt="md">
+          <OrganizationAdminTable
+            organizations={organizations}
+            accountsByOrg={accountsByOrg}
+            objectsByOrg={objectsByOrg}
+            colorName={COLOR_NAME}
+            onAdd={() => setShowOrgForm(true)}
+            onEdit={openEditOrg}
+            onDelete={(org) => setDeleteOrgTarget({ id: org.id, name: org.name })}
+          />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="users" pt="md">
+          <UserAdminTable
+            users={users}
+            orgUsers={orgUsers}
+            currentUserId={currentUser?.id}
+            onAdd={() => setCreateOpened(true)}
+            onDelete={(target) => setDeleteUserTarget(target)}
+          />
+        </Tabs.Panel>
+      </Tabs>
 
       <CreateUserModal opened={createOpened} onClose={() => setCreateOpened(false)} />
 
@@ -198,14 +223,54 @@ export function AdminPage() {
           setDeleteUserTarget(null);
         }}
         title="Удаление пользователя"
-        message={`Вы уверены, что хотите удалить пользователя «${deleteUserTarget?.name ?? ''}»?`}
         loading={deleteUser.isPending}
+        message={
+          <Stack gap={6}>
+            <Text size="sm">
+              Вы уверены, что хотите удалить пользователя «{deleteUserTarget?.name ?? ''}»?
+              Созданные им счета останутся в системе.
+            </Text>
+            {deleteUserConsequences && deleteUserConsequences.memberships.length > 0 && (
+              <Text size="sm">
+                Будет исключён из организаций:{' '}
+                {deleteUserConsequences.memberships
+                  .map((m) => `«${m.orgName}» (${m.roleLabel.toLowerCase()})`)
+                  .join(', ')}
+                .
+              </Text>
+            )}
+            {deleteUserConsequences &&
+              deleteUserConsequences.memberships.length === 0 && (
+                <Text size="sm" c="dimmed">
+                  Не состоит ни в одной организации.
+                </Text>
+              )}
+            {deleteUserConsequences?.soleAdminOf.map((orgName) => (
+              <Text key={orgName} size="sm" c="orange">
+                Внимание: он единственный администратор организации «{orgName}». Без админа
+                управление ею будет невозможно.
+              </Text>
+            ))}
+          </Stack>
+        }
       />
 
       <DeleteOrgModal
         opened={!!deleteOrgTarget}
         orgName={deleteOrgTarget?.name ?? ''}
         isPending={deleteOrg.isPending}
+        stats={
+          deleteOrgTarget
+            ? {
+                invoicesCount: deleteOrgInvoicesCount ?? null,
+                objectsCount: (objectsByOrg[deleteOrgTarget.id] ?? []).length,
+                accountsCount: (accountsByOrg[deleteOrgTarget.id] ?? []).length,
+                membersCount: (orgUsers ?? []).filter(
+                  (ou) => ou.organization_id === deleteOrgTarget.id,
+                ).length,
+              }
+            : undefined
+        }
         onClose={() => {
           setDeleteOrgTarget(null);
         }}

@@ -160,6 +160,13 @@ export function getInvoice(invoiceId: string) {
     .then(normalizeInvoice);
 }
 
+export async function countInvoicesByOrg(orgId: string): Promise<number> {
+  const result = await pb.collection('invoices').getList(1, 1, {
+    filter: `organization_id = "${orgId}"`,
+  });
+  return result.totalItems;
+}
+
 export function searchCounterparties(orgId: string, query: string) {
   if (!query.trim()) return Promise.resolve([]);
   const lowerQuery = query.toLowerCase();
