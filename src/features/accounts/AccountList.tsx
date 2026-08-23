@@ -87,8 +87,12 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
   const saveEdit = async () => {
     if (!editingId) return;
     const balance = parseToNumber(editInput);
-    await updateBalance.mutateAsync({ accountId: editingId, date, balance });
-    setEditingId(null);
+    try {
+      await updateBalance.mutateAsync({ accountId: editingId, date, balance });
+      setEditingId(null);
+    } catch {
+      /* тост об ошибке показывает onError в useUpdateBalance */
+    }
   };
 
   if (currentRole && !canEdit && currentRole !== 'boss') return null;
@@ -173,12 +177,19 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
                           size="sm"
                           color="green"
                           variant="light"
+                          aria-label="Сохранить остаток"
                           onClick={saveEdit}
                           loading={updateBalance.isPending}
                         >
                           <IconCheck size={14} />
                         </ActionIcon>
-                        <ActionIcon size="sm" color="gray" variant="subtle" onClick={cancelEdit}>
+                        <ActionIcon
+                          size="sm"
+                          color="gray"
+                          variant="subtle"
+                          aria-label="Отмена"
+                          onClick={cancelEdit}
+                        >
                           <IconX size={14} />
                         </ActionIcon>
                       </Group>
@@ -187,6 +198,7 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
                         size="sm"
                         color="blue"
                         variant="subtle"
+                        aria-label="Редактировать остаток"
                         onClick={() => startEdit(item)}
                       >
                         <IconPencil size={14} />

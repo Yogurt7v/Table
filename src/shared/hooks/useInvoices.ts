@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getInvoices } from '@/api/collections';
 
 export function useInvoices(orgId: string, date: string) {
@@ -6,7 +6,6 @@ export function useInvoices(orgId: string, date: string) {
     queryKey: ['invoices', orgId, date],
     queryFn: () => getInvoices(orgId, date),
     enabled: !!orgId && !!date,
-    staleTime: 0, // Данные считаются устаревшими сразу
-    gcTime: 0, // Кеш удаляется сразу после использования
+    placeholderData: keepPreviousData,
   });
 }

@@ -5,6 +5,7 @@ import { notifications } from '@mantine/notifications';
 import { useQuery } from '@tanstack/react-query';
 import { getInvoiceFiles, getInvoiceFileUrl, deleteInvoiceFile } from '@/api/collections';
 import { useCreateInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
+import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type { IInvoiceFile } from '@/shared/types';
 
 interface InvoiceFilesModalProps {
@@ -25,6 +26,7 @@ export function InvoiceFilesModal({
   onClose,
 }: InvoiceFilesModalProps) {
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<IInvoiceFile | null>(null);
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['invoice_files_detail', invoiceId],
@@ -50,6 +52,7 @@ export function InvoiceFilesModal({
   };
 
   const handleDelete = async (fileRecord: IInvoiceFile) => {
+    setFileToDelete(null);
     try {
       await deleteInvoiceFile(fileRecord.id);
       notifications.show({ color: 'green', message: 'Файл удалён' });
@@ -86,7 +89,8 @@ export function InvoiceFilesModal({
                   size="sm"
                   color="red"
                   variant="subtle"
-                  onClick={() => handleDelete(f)}
+                  aria-label="Удалить файл"
+                  onClick={() => setFileToDelete(f)}
                 >
                   <IconTrash size={14} />
                 </ActionIcon>
@@ -116,6 +120,16 @@ export function InvoiceFilesModal({
           </Button>
         </Group>
       )}
+
+      <ConfirmModal
+        opened={!!fileToDelete}
+        onClose={() => setFileToDelete(null)}
+        onConfirm={() => {
+          if (fileToDelete) handleDelete(fileToDelete);
+        }}
+        title="Удаление файла"
+        message={`Удалить файл «${fileToDelete?.name ?? ''}»?`}
+      />
     </Modal>
   );
 }

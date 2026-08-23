@@ -1,3 +1,4 @@
+import { useState, type KeyboardEvent } from 'react';
 import dayjs from 'dayjs';
 import {
   Stack,
@@ -22,7 +23,13 @@ import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/gr
 import { getInvoiceFileUrl } from '@/api/collections';
 import { PaymentMarkCell } from './PaymentMarkCell';
 import { InvoiceActionsCell } from './InvoiceActionsCell';
-import type { DraftInvoiceForm } from '../invoice-field-access';
+import { ConfirmModal } from '@/shared/components/ConfirmModal';
+import type {
+  DraftFieldErrorKey,
+  DraftFieldErrors,
+  DraftInvoiceForm,
+} from '../invoice-field-access';
+import { isDraftDirty, validateDraftFields } from '../invoice-field-access';
 
 interface Permissions {
   canCreate: boolean;
@@ -96,6 +103,48 @@ export function InvoiceMobileCardView({
   onOpenPartialModal,
 }: InvoiceMobileCardViewProps) {
   const groups = groupInvoicesByCounterparty(invoices);
+  const [draftErrors, setDraftErrors] = useState<DraftFieldErrors>({});
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+
+  const requestDraftCancel = () => {
+    if (draftForm && isDraftDirty(draftForm)) {
+      setDiscardConfirmOpen(true);
+      return;
+    }
+    setDraftErrors({});
+    onDraftCancel?.();
+  };
+
+  const handleDraftSaveClick = () => {
+    if (!draftForm) {
+      onDraftSave?.();
+      return;
+    }
+    const errors = validateDraftFields(draftForm);
+    if (Object.keys(errors).length > 0) {
+      setDraftErrors(errors);
+      return;
+    }
+    setDraftErrors({});
+    onDraftSave?.();
+  };
+
+  const handleDraftChange = (field: keyof DraftInvoiceForm, value: unknown) => {
+    setDraftErrors((prev) => {
+      if (!(field in prev)) return prev;
+      const next = { ...prev };
+      delete next[field as DraftFieldErrorKey];
+      return next;
+    });
+    onDraftChange?.(field, value);
+  };
+
+  const handleDraftKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    if (e.currentTarget.getAttribute('aria-expanded') === 'true') return;
+    e.preventDefault();
+    handleDraftSaveClick();
+  };
 
   return (
     <Stack hiddenFrom="sm" gap="md">
@@ -240,21 +289,41 @@ export function InvoiceMobileCardView({
                         onClearPaymentMark={onClearPaymentMark}
                       />
                     </Box>
-                    <InvoiceActionsCell
-                      invoice={invoice}
-                      canUpdate={permissions.canUpdate}
-                      canDelete={permissions.canDelete}
-                      canViewHistory={permissions.canViewHistory}
-                      canMove={permissions.canMove}
-                      canCreate={permissions.canCreate}
-                      onEdit={onEdit}
-                      onDelete={onDelete}
-                      onHistory={onHistory}
-                      onMove={onMove}
-                      onFiles={onFiles}
-                      onCopy={onCopy}
-                      compact
-                    />
+                    <Group gap={2} wrap="nowrap">
+                      {onFiles && (
+                        <Tooltip
+                          label={
+                            invoiceFiles?.length
+                              ? `Файлы счёта (${invoiceFiles.length})`
+                              : 'Прикрепить файл'
+                          }
+                        >
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            aria-label={`Файлы счёта${invoiceFiles?.length ? ` (${invoiceFiles.length})` : ''}`}
+                            onClick={() => onFiles(invoice)}
+                          >
+                            <IconPaperclip size={18} />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
+                      <InvoiceActionsCell
+                        invoice={invoice}
+                        canUpdate={permissions.canUpdate}
+                        canDelete={permissions.canDelete}
+                        canViewHistory={permissions.canViewHistory}
+                        canMove={permissions.canMove}
+                        canCreate={permissions.canCreate}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onHistory={onHistory}
+                        onMove={onMove}
+                        onFiles={onFiles}
+                        onCopy={onCopy}
+                        compact
+                      />
+                    </Group>
                   </Group>
                 </Paper>
               );
@@ -276,40 +345,50 @@ export function InvoiceMobileCardView({
             <Autocomplete
               size="xs"
               value={draftForm?.counterparty ?? ''}
-              onChange={(v) => onDraftChange?.('counterparty', v)}
+              onChange={(v) => handleDraftChange('counterparty', v)}
+              onKeyDown={handleDraftKeyDown}
               data={counterpartyResults || []}
               placeholder="Контрагент"
+              error={draftErrors.counterparty}
             />
             <TextInput
               size="xs"
               value={draftForm?.purpose ?? ''}
-              onChange={(e) => onDraftChange?.('purpose', e.currentTarget.value)}
+              onChange={(e) => handleDraftChange('purpose', e.currentTarget.value)}
+              onKeyDown={handleDraftKeyDown}
               placeholder="Назначение"
+              error={draftErrors.purpose}
             />
             <TextInput
               size="xs"
               value={draftForm?.contract_no ?? ''}
-              onChange={(e) => onDraftChange?.('contract_no', e.currentTarget.value)}
+              onChange={(e) => handleDraftChange('contract_no', e.currentTarget.value)}
+              onKeyDown={handleDraftKeyDown}
               placeholder="Договор"
             />
             <TextInput
               size="xs"
               value={draftForm?.invoice_no ?? ''}
-              onChange={(e) => onDraftChange?.('invoice_no', e.currentTarget.value)}
+              onChange={(e) => handleDraftChange('invoice_no', e.currentTarget.value)}
+              onKeyDown={handleDraftKeyDown}
               placeholder="Счёт"
+              error={draftErrors.invoice_no}
             />
             <NumberInput
               size="xs"
               value={draftForm?.amount ?? 0}
-              onChange={(v) => onDraftChange?.('amount', v ?? 0)}
+              onChange={(v) => handleDraftChange('amount', v ?? 0)}
+              onKeyDown={handleDraftKeyDown}
               thousandSeparator=" "
               decimalSeparator=","
               placeholder="Сумма"
+              error={draftErrors.amount}
             />
             <TextInput
               size="xs"
               value={draftForm?.comment ?? ''}
-              onChange={(e) => onDraftChange?.('comment', e.currentTarget.value)}
+              onChange={(e) => handleDraftChange('comment', e.currentTarget.value)}
+              onKeyDown={handleDraftKeyDown}
               placeholder="Комментарий"
             />
             <Group gap={4}>
@@ -334,16 +413,29 @@ export function InvoiceMobileCardView({
               )}
             </Group>
             <Group justify="flex-end" gap={4} mt="xs">
-              <Button size="compact-sm" variant="default" onClick={onDraftCancel}>
+              <Button size="compact-sm" variant="default" onClick={requestDraftCancel}>
                 Отмена
               </Button>
-              <Button size="compact-sm" color="green" onClick={onDraftSave}>
+              <Button size="compact-sm" color="green" onClick={handleDraftSaveClick}>
                 Сохранить
               </Button>
             </Group>
           </Stack>
         </Paper>
       )}
+
+      <ConfirmModal
+        opened={discardConfirmOpen}
+        onClose={() => setDiscardConfirmOpen(false)}
+        onConfirm={() => {
+          setDiscardConfirmOpen(false);
+          setDraftErrors({});
+          onDraftCancel?.();
+        }}
+        title="Несохранённый счёт"
+        message="Отменить добавление счёта? Введённые данные будут потеряны."
+        confirmLabel="Отменить без сохранения"
+      />
     </Stack>
   );
 }

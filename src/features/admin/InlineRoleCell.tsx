@@ -116,13 +116,21 @@ export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
 
   const handleAdd = async () => {
     if (!selectedOrg) return;
-    await createOrgUser.mutateAsync({ userId, organizationId: selectedOrg, role: selectedRole });
-    setSelectedOrg(null);
-    setSelectedRole('guest');
+    try {
+      await createOrgUser.mutateAsync({ userId, organizationId: selectedOrg, role: selectedRole });
+      setSelectedOrg(null);
+      setSelectedRole('guest');
+    } catch {
+      /* тост об ошибке показывает onError в useCreateOrganizationUser */
+    }
   };
 
   const handleRemove = async (id: string) => {
-    await deleteOrgUser.mutateAsync(id);
+    try {
+      await deleteOrgUser.mutateAsync(id);
+    } catch {
+      /* тост об ошибке показывает onError в useDeleteOrganizationUser */
+    }
   };
 
   return (
@@ -196,11 +204,15 @@ export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
                               <Button
                                 size="compact-xs"
                                 onClick={async () => {
-                                  await updateOrgUser.mutateAsync({
-                                    id: a.id,
-                                    data: { objects: selectedObjects },
-                                  });
-                                  setObjectsPopoverId(null);
+                                  try {
+                                    await updateOrgUser.mutateAsync({
+                                      id: a.id,
+                                      data: { objects: selectedObjects },
+                                    });
+                                    setObjectsPopoverId(null);
+                                  } catch {
+                                    /* тост об ошибке показывает onError в useUpdateOrganizationUser */
+                                  }
                                 }}
                                 loading={updateOrgUser.isPending}
                               >

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Group, Stack, Button, TextInput, Text, ActionIcon } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { IconTrash, IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import { createBankAccount, deleteBankAccount, updateBankAccount } from '@/api/collections';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,21 +25,33 @@ export function BankAccountManager({ organizationId, accounts }: BankAccountMana
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
-    await createBankAccount(organizationId, newName.trim());
-    setNewName('');
-    refresh();
+    try {
+      await createBankAccount(organizationId, newName.trim());
+      setNewName('');
+      refresh();
+    } catch {
+      notifications.show({ color: 'red', message: 'Не удалось добавить счёт' });
+    }
   };
 
   const handleUpdate = async (id: string) => {
     if (!editName.trim()) return;
-    await updateBankAccount(id, editName.trim());
-    setEditingId(null);
-    refresh();
+    try {
+      await updateBankAccount(id, editName.trim());
+      setEditingId(null);
+      refresh();
+    } catch {
+      notifications.show({ color: 'red', message: 'Не удалось сохранить счёт' });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await deleteBankAccount(id);
-    refresh();
+    try {
+      await deleteBankAccount(id);
+      refresh();
+    } catch {
+      notifications.show({ color: 'red', message: 'Не удалось удалить счёт' });
+    }
   };
 
   return (

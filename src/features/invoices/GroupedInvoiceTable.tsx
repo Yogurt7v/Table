@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, type KeyboardEvent } from 'react';
 import dayjs from 'dayjs';
 import {
   Autocomplete,
@@ -8,6 +8,7 @@ import {
   Badge,
   Box,
   ActionIcon,
+  Button,
   Group,
   Tooltip,
   Anchor,
@@ -28,7 +29,8 @@ import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import type { DraftInvoiceForm } from './invoice-field-access';
+import type { DraftFieldErrorKey, DraftFieldErrors, DraftInvoiceForm } from './invoice-field-access';
+import { isDraftDirty, validateDraftFields } from './invoice-field-access';
 import { PaymentMarkCell } from './components/PaymentMarkCell';
 import { InvoiceActionsCell } from './components/InvoiceActionsCell';
 import { PayModal } from './components/PayModal';
@@ -168,6 +170,48 @@ export function GroupedInvoiceTable({
   const [payModalInvoice, setPayModalInvoice] = useState<IInvoice | null>(null);
   const [payModalAmount, setPayModalAmount] = useState<string>('');
   const [clearConfirmInvoiceId, setClearConfirmInvoiceId] = useState<string | null>(null);
+  const [draftErrors, setDraftErrors] = useState<DraftFieldErrors>({});
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+
+  const requestDraftCancel = () => {
+    if (draftForm && isDraftDirty(draftForm)) {
+      setDiscardConfirmOpen(true);
+      return;
+    }
+    setDraftErrors({});
+    onDraftCancel?.();
+  };
+
+  const handleDraftSaveClick = () => {
+    if (!draftForm) {
+      onDraftSave?.();
+      return;
+    }
+    const errors = validateDraftFields(draftForm);
+    if (Object.keys(errors).length > 0) {
+      setDraftErrors(errors);
+      return;
+    }
+    setDraftErrors({});
+    onDraftSave?.();
+  };
+
+  const handleDraftChange = (field: keyof DraftInvoiceForm, value: unknown) => {
+    setDraftErrors((prev) => {
+      if (!(field in prev)) return prev;
+      const next = { ...prev };
+      delete next[field as DraftFieldErrorKey];
+      return next;
+    });
+    onDraftChange?.(field, value);
+  };
+
+  const handleDraftKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    if (e.currentTarget.getAttribute('aria-expanded') === 'true') return;
+    e.preventDefault();
+    handleDraftSaveClick();
+  };
 
   const filteredColumns = useMemo(
     () =>
@@ -291,9 +335,11 @@ export function GroupedInvoiceTable({
         <Autocomplete
           size="xs"
           value={draftForm?.counterparty ?? ''}
-          onChange={(v) => onDraftChange?.('counterparty', v)}
+          onChange={(v) => handleDraftChange('counterparty', v)}
+          onKeyDown={handleDraftKeyDown}
           data={counterpartyResults || []}
           placeholder="Контрагент"
+          error={draftErrors.counterparty}
         />
       ),
     },
@@ -305,8 +351,10 @@ export function GroupedInvoiceTable({
         <TextInput
           size="xs"
           value={draftForm?.purpose ?? ''}
-          onChange={(e) => onDraftChange?.('purpose', e.currentTarget.value)}
+          onChange={(e) => handleDraftChange('purpose', e.currentTarget.value)}
+          onKeyDown={handleDraftKeyDown}
           placeholder="Назначение"
+          error={draftErrors.purpose}
         />
       ),
     },
@@ -318,7 +366,8 @@ export function GroupedInvoiceTable({
         <TextInput
           size="xs"
           value={draftForm?.contract_no ?? ''}
-          onChange={(e) => onDraftChange?.('contract_no', e.currentTarget.value)}
+          onChange={(e) => handleDraftChange('contract_no', e.currentTarget.value)}
+          onKeyDown={handleDraftKeyDown}
           placeholder="Договор"
         />
       ),
@@ -331,8 +380,10 @@ export function GroupedInvoiceTable({
         <TextInput
           size="xs"
           value={draftForm?.invoice_no ?? ''}
-          onChange={(e) => onDraftChange?.('invoice_no', e.currentTarget.value)}
+          onChange={(e) => handleDraftChange('invoice_no', e.currentTarget.value)}
+          onKeyDown={handleDraftKeyDown}
           placeholder="Счет"
+          error={draftErrors.invoice_no}
         />
       ),
     },
@@ -344,10 +395,12 @@ export function GroupedInvoiceTable({
         <NumberInput
           size="xs"
           value={draftForm?.amount ?? 0}
-          onChange={(v) => onDraftChange?.('amount', v ?? 0)}
+          onChange={(v) => handleDraftChange('amount', v ?? 0)}
+          onKeyDown={handleDraftKeyDown}
           thousandSeparator=" "
           decimalSeparator=","
           placeholder="Сумма"
+          error={draftErrors.amount}
         />
       ),
     },
@@ -360,14 +413,24 @@ export function GroupedInvoiceTable({
           if (amounts.length > 0) {
             const isLast = amounts.length === 1;
             return (
-              <Badge
-                color="green"
-                variant="light"
-                style={{ cursor: isLast ? 'pointer' : 'default' }}
-                onClick={isLast ? () => setClearConfirmInvoiceId(invoice.id) : undefined}
-              >
-                {formatAmountRub(amounts[0]!)}
-              </Badge>
+              <Group gap={2} wrap="nowrap">
+                <Badge color="green" variant="light">
+                  {formatAmountRub(amounts[0]!)}
+                </Badge>
+                {isLast && (
+                  <Tooltip label="Снять оплату">
+                    <ActionIcon
+                      size="sm"
+                      color="red"
+                      variant="subtle"
+                      aria-label="Снять оплату"
+                      onClick={() => setClearConfirmInvoiceId(invoice.id)}
+                    >
+                      <IconX size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </Group>
             );
           }
           if (invoice.paid) {
@@ -380,16 +443,17 @@ export function GroupedInvoiceTable({
             );
           }
           return (
-            <Badge
+            <Button
+              size="compact-xs"
+              variant="light"
               color="orange"
-              style={{ cursor: 'pointer' }}
               onClick={() => {
                 setPayModalInvoice(invoice);
                 setPayModalAmount(String(invoice.amount));
               }}
             >
-              Не оплачено
-            </Badge>
+              Оплатить…
+            </Button>
           );
         }
         if (amounts.length > 0) {
@@ -406,7 +470,7 @@ export function GroupedInvoiceTable({
             </Badge>
           );
         }
-        return <Badge color="orange">Нет</Badge>;
+        return <Badge color="orange" variant="light">Не оплачено</Badge>;
       },
       renderDraft: () => null,
     },
@@ -426,7 +490,8 @@ export function GroupedInvoiceTable({
         <TextInput
           size="xs"
           value={draftForm?.comment ?? ''}
-          onChange={(e) => onDraftChange?.('comment', e.currentTarget.value)}
+          onChange={(e) => handleDraftChange('comment', e.currentTarget.value)}
+          onKeyDown={handleDraftKeyDown}
           placeholder="Комментарий"
         />
       ),
@@ -849,7 +914,8 @@ export function GroupedInvoiceTable({
                                     size="lg"
                                     color="green"
                                     variant="filled"
-                                    onClick={onDraftSave}
+                                    aria-label="Сохранить счёт"
+                                    onClick={handleDraftSaveClick}
                                   >
                                     <IconCheck size={14} />
                                   </ActionIcon>
@@ -859,7 +925,8 @@ export function GroupedInvoiceTable({
                                     size="lg"
                                     color="gray"
                                     variant="filled"
-                                    onClick={onDraftCancel}
+                                    aria-label="Отменить добавление"
+                                    onClick={requestDraftCancel}
                                   >
                                     <IconX size={14} />
                                   </ActionIcon>
@@ -917,6 +984,19 @@ export function GroupedInvoiceTable({
         }}
         title="Снятие оплаты"
         message="Снять отметку об оплате счёта?"
+      />
+
+      <ConfirmModal
+        opened={discardConfirmOpen}
+        onClose={() => setDiscardConfirmOpen(false)}
+        onConfirm={() => {
+          setDiscardConfirmOpen(false);
+          setDraftErrors({});
+          onDraftCancel?.();
+        }}
+        title="Несохранённый счёт"
+        message="Отменить добавление счёта? Введённые данные будут потеряны."
+        confirmLabel="Отменить без сохранения"
       />
     </>
   );

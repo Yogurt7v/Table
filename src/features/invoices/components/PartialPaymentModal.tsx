@@ -1,6 +1,8 @@
 import { Modal, Stack, Group, Text, NumberInput, Textarea, Button } from '@mantine/core';
+import { useState } from 'react';
 import type { IInvoice } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { ConfirmModal } from '@/shared/components/ConfirmModal';
 
 interface PartialPaymentModalState {
   invoice: IInvoice;
@@ -25,12 +27,23 @@ export function PartialPaymentModal({
   onCommentChange,
   onSave,
 }: PartialPaymentModalProps) {
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+
   if (!data) return null;
 
   const parsedAmount = Number(data.amount);
   const hasAmount = parsedAmount > 0;
   const hasComment = data.comment.trim().length > 0;
   const canSubmit = hasAmount || hasComment;
+  const isDirty = data.amount !== '' || data.comment.trim() !== '';
+
+  const requestClose = () => {
+    if (isDirty) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    onClose();
+  };
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -44,7 +57,7 @@ export function PartialPaymentModal({
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Частичная оплата" size="sm">
+    <Modal opened={opened} onClose={requestClose} title="Частичная оплата" size="sm">
       <Stack
         gap="sm"
         onKeyDown={(e) => {
@@ -104,7 +117,7 @@ export function PartialPaymentModal({
           maxRows={5}
         />
         <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="default" onClick={requestClose}>
             Отмена
           </Button>
           <Button color="green" onClick={handleSubmit} disabled={!canSubmit}>
@@ -112,6 +125,17 @@ export function PartialPaymentModal({
           </Button>
         </Group>
       </Stack>
+      <ConfirmModal
+        opened={confirmCloseOpen}
+        onClose={() => setConfirmCloseOpen(false)}
+        onConfirm={() => {
+          setConfirmCloseOpen(false);
+          onClose();
+        }}
+        title="Несохранённые изменения"
+        message="Закрыть без сохранения? Введённые данные будут потеряны."
+        confirmLabel="Закрыть без сохранения"
+      />
     </Modal>
   );
 }

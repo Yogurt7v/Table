@@ -4,6 +4,7 @@ import {
   getInvoicePermissions,
   validateDraftForm,
   createEmptyDraft,
+  isDraftDirty,
 } from './invoice-field-access';
 
 describe('getInvoicePermissions', () => {
@@ -113,5 +114,34 @@ describe('validateDraftForm', () => {
       amount: 100.55,
     };
     expect(validateDraftForm(valid)).toBeNull();
+  });
+});
+
+describe('isDraftDirty', () => {
+  it('empty draft is clean', () => {
+    expect(isDraftDirty(createEmptyDraft())).toBe(false);
+  });
+
+  it('any filled text field makes it dirty', () => {
+    expect(isDraftDirty({ ...createEmptyDraft(), counterparty: 'ООО' })).toBe(true);
+    expect(isDraftDirty({ ...createEmptyDraft(), purpose: 'Оплата' })).toBe(true);
+    expect(isDraftDirty({ ...createEmptyDraft(), contract_no: '1' })).toBe(true);
+    expect(isDraftDirty({ ...createEmptyDraft(), invoice_no: '5' })).toBe(true);
+    expect(isDraftDirty({ ...createEmptyDraft(), comment: 'заметка' })).toBe(true);
+  });
+
+  it('non-zero numeric amount makes it dirty', () => {
+    expect(isDraftDirty({ ...createEmptyDraft(), amount: 100 })).toBe(true);
+  });
+
+  it('string amount from NumberInput is handled, including comma decimal', () => {
+    const asUnknown = (v: unknown) => v as number;
+    expect(isDraftDirty({ ...createEmptyDraft(), amount: asUnknown('12,5') })).toBe(true);
+    expect(isDraftDirty({ ...createEmptyDraft(), amount: asUnknown('0') })).toBe(false);
+  });
+
+  it('attached file makes it dirty', () => {
+    const file = new File(['x'], 'scan.pdf');
+    expect(isDraftDirty({ ...createEmptyDraft(), file })).toBe(true);
   });
 });

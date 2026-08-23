@@ -4,16 +4,16 @@ import {
   Stack,
   TextInput,
   NumberInput,
-  Alert,
   Autocomplete,
   Group,
   Textarea,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { IInvoice } from '@/shared/types';
-import type { DraftInvoiceForm } from './invoice-field-access';
-import { createEmptyDraft, validateDraftForm } from './invoice-field-access';
+import { ConfirmModal } from '@/shared/components/ConfirmModal';
+import { useBeforeUnloadGuard } from '@/shared/hooks/useBeforeUnloadGuard';
+import type { DraftFieldErrors, DraftInvoiceForm } from './invoice-field-access';
+import { createEmptyDraft, validateDraftFields } from './invoice-field-access';
 
 interface InvoiceEditModalProps {
   opened: boolean;
@@ -33,50 +33,71 @@ export function InvoiceEditModal({
   loading,
 }: InvoiceEditModalProps) {
   const [form, setForm] = useState<DraftInvoiceForm>(createEmptyDraft());
-  const [error, setError] = useState<string | null>(null);
+  const [initialForm, setInitialForm] = useState<DraftInvoiceForm>(createEmptyDraft());
+  const [errors, setErrors] = useState<DraftFieldErrors>({});
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const isEditMode = !!invoice;
+
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(initialForm),
+    [form, initialForm],
+  );
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     if (opened) {
+      let next: DraftInvoiceForm;
       if (invoice) {
-        setForm({
+        next = {
           counterparty: invoice.counterparty,
           purpose: invoice.purpose,
           contract_no: invoice.contract_no,
           invoice_no: invoice.invoice_no,
           amount: invoice.amount || 0,
           paid: invoice.paid || false,
-          paid_date: invoice.paid_date,
-          comment: invoice.comment,
-        });
+          paid_date: invoice.paid_date ?? '',
+          comment: invoice.comment ?? '',
+          file: null,
+        };
       } else {
-        setForm(createEmptyDraft());
+        next = createEmptyDraft();
       }
-      setError(null);
+      setForm(next);
+      setInitialForm(next);
+      setErrors({});
     }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [opened, invoice]);
 
+  useBeforeUnloadGuard(opened && isDirty);
+
   const handleConfirm = () => {
-    const validationError = validateDraftForm(form);
-    if (validationError) {
-      setError(validationError);
+    const fieldErrors = validateDraftFields(form);
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
       return;
     }
-    setError(null);
+    setErrors({});
     onSave(form);
   };
 
   const handleClose = () => {
-    setError(null);
+    setErrors({});
     onClose();
+  };
+
+  const requestClose = () => {
+    if (isDirty) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    handleClose();
   };
 
   return (
     <Modal
       opened={opened}
-      onClose={handleClose}
+      onClose={requestClose}
       title={isEditMode ? 'Редактирование счёта' : 'Добавление нового счёта'}
       size="lg"
     >
@@ -86,19 +107,18 @@ export function InvoiceEditModal({
           handleConfirm();
         }
       }}>
-        {error && (
-          <Alert icon={<IconAlertCircle size={16} />} color="red" title="Ошибка">
-            {error}
-          </Alert>
-        )}
         <Autocomplete
           label="Контрагент"
           placeholder="Введите имя контрагента"
           value={form.counterparty}
-          onChange={(v) => setForm((prev) => ({ ...prev, counterparty: v }))}
+          onChange={(v) => {
+            setForm((prev) => ({ ...prev, counterparty: v }));
+            setErrors((prev) => ({ ...prev, counterparty: undefined }));
+          }}
           data={counterpartyResults}
           searchable
           required
+          error={errors.counterparty}
         />
         <Textarea
           label="Назначение платежа"
@@ -108,8 +128,10 @@ export function InvoiceEditModal({
           onChange={(e) => {
             const value = e.currentTarget.value;
             setForm((prev) => ({ ...prev, purpose: value }));
+            setErrors((prev) => ({ ...prev, purpose: undefined }));
           }}
           required
+          error={errors.purpose}
         />
         <TextInput
           label="Договор"
@@ -127,18 +149,24 @@ export function InvoiceEditModal({
           onChange={(e) => {
             const value = e.currentTarget.value;
             setForm((prev) => ({ ...prev, invoice_no: value }));
+            setErrors((prev) => ({ ...prev, invoice_no: undefined }));
           }}
           required
+          error={errors.invoice_no}
         />
         <NumberInput
           label="Сумма"
           placeholder="0"
           value={form.amount}
-          onChange={(v) => setForm((prev) => ({ ...prev, amount: v ?? 0 }))}
+          onChange={(v) => {
+            setForm((prev) => ({ ...prev, amount: v ?? 0 }));
+            setErrors((prev) => ({ ...prev, amount: undefined }));
+          }}
           thousandSeparator=" "
           decimalSeparator=","
           min={0}
           required
+          error={errors.amount}
         />
         <TextInput
           label="Комментарий"
@@ -150,7 +178,7 @@ export function InvoiceEditModal({
           }}
         />
         <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={handleClose}>
+          <Button variant="default" onClick={requestClose}>
             Отмена
           </Button>
           <Button onClick={handleConfirm} loading={loading}>
@@ -158,6 +186,17 @@ export function InvoiceEditModal({
           </Button>
         </Group>
       </Stack>
+      <ConfirmModal
+        opened={confirmCloseOpen}
+        onClose={() => setConfirmCloseOpen(false)}
+        onConfirm={() => {
+          setConfirmCloseOpen(false);
+          handleClose();
+        }}
+        title="Несохранённые изменения"
+        message="Закрыть без сохранения? Введённые данные будут потеряны."
+        confirmLabel="Закрыть без сохранения"
+      />
     </Modal>
   );
 }

@@ -1,23 +1,40 @@
 import { useState } from 'react';
-import { Container, Stack, Loader } from '@mantine/core';
+import { Container, Stack, Loader, Paper, Text, Button } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useOrg } from '@/shared/context/OrgContext';
+import { useAuth } from '@/shared/context/AuthContext';
 import { useSearch } from '@/shared/context/SearchContext';
 import { useBankAccounts } from '@/shared/hooks/useBankAccounts';
 import { AccountList } from '@/features/accounts/AccountList';
 import { InvoiceSection } from '@/features/invoices/InvoiceSection';
 
 export function MainPage() {
-  const { currentOrgId } = useOrg();
+  const { currentOrgId, organizationsLoading } = useOrg();
+  const { logout } = useAuth();
   const { searchText, searchAll, setSearchAll } = useSearch();
   const [date, setDate] = useState<Date>(new Date());
   const dateStr = dayjs(date).format('YYYY-MM-DD');
 
   const { data: accounts, isLoading: accountsLoading } = useBankAccounts(currentOrgId, dateStr);
 
-  if (!currentOrgId) return <Loader />;
+  if (!currentOrgId) {
+    if (organizationsLoading) return <Loader />;
+    return (
+      <Container size="sm" py="xl">
+        <Paper withBorder p="xl" ta="center">
+          <Text mb="md">Вас не добавили ни в одну организацию.</Text>
+          <Text c="dimmed" mb="lg" size="sm">
+            Обратитесь к администратору, чтобы получить доступ.
+          </Text>
+          <Button variant="default" onClick={() => logout()}>
+            Выйти
+          </Button>
+        </Paper>
+      </Container>
+    );
+  }
 
   return (
     <Container size="fluid" py="md">

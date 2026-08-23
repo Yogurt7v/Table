@@ -1,7 +1,30 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Paper, TextInput, PasswordInput, Button, Title, Text } from '@mantine/core';
+import { ClientResponseError } from 'pocketbase';
 import { useAuth } from '@/shared/context/AuthContext';
+
+function getLoginErrorMessage(err: unknown): string {
+  if (err instanceof ClientResponseError) {
+    if (err.status === 400 || err.status === 401) return 'Неверный логин или пароль';
+    if (err.status === 0) return 'Не удалось связаться с сервером. Проверьте подключение';
+    if (err.status >= 500) return 'Сервер временно недоступен. Попробуйте позже';
+  }
+  if (err instanceof Error) {
+    const message = err.message.toLowerCase();
+    if (message.includes('authenticate') || message.includes('credentials')) {
+      return 'Неверный логин или пароль';
+    }
+    if (
+      message.includes('failed to fetch') ||
+      message.includes('networkerror') ||
+      message.includes('load failed')
+    ) {
+      return 'Не удалось связаться с сервером. Проверьте подключение';
+    }
+  }
+  return 'Ошибка входа. Попробуйте ещё раз';
+}
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -20,7 +43,7 @@ export function LoginPage() {
       await login(loginValue, password);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка входа');
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -50,7 +73,7 @@ export function LoginPage() {
             mb="md"
           />
           {error && (
-            <Text c="red" size="sm" mb="sm">
+            <Text c="red" size="sm" mb="sm" role="alert">
               {error}
             </Text>
           )}

@@ -6,6 +6,7 @@ import {
   Text,
   Stack,
 } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useUsers, useDeleteUser } from '@/shared/hooks/useUsers';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
@@ -132,12 +133,16 @@ export function AdminPage() {
 
   const handleSaveOrg = async () => {
     if (!editOrgId || !editName.trim()) return;
-    await updateOrg.mutateAsync({
-      id: editOrgId,
-      name: editName.trim(),
-      color: editColor,
-    });
-    closeEditOrg();
+    try {
+      await updateOrg.mutateAsync({
+        id: editOrgId,
+        name: editName.trim(),
+        color: editColor,
+      });
+      closeEditOrg();
+    } catch {
+      /* тост об ошибке показывает onError в useUpdateOrganization */
+    }
   };
 
   if (isRestricted) {
@@ -219,7 +224,18 @@ export function AdminPage() {
         }}
         onSave={async (data) => {
           const org = await createOrg.mutateAsync({ name: data.name, color: data.color });
-          await Promise.all(data.accountNames.map((name) => createBankAccount(org.id, name)));
+          const results = await Promise.allSettled(
+            data.accountNames.map((name) => createBankAccount(org.id, name)),
+          );
+          const failed = results.filter((r) => r.status === 'rejected').length;
+          if (failed > 0) {
+            notifications.show({
+              color: 'yellow',
+              title: 'Организация создана',
+              message: `Счета добавлены частично (${data.accountNames.length - failed} из ${data.accountNames.length}). Остальные добавьте через редактирование организации.`,
+              autoClose: 10000,
+            });
+          }
         }}
       />
 

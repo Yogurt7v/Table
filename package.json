@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "pb": "./pocketbase serve",
+    "pbt": "./pocketbase serve --dir=pb_data_test --http=127.0.0.1:8090",
     "pbe": "pocketbase.exe serve",
     "build": "tsc -b && vite build",
     "build:portable": "vite build",
@@ -64,5 +65,10 @@
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
     "vitest": "^3.1.3"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

@@ -13,13 +13,20 @@ import { SearchProvider } from '@/shared/context/SearchContext';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 import App from './App.tsx';
 
-dayjs.locale('ru');
-
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
 import 'mantine-react-table/styles.css';
 
+dayjs.locale('ru');
+
+async function enableMocks() {
+  if (!import.meta.env.DEV) return;
+  const { worker } = await import('@/mocks/browser');
+  await worker.start({ onUnhandledRequest: 'bypass' });
+}
+
+enableMocks().then(() => {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -51,3 +58,4 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+});

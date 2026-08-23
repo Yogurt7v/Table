@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notifications } from '@mantine/notifications';
 import {
   getOrganizationUsers,
   createOrganizationUser,
@@ -29,6 +30,7 @@ export function useCreateOrganizationUser() {
       objectIds?: string[];
     }) => createOrganizationUser(userId, organizationId, role, objectIds),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organization_users'] }),
+    onError: () => notifications.show({ color: 'red', message: 'Не удалось назначить роль' }),
   });
 }
 
@@ -38,6 +40,7 @@ export function useUpdateOrganizationUser() {
     mutationFn: ({ id, data }: { id: string; data: { role?: IOrganizationUser['role']; objects?: string[] } }) =>
       updateOrganizationUser(id, data),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organization_users'] }),
+    onError: () => notifications.show({ color: 'red', message: 'Не удалось сохранить доступы' }),
   });
 }
 
@@ -46,5 +49,6 @@ export function useDeleteOrganizationUser() {
   return useMutation({
     mutationFn: (id: string) => deleteOrganizationUser(id),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organization_users'] }),
+    onError: () => notifications.show({ color: 'red', message: 'Не удалось снять доступ' }),
   });
 }

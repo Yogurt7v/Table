@@ -55,15 +55,12 @@ describe('AccountingObjectManager', () => {
     const user = userEvent.setup();
     renderManager(true);
 
-    const pencilButtons = screen.getAllByRole('button');
-    const pencilBtn = pencilButtons.find(
-      (btn) => btn.querySelector('svg'),
-    );
-    if (pencilBtn) await user.click(pencilBtn);
+    await user.click(screen.getByRole('button', { name: 'Редактировать «Объект А»' }));
 
     await waitFor(() => {
       const inputs = screen.getAllByRole('textbox');
       expect(inputs.length).toBeGreaterThanOrEqual(2);
     });
+    expect(screen.getByDisplayValue('Объект А')).toBeInTheDocument();
   });
 });

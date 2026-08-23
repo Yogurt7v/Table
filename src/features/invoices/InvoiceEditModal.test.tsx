@@ -67,4 +67,37 @@ describe('InvoiceEditModal', () => {
       expect(onSave).toHaveBeenCalledTimes(1);
     });
   });
+
+  it('asks for confirmation before discarding unsaved changes', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+
+    renderWithProviders(
+      <InvoiceEditModal opened onClose={onClose} onSave={() => {}} />,
+    );
+
+    await user.type(screen.getByPlaceholderText('Введите имя контрагента'), 'ООО Черновик');
+
+    await user.click(screen.getByRole('button', { name: 'Отмена' }));
+
+    expect(await screen.findByText('Закрыть без сохранения? Введённые данные будут потеряны.')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Закрыть без сохранения' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes immediately when form is pristine', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+
+    renderWithProviders(
+      <InvoiceEditModal opened invoice={mockInvoice} onClose={onClose} onSave={() => {}} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Отмена' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Закрыть без сохранения? Введённые данные будут потеряны.')).not.toBeInTheDocument();
+  });
 });

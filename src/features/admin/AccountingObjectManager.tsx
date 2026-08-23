@@ -111,6 +111,7 @@ export function AccountingObjectManager({
                 size="sm"
                 color="green"
                 variant="light"
+                aria-label={`Сохранить «${obj.name}»`}
                 onClick={() => handleUpdate(obj.id)}
               >
                 <IconCheck size={14} />
@@ -119,6 +120,7 @@ export function AccountingObjectManager({
                 size="sm"
                 color="gray"
                 variant="subtle"
+                aria-label={`Отменить редактирование «${obj.name}»`}
                 onClick={() => setEditingId(null)}
               >
                 <IconX size={14} />
@@ -135,6 +137,7 @@ export function AccountingObjectManager({
                     size="sm"
                     color="gray"
                     variant="subtle"
+                    aria-label={`Переместить «${obj.name}» вверх`}
                     disabled={index === 0}
                     onClick={() => handleMoveUp(index)}
                   >
@@ -144,6 +147,7 @@ export function AccountingObjectManager({
                     size="sm"
                     color="gray"
                     variant="subtle"
+                    aria-label={`Переместить «${obj.name}» вниз`}
                     disabled={index === objects.length - 1}
                     onClick={() => handleMoveDown(index)}
                   >
@@ -153,6 +157,7 @@ export function AccountingObjectManager({
                     size="sm"
                     color="blue"
                     variant="subtle"
+                    aria-label={`Редактировать «${obj.name}»`}
                     onClick={() => {
                       setEditingId(obj.id);
                       setEditName(obj.name);
@@ -164,6 +169,7 @@ export function AccountingObjectManager({
                     size="sm"
                     color="red"
                     variant="subtle"
+                    aria-label={`Удалить «${obj.name}»`}
                     onClick={() => setDeleteTarget({ id: obj.id, name: obj.name })}
                   >
                     <IconTrash size={14} />

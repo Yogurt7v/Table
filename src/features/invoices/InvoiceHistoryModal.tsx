@@ -157,20 +157,11 @@ function computeHistoryDiffs(
     const totalFrom = amountsFrom.reduce((s, n) => s + n, 0);
 
     let paidTo: unknown = null;
-    let paidDateTo: unknown = null;
-    let totalTo = 0;
 
     if (i < sorted.length - 1 && nextPrev) {
       paidTo = nextPrev['paid'] ?? null;
-      paidDateTo = nextPrev['paid_date'] ?? null;
-      const amountsTo = Array.isArray(nextPrev['payment_amounts'])
-        ? (nextPrev['payment_amounts'] as unknown[]).map(Number).filter((n) => !Number.isNaN(n))
-        : [];
-      totalTo = amountsTo.reduce((s, n) => s + n, 0);
     } else if (currentInvoice) {
       paidTo = currentInvoice.paid;
-      paidDateTo = currentInvoice.paid_date;
-      totalTo = (currentInvoice.payment_amounts ?? []).reduce((s, n) => s + n, 0);
     }
 
     if (paidFrom != null) {

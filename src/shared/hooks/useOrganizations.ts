@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notifications } from '@mantine/notifications';
 import { getOrganizations, createOrganization, updateOrganization, deleteOrganization } from '@/api/collections';
 
 export function useOrganizations() {
@@ -14,6 +15,7 @@ export function useCreateOrganization() {
     mutationFn: ({ name, color }: { name: string; color: string }) =>
       createOrganization(name, color),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organizations'] }),
+    onError: () => notifications.show({ color: 'red', message: 'Не удалось создать организацию' }),
   });
 }
 
@@ -23,6 +25,7 @@ export function useUpdateOrganization() {
     mutationFn: ({ id, name, color }: { id: string; name: string; color: string }) =>
       updateOrganization(id, name, color),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organizations'] }),
+    onError: () => notifications.show({ color: 'red', message: 'Не удалось сохранить организацию' }),
   });
 }
 
@@ -31,5 +34,6 @@ export function useDeleteOrganization() {
   return useMutation({
     mutationFn: (id: string) => deleteOrganization(id),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organizations'] }),
+    onError: () => notifications.show({ color: 'red', message: 'Не удалось удалить организацию' }),
   });
 }

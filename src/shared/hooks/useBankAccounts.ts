@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notifications } from '@mantine/notifications';
 import { getBalancesForOrgDate, upsertBalance } from '@/api/collections';
 
 export function useBankAccounts(orgId: string, date: string) {
@@ -22,5 +23,6 @@ export function useUpdateBalance() {
       balance: number;
     }) => upsertBalance(accountId, date, balance),
     onSettled: () => qc.invalidateQueries({ queryKey: ['bank_accounts'] }),
+    onError: () => notifications.show({ color: 'red', message: 'Не удалось сохранить остаток' }),
   });
 }

@@ -36,7 +36,12 @@ export function AppLayout() {
           <Stack h="100%" gap={4} justify="center">
             <Group justify="space-between" wrap="nowrap">
               <Group gap={4} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-                <ActionIcon variant="subtle" color="gray" onClick={() => navigate('/')}>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  aria-label="На главную"
+                  onClick={() => navigate('/')}
+                >
                   <IconHome size={22} />
                 </ActionIcon>
                 <Select
@@ -81,18 +86,28 @@ export function AppLayout() {
                 )}
                 {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
                   <Tooltip label="Панель администратора">
-                    <ActionIcon variant="subtle" color="gray" onClick={() => navigate('/admin')}>
+                    <ActionIcon
+                      variant="subtle"
+                      color="gray"
+                      aria-label="Панель администратора"
+                      onClick={() => navigate('/admin')}
+                    >
                       <IconSettings size={22} />
                     </ActionIcon>
                   </Tooltip>
                 )}
                 <Tooltip label={user?.name || user?.login || 'Пользователь'}>
-                  <ActionIcon variant="subtle" color="gray">
+                  <ActionIcon variant="subtle" color="gray" aria-hidden tabIndex={-1}>
                     <IconUser size={22} />
                   </ActionIcon>
                 </Tooltip>
                 <Tooltip label="Выйти">
-                  <ActionIcon variant="subtle" color="gray" onClick={handleLogout}>
+                  <ActionIcon
+                    variant="subtle"
+                    color="gray"
+                    aria-label="Выйти"
+                    onClick={handleLogout}
+                  >
                     <IconLogout size={22} />
                   </ActionIcon>
                 </Tooltip>
@@ -106,7 +121,12 @@ export function AppLayout() {
         <Box visibleFrom="sm" h="100%" px="md">
           <Group h="100%" justify="space-between">
             <Group>
-              <ActionIcon variant="subtle" color="gray" onClick={() => navigate('/')}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                aria-label="На главную"
+                onClick={() => navigate('/')}
+              >
                 <IconHome size={22} />
               </ActionIcon>
               <Select

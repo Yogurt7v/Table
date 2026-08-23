@@ -71,3 +71,36 @@ export function validateDraftForm(form: DraftInvoiceForm): string | null {
   }
   return null;
 }
+
+export type DraftFieldErrorKey = 'counterparty' | 'purpose' | 'invoice_no' | 'amount';
+
+export type DraftFieldErrors = Partial<Record<DraftFieldErrorKey, string>>;
+
+export function validateDraftFields(form: DraftInvoiceForm): DraftFieldErrors {
+  const errors: DraftFieldErrors = {};
+  if (!form.counterparty.trim()) errors.counterparty = 'Укажите контрагента';
+  if (!form.purpose.trim()) errors.purpose = 'Укажите назначение платежа';
+  if (!form.invoice_no.trim()) errors.invoice_no = 'Укажите номер счёта';
+  if (form.amount == null || Number.isNaN(form.amount) || form.amount <= 0) {
+    errors.amount = 'Сумма должна быть больше 0';
+  }
+  return errors;
+}
+
+export function isDraftDirty(form: DraftInvoiceForm): boolean {
+  if (
+    form.counterparty !== '' ||
+    form.purpose !== '' ||
+    form.contract_no !== '' ||
+    form.invoice_no !== '' ||
+    form.comment !== ''
+  ) {
+    return true;
+  }
+  const rawAmount: unknown = form.amount;
+  const amount =
+    typeof rawAmount === 'string' ? parseFloat(rawAmount.replace(',', '.')) : rawAmount;
+  if (amount != null && !Number.isNaN(amount) && amount !== 0) return true;
+  if (form.paid !== false || form.paid_date !== '') return true;
+  return form.file != null;
+}

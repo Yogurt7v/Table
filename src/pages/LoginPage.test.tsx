@@ -148,7 +148,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Войти' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to authenticate.')).toBeInTheDocument();
+      expect(screen.getByText('Неверный логин или пароль')).toBeInTheDocument();
     });
   });
 

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { notifications } from '@mantine/notifications';
 import type { IAccountingObject, IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
-import { createEmptyDraft, validateDraftForm, type DraftInvoiceForm } from './invoice-field-access';
+import { createEmptyDraft, validateDraftForm, isDraftDirty, type DraftInvoiceForm } from './invoice-field-access';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
+import { useBeforeUnloadGuard } from '@/shared/hooks/useBeforeUnloadGuard';
 import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
 import { useUpdateInvoice } from '@/shared/hooks/useUpdateInvoice';
 import { useDeleteInvoice } from '@/shared/hooks/useDeleteInvoice';
@@ -73,6 +74,7 @@ export function InvoiceTable({
   const [draftForm, setDraftForm] = useState<DraftInvoiceForm>(createEmptyDraft);
   const counterpartySearch = useCounterpartySearch(orgId, draftForm.counterparty);
   const [deleteTarget, setDeleteTarget] = useState<IInvoice | null>(null);
+  const [clearMarkTarget, setClearMarkTarget] = useState<string | null>(null);
   const [historyInvoice, setHistoryInvoice] = useState<IInvoice | null>(null);
   const [moveInvoiceTarget, setMoveInvoiceTarget] = useState<IInvoice | null>(null);
   const [editInvoice, setEditInvoice] = useState<IInvoice | null>(null);
@@ -100,6 +102,8 @@ export function InvoiceTable({
     }
   }, [isDraftOpen]);
 
+  useBeforeUnloadGuard(isDraftOpen && isDraftDirty(draftForm));
+
   const handleCopy = useCallback(
     (invoice: IInvoice) => {
       copySourceRef.current = invoice;
@@ -114,8 +118,9 @@ export function InvoiceTable({
       notifications.show({ color: 'red', message: error });
       return;
     }
+    let created;
     try {
-      const created = await createInvoice.mutateAsync({
+      created = await createInvoice.mutateAsync({
         organization_id: orgId,
         accounting_object_id: objectId,
         date,
@@ -128,19 +133,28 @@ export function InvoiceTable({
         paid_date: draftForm.paid_date,
         comment: draftForm.comment.trim(),
       });
-      if (draftForm.file && created?.id) {
+    } catch {
+      notifications.show({ color: 'red', message: 'Не удалось создать счёт' });
+      return;
+    }
+    if (draftForm.file && created?.id) {
+      try {
         await createInvoiceFile.mutateAsync({
           invoiceId: created.id,
           file: draftForm.file,
           name: draftForm.file.name,
         });
+      } catch {
+        notifications.show({
+          color: 'yellow',
+          title: 'Счёт добавлен',
+          message: 'Файл не загрузился — прикрепите его через меню «Файлы»',
+          autoClose: 10000,
+        });
       }
-      onCancelDraft();
-      notifications.show({ color: 'green', message: 'Счёт добавлен' });
-    } catch (err) {
-      console.error('Ошибка создания счёта:', err);
-      notifications.show({ color: 'red', message: 'Не удалось создать счёт' });
     }
+    onCancelDraft();
+    notifications.show({ color: 'green', message: 'Счёт добавлен' });
   };
 
   const handleEditInvoice = (data: DraftInvoiceForm) => {
@@ -208,7 +222,11 @@ export function InvoiceTable({
         onSuccess: () => {
           const existingMark = paymentMarks?.find((m) => m.invoice_id === invoiceId);
           if (existingMark) {
-            deletePaymentMark.mutate(existingMark.id);
+            deletePaymentMark.mutate(existingMark.id, {
+              onError: () => {
+                notifications.show({ color: 'red', message: 'Не удалось удалить отметку' });
+              },
+            });
           }
           notifications.show({ color: 'green', message: 'Статус счёта обновлён' });
         },
@@ -285,14 +303,7 @@ export function InvoiceTable({
   };
 
   const handleClearPaymentMark = (markId: string) => {
-    deletePaymentMark.mutate(markId, {
-      onSuccess: () => {
-        notifications.show({ color: 'green', message: 'Отметка удалена' });
-      },
-      onError: () => {
-        notifications.show({ color: 'red', message: 'Не удалось удалить отметку' });
-      },
-    });
+    setClearMarkTarget(markId);
   };
 
   const patchDraft = (patch: Partial<DraftInvoiceForm>) => {
@@ -354,6 +365,25 @@ export function InvoiceTable({
         title="Удаление счёта"
         message={`Удалить счёт «${deleteTarget?.counterparty || deleteTarget?.invoice_no || ''}»?`}
         loading={deleteInvoice.isPending}
+      />
+      <ConfirmModal
+        opened={!!clearMarkTarget}
+        onClose={() => setClearMarkTarget(null)}
+        onConfirm={() => {
+          if (clearMarkTarget) {
+            deletePaymentMark.mutate(clearMarkTarget, {
+              onSuccess: () => {
+                notifications.show({ color: 'green', message: 'Отметка удалена' });
+              },
+              onError: () => {
+                notifications.show({ color: 'red', message: 'Не удалось удалить отметку' });
+              },
+            });
+          }
+          setClearMarkTarget(null);
+        }}
+        title="Снятие отметки"
+        message="Убрать отметку к оплате с этого счёта?"
       />
       <InvoiceHistoryModal
         opened={!!historyInvoice}

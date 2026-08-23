@@ -78,26 +78,6 @@ export function InvoiceSection({
     setPrintingTarget(objectId ?? 'all');
   };
 
-  const handleExportExcel = (objectId?: string) => {
-    if (!currentOrg || !invoices || !objects) return;
-    const targetObjects = objectId
-      ? objects.filter((obj) => obj.id === objectId)
-      : objects;
-    const targetInvoices = objectId
-      ? printInvoices.filter((inv) => normalizeRelationId(inv.accounting_object_id) === objectId)
-      : printInvoices;
-    exportInvoicesToExcel({
-      invoices: targetInvoices,
-      objects: targetObjects,
-      date,
-      visibleColumns,
-      paymentMarks,
-      canViewPaymentMarks: permissions.canViewPaymentMarks,
-      canViewPaidDate: permissions.canViewPaidDate,
-      orgName: currentOrg.name,
-    });
-  };
-
   useEffect(() => {
     if (printingTarget) {
       const timer = setTimeout(() => window.print(), 100);
@@ -174,6 +154,26 @@ export function InvoiceSection({
     });
   }, [invoices, hidePaid]);
 
+  const handleExportExcel = (objectId?: string) => {
+    if (!currentOrg || !invoices || !objects) return;
+    const targetObjects = objectId
+      ? objects.filter((obj) => obj.id === objectId)
+      : objects;
+    const targetInvoices = objectId
+      ? printInvoices.filter((inv) => normalizeRelationId(inv.accounting_object_id) === objectId)
+      : printInvoices;
+    exportInvoicesToExcel({
+      invoices: targetInvoices,
+      objects: targetObjects,
+      date,
+      visibleColumns,
+      paymentMarks,
+      canViewPaymentMarks: permissions.canViewPaymentMarks,
+      canViewPaidDate: permissions.canViewPaidDate,
+      orgName: currentOrg.name,
+    });
+  };
+
   if (!orgId) return null;
 
   if (!objects) return <Loader />;
@@ -187,6 +187,7 @@ export function InvoiceSection({
             size="md"
             variant="subtle"
             color="gray"
+            aria-label="Настройка колонок"
             onClick={() => setColumnSettingsOpen(true)}
           >
             <IconSettings size={20} />
@@ -197,6 +198,7 @@ export function InvoiceSection({
             size="md"
             variant="subtle"
             color="gray"
+            aria-label="Печать"
             onClick={handlePrint}
           >
             <IconPrinter size={20} />
@@ -207,6 +209,7 @@ export function InvoiceSection({
             size="md"
             variant="subtle"
             color="gray"
+            aria-label="Экспорт в Excel"
             onClick={handleExportExcel}
           >
             <IconFileExport size={20} />
@@ -304,6 +307,24 @@ export function InvoiceSection({
                 c={isOverBalance ? 'red' : undefined}
               >
                 Итого к оплате: {formatAmountRub(markedTotal)}
+              </Text>
+            </Paper>
+          </Affix>
+        </Box>
+      )}
+      {permissions.canViewPaymentMarks && markedTotal > 0 && (
+        <Box hiddenFrom="sm">
+          <Affix position={{ bottom: 16, right: 16 }} zIndex={100}>
+            <Paper
+              withBorder
+              px="sm"
+              py={6}
+              radius="xl"
+              shadow="lg"
+              style={{ backgroundColor: 'var(--mantine-color-body)' }}
+            >
+              <Text size="sm" fw={700} c={isOverBalance ? 'red' : undefined}>
+                К оплате: {formatAmountRub(markedTotal)}
               </Text>
             </Paper>
           </Affix>

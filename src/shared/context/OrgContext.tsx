@@ -9,6 +9,7 @@ interface OrgContextValue {
   setCurrentOrgId: (id: string) => void;
   currentOrg: IOrganization | undefined;
   organizations: IOrganization[];
+  organizationsLoading: boolean;
 }
 
 const OrgContext = createContext<OrgContextValue | null>(null);
@@ -26,7 +27,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const { user } = useAuth();
-  const { data: allOrganizations = [] } = useOrganizations();
+  const { data: allOrganizations = [], isLoading: organizationsLoading } = useOrganizations();
   const { data: orgUsers } = useOrganizationUsers();
 
   const organizations = useMemo(() => {
@@ -60,7 +61,9 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const currentOrg = organizations.find((o) => o.id === currentOrgId);
 
   return (
-    <OrgContext.Provider value={{ currentOrgId, setCurrentOrgId, currentOrg, organizations }}>
+    <OrgContext.Provider
+      value={{ currentOrgId, setCurrentOrgId, currentOrg, organizations, organizationsLoading }}
+    >
       {children}
     </OrgContext.Provider>
   );

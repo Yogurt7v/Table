@@ -38,6 +38,7 @@ export function PaymentMarkCell({
                   size="sm"
                   color="red"
                   variant="subtle"
+                  aria-label="Убрать отметку"
                   onClick={() => onClearPaymentMark?.(mark.id)}
                 >
                   <IconX size={12} />
@@ -74,6 +75,7 @@ export function PaymentMarkCell({
               size="sm"
               color="red"
               variant="subtle"
+              aria-label="Убрать отметку"
               onClick={() => onClearPaymentMark?.(mark.id)}
             >
               <IconX size={12} />
