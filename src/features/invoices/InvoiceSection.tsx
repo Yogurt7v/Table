@@ -107,11 +107,7 @@ export function InvoiceSection({
 
   const visibleColumns: InvoiceColumnId[] = useMemo(() => {
     if (Array.isArray(savedColumns) && savedColumns.length > 0) {
-      const saved = new Set(savedColumns as InvoiceColumnId[]);
-      const missing = DEFAULT_VISIBLE_COLUMNS.filter((id) => !saved.has(id));
-      return missing.length > 0
-        ? [...(savedColumns as InvoiceColumnId[]), ...missing]
-        : (savedColumns as InvoiceColumnId[]);
+      return savedColumns as InvoiceColumnId[];
     }
     return DEFAULT_VISIBLE_COLUMNS;
   }, [savedColumns]);
