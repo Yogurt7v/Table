@@ -69,17 +69,12 @@ export function UserAdminTable({
         </summary>
         <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light" mt="sm" pb={6}>
           <Stack gap={2}>
+
             <Text size="sm">
-              <Text span c="red" fw={500}>
-                Администратор
+              <Text span c="gray" fw={500}>
+                Гость
               </Text>{' '}
-              — полный доступ
-            </Text>
-            <Text size="sm">
-              <Text span c="blue" fw={500}>
-                Модератор
-              </Text>{' '}
-              — Пользователь + удаление, перенос, история
+              — только просмотр
             </Text>
             <Text size="sm">
               <Text span c="green" fw={500}>
@@ -88,17 +83,27 @@ export function UserAdminTable({
               — создание/редактирование счетов
             </Text>
             <Text size="sm">
+              <Text span c="blue" fw={500}>
+                Модератор
+              </Text>{' '}
+              — Пользователь + удаление, перенос, история
+            </Text>
+
+            <Text size="sm">
+              <Text span c="red" fw={500}>
+                Администратор
+              </Text>{' '}
+              — полный доступ
+            </Text>
+
+            <Text size="sm">
               <Text span c="orange" fw={500}>
                 Босс
               </Text>{' '}
               — отметка оплаты
             </Text>
-            <Text size="sm">
-              <Text span c="gray" fw={500}>
-                Гость
-              </Text>{' '}
-              — только просмотр
-            </Text>
+
+
           </Stack>
         </Alert>
       </details>
