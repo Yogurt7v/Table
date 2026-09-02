@@ -404,9 +404,18 @@ export function getInvoiceFileUrl(fileRecord: IInvoiceFile) {
   return pb.files.getUrl(fileRecord, fileRecord.file);
 }
 
+function stripInvisible(s: string): string {
+  return s
+    .normalize('NFC')
+    .replace(/[\u00a0\u2000-\u200f\u2028-\u202f\u205f\u3000\ufeff]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function searchAllInvoices(orgId: string, text: string) {
+  const clean = stripInvisible(text);
   return pb.collection('invoices').getFullList<IInvoice>({
-    filter: `organization_id = "${orgId}" && (counterparty ~ "${text}" || purpose ~ "${text}" || contract_no ~ "${text}" || invoice_no ~ "${text}" || comment ~ "${text}")`,
+    filter: `organization_id = "${orgId}" && (counterparty ~ "${clean}" || purpose ~ "${clean}" || contract_no ~ "${clean}" || invoice_no ~ "${clean}" || comment ~ "${clean}")`,
     sort: '-date',
   });
 }

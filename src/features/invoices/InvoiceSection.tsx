@@ -31,6 +31,14 @@ interface InvoiceSectionProps {
   bankTotal: number;
 }
 
+function stripInvisible(s: string): string {
+  return s
+    .normalize('NFC')
+    .replace(/[\u00a0\u2000-\u200f\u2028-\u202f\u205f\u3000\ufeff]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function computeHighlightedIds(
   searchText: string,
   searchResults: IInvoice[] | undefined,
@@ -40,12 +48,12 @@ function computeHighlightedIds(
   if (searchResults) return searchResults.map((i) => i.id);
   if (!invoices) return [];
 
-  const lower = searchText.toLowerCase();
+  const lower = stripInvisible(searchText).toLowerCase();
   return invoices
     .filter(
       (inv) =>
-        inv.counterparty.toLowerCase().includes(lower) ||
-        inv.purpose.toLowerCase().includes(lower) ||
+        stripInvisible(inv.counterparty).toLowerCase().includes(lower) ||
+        stripInvisible(inv.purpose).toLowerCase().includes(lower) ||
         inv.contract_no.toLowerCase().includes(lower) ||
         inv.invoice_no.toLowerCase().includes(lower) ||
         inv.comment.toLowerCase().includes(lower) ||

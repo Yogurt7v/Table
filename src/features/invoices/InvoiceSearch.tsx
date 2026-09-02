@@ -1,5 +1,5 @@
-import { TextInput, Button, Group } from '@mantine/core';
-import { IconArrowsHorizontal, IconSearch } from '@tabler/icons-react';
+import { ActionIcon, Button, Group, TextInput } from '@mantine/core';
+import { IconArrowsHorizontal, IconSearch, IconX } from '@tabler/icons-react';
 import { useSearch } from '@/shared/context/SearchContext';
 
 export function InvoiceSearch() {
@@ -9,6 +9,13 @@ export function InvoiceSearch() {
     <Group gap="xs">
       <TextInput
         leftSection={<IconSearch size={16} />}
+        rightSection={
+          searchText ? (
+            <ActionIcon variant="subtle" size="sm" onClick={() => setSearchText('')}>
+              <IconX size={14} />
+            </ActionIcon>
+          ) : null
+        }
         placeholder="Поиск по счетам..."
         value={searchText}
         onChange={(e) => {
@@ -25,7 +32,7 @@ export function InvoiceSearch() {
           leftSection={<IconArrowsHorizontal size={16} />}
           onClick={() => setSearchAll(true)}
         >
-          Искать везде
+          Искать в других датах
         </Button>
       )}
     </Group>
