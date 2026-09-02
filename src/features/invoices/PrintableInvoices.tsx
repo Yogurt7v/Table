@@ -5,7 +5,7 @@ import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
-import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId } from '@/shared/types';
+import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
 import dayjs from 'dayjs';
 
 interface PrintableInvoicesProps {
@@ -16,6 +16,7 @@ interface PrintableInvoicesProps {
   paymentMarks?: IPaymentMark[];
   canViewPaymentMarks: boolean;
   canViewPaidDate: boolean;
+  usersMap: Map<string, IUser>;
 }
 
 const HEADER_LABELS: Partial<Record<InvoiceColumnId, string>> = {
@@ -28,6 +29,7 @@ const HEADER_LABELS: Partial<Record<InvoiceColumnId, string>> = {
   paid_date: 'Дата оплаты',
   comment: 'Комментарий',
   payment_mark: 'Отметка',
+  initiator: 'Инициатор',
 };
 
 export function PrintableInvoices({
@@ -38,6 +40,7 @@ export function PrintableInvoices({
   paymentMarks,
   canViewPaymentMarks,
   canViewPaidDate,
+  usersMap,
 }: PrintableInvoicesProps) {
   const { currentOrg } = useOrg();
 
@@ -117,6 +120,8 @@ export function PrintableInvoices({
         return invoice.comment || '—';
       case 'payment_mark':
         return renderPaymentMarkText(invoice);
+      case 'initiator':
+        return usersMap.get(invoice.created_by)?.name ?? '—';
       default:
         return '';
     }

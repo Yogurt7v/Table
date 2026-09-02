@@ -8,12 +8,14 @@ import { useOrgInvoiceFiles } from '@/shared/hooks/useInvoiceFiles';
 import { useUserSetting, useUpsertUserSetting } from '@/shared/hooks/useUserSettings';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
+import { useUserMap } from '@/shared/hooks/useUserMap';
 import { InvoiceColumnSettingsModal } from '@/features/invoices/InvoiceColumnSettingsModal';
 import { PrintableInvoices } from '@/features/invoices/PrintableInvoices';
 import { exportInvoicesToExcel } from '@/features/invoices/exportInvoicesToExcel';
 import { SearchResultsView } from '@/features/invoices/components/SearchResultsView';
 import { InvoiceObjectBlock } from '@/features/invoices/components/InvoiceObjectBlock';
 import { DEFAULT_VISIBLE_COLUMNS } from '@/features/invoices/invoice-columns';
+
 import { useOrg } from '@/shared/context/OrgContext';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
@@ -66,6 +68,7 @@ export function InvoiceSection({
   const { data: paymentMarks } = usePaymentMarks(orgId);
   const { data: orgFiles } = useOrgInvoiceFiles(orgId);
   const permissions = useInvoicePermissions(orgId);
+  const usersMap = useUserMap();
   const { currentOrg } = useOrg();
   const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
@@ -96,7 +99,11 @@ export function InvoiceSection({
 
   const visibleColumns: InvoiceColumnId[] = useMemo(() => {
     if (Array.isArray(savedColumns) && savedColumns.length > 0) {
-      return savedColumns as InvoiceColumnId[];
+      const saved = new Set(savedColumns as InvoiceColumnId[]);
+      const missing = DEFAULT_VISIBLE_COLUMNS.filter((id) => !saved.has(id));
+      return missing.length > 0
+        ? [...(savedColumns as InvoiceColumnId[]), ...missing]
+        : (savedColumns as InvoiceColumnId[]);
     }
     return DEFAULT_VISIBLE_COLUMNS;
   }, [savedColumns]);
@@ -154,6 +161,16 @@ export function InvoiceSection({
     });
   }, [invoices, hidePaid]);
 
+  const grandTotal = useMemo(() => {
+    const source = hidePaid ? printInvoices : invoices ?? [];
+    return source.reduce((sum, inv) => {
+      if (!inv.paid) return sum + inv.amount;
+      const { amounts, remaining } = getInvoicePaymentInfo(inv);
+      if (amounts.length > 0 && remaining > 0) return sum + remaining;
+      return sum;
+    }, 0);
+  }, [hidePaid, printInvoices, invoices]);
+
   const handleExportExcel = (objectId?: string) => {
     if (!currentOrg || !invoices || !objects) return;
     const targetObjects = objectId
@@ -171,6 +188,7 @@ export function InvoiceSection({
       canViewPaymentMarks: permissions.canViewPaymentMarks,
       canViewPaidDate: permissions.canViewPaidDate,
       orgName: currentOrg.name,
+      usersMap,
     });
   };
 
@@ -206,7 +224,7 @@ export function InvoiceSection({
             variant="subtle"
             color="gray"
             aria-label="Печать"
-            onClick={handlePrint}
+            onClick={() => handlePrint()}
           >
             <IconPrinter size={20} />
           </ActionIcon>
@@ -217,7 +235,7 @@ export function InvoiceSection({
             variant="subtle"
             color="gray"
             aria-label="Экспорт в Excel"
-            onClick={handleExportExcel}
+            onClick={() => handleExportExcel()}
           >
             <IconFileExport size={20} />
           </ActionIcon>
@@ -256,7 +274,7 @@ export function InvoiceSection({
     );
     const printInvoicesFiltered =
       printingTarget === 'all'
-        ? printInvoices
+        ? invoices ?? []
         : printInvoices.filter(
             (inv) => normalizeRelationId(inv.accounting_object_id) === printingTarget,
           );
@@ -269,6 +287,7 @@ export function InvoiceSection({
         paymentMarks={paymentMarks}
         canViewPaymentMarks={permissions.canViewPaymentMarks}
         canViewPaidDate={permissions.canViewPaidDate}
+        usersMap={usersMap}
       />
     );
   }
@@ -297,7 +316,15 @@ export function InvoiceSection({
           onExport={(objId) => handleExportExcel(objId)}
         />
       ))}
+      {grandTotal > 0 && (
+        <Paper withBorder p="md" mt="lg">
+          <Text ta="right" fw={700} size="lg">
+            Итого по всем объектам: {formatAmountRub(grandTotal)}
+          </Text>
+        </Paper>
+      )}
       <InvoiceColumnSettingsModal
+        key={columnSettingsOpen ? 'open' : 'closed'}
         opened={columnSettingsOpen}
         value={visibleColumns}
         onChange={handleColumnChange}
@@ -323,7 +350,7 @@ export function InvoiceSection({
         <Box hiddenFrom="sm">
           <Affix position={{ bottom: 16, right: 16 }} zIndex={100}>
             <Paper
-              withBorder
+              // withBorder
               px="sm"
               py={6}
               radius="xl"

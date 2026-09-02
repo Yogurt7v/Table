@@ -21,6 +21,7 @@ import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { getInvoiceFileUrl } from '@/api/collections';
+import { useUserMap } from '@/shared/hooks/useUserMap';
 import { PaymentMarkCell } from './PaymentMarkCell';
 import { InvoiceActionsCell } from './InvoiceActionsCell';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -102,6 +103,7 @@ export function InvoiceMobileCardView({
   onClearPaymentConfirm,
   onOpenPartialModal,
 }: InvoiceMobileCardViewProps) {
+  const userMap = useUserMap();
   const groups = groupInvoicesByCounterparty(invoices);
   const [draftErrors, setDraftErrors] = useState<DraftFieldErrors>({});
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
@@ -246,6 +248,11 @@ export function InvoiceMobileCardView({
                     {invoice.invoice_no && (
                       <Text size="xs" c="dimmed">
                         Счёт: {invoice.invoice_no}
+                      </Text>
+                    )}
+                    {invoice.created_by && (
+                      <Text size="xs" c="dimmed">
+                        Инициатор: {userMap.get(invoice.created_by)?.name ?? '—'}
                       </Text>
                     )}
                   </Group>

@@ -1,0 +1,24 @@
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoices-table .col-resize-handle {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.invoices-table th:hover .col-resize-handle {
+  opacity: 1;
+}
+
+.row-grip-icon {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.invoices-table tr:hover .row-grip-icon,
+.invoices-table tr:focus-within .row-grip-icon {
+  opacity: 0.55;
+}

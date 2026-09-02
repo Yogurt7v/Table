@@ -62,7 +62,8 @@ export type InvoiceColumnId =
   | 'comment'
   | 'files'
   | 'actions'
-  | 'payment_mark';
+  | 'payment_mark'
+  | 'initiator';
 
 export interface IUserSetting {
   id: string;

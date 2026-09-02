@@ -7,6 +7,7 @@ import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import type { IInvoice, IAccountingObject, IPaymentMark, IInvoiceFile, InvoiceColumnId } from '@/shared/types';
 
+
 interface InvoiceObjectBlockProps {
   obj: IAccountingObject;
   invoices: IInvoice[] | undefined;
@@ -122,9 +123,9 @@ export function InvoiceObjectBlock({
           {permissions.canCreate && (
             <Group justify="flex-end" mt="sm">
               <Button
-                size="compact-xs"
+                size="md"
                 variant="light"
-                leftSection={<IconPlus size={14} />}
+                leftSection={<IconPlus size={18} />}
                 disabled={isDraftOpen || hasDraftElsewhere}
                 onClick={() => onOpenDraft(obj.id)}
               >

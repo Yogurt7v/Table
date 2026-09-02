@@ -1,20 +1,20 @@
 /**
  * Экспорт счетов в Excel (.xlsx).
  *
- * Формат таблицы на листе (каждый объект учёта — отдельный лист):
+ * Все объекты учёта — на одном листе, друг за другом:
  *   строка 1: название организации
  *   строка 2: дата
- *   строка 3: название объекта учёта
- *   строка 4: пустая
- *   строка 5: заголовки колонок (№ + выбранные пользователем)
- *   строка 6+: строки счетов, сгруппированные по контрагенту
- *   последние строки: итого по объекту
+ *   строка 3: пустая
+ *   Для каждого объекта:
+ *     строка: название объекта (жирным)
+ *     строка: заголовки колонок (№ + выбранные пользователем)
+ *     строки: счета, сгруппированные по контрагенту
+ *     пустая строка
+ *   Итоговая строка: общий итог по всем объектам
  *
  * Частичные оплаты разворачиваются в дополнительные строки:
  *   - копии платежей (строки без №, колонка «Оплачено»)
  *   - строка остатка (колонка «Сумма» = "Остаток: ...")
- *
- * Последний лист — сводка «Итого» с суммами по всем объектам.
  */
 
 import * as XLSX from 'xlsx';
@@ -23,11 +23,11 @@ import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
-import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId } from '@/shared/types';
+import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
 
 // ---------------------------------------------------------------------------
 // Соответствие InvoiceColumnId → заголовок столбца в Excel.
-// Эти заголовки попадают в шапку таблицы на каждом листе.
+// Эти заголовки попадают в шапку таблицы каждого объекта.
 // Если нужно переименовать колонку или добавить новую — менять здесь.
 // ---------------------------------------------------------------------------
 const HEADER_LABELS: Partial<Record<InvoiceColumnId, string>> = {
@@ -40,6 +40,7 @@ const HEADER_LABELS: Partial<Record<InvoiceColumnId, string>> = {
   paid_date: 'Дата оплаты',
   comment: 'Комментарий',
   payment_mark: 'Отметка',
+  initiator: 'Инициатор',
 };
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,7 @@ function cellText(
   colId: InvoiceColumnId,
   invoice: IInvoice,
   marksByInvoice: Record<string, IPaymentMark>,
+  userMap: Map<string, IUser>,
 ): string {
   switch (colId) {
     case 'counterparty':
@@ -95,6 +97,9 @@ function cellText(
       return parts.join(' ');
     }
 
+    case 'initiator':
+      return userMap.get(invoice.created_by)?.name ?? '—';
+
     default:
       return '';
   }
@@ -114,6 +119,7 @@ export interface ExportInvoicesParams {
   canViewPaymentMarks: boolean;
   canViewPaidDate: boolean;
   orgName: string;
+  usersMap: Map<string, IUser>;
 }
 
 export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
@@ -126,6 +132,7 @@ export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
     canViewPaymentMarks,
     canViewPaidDate,
     orgName,
+    usersMap,
   } = params;
 
   const isSingleObject = objects.length === 1;
@@ -159,6 +166,7 @@ export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
   //      - группируем по контрагентам (через groupInvoicesByCounterparty)
   //      - подсчитываем незакрытую сумму (unpaidTotal) — она идёт в итог
   //    Объекты без счетов отбрасываем.
+  //    Порядок объектов = порядок в исходном массиве objects (как на странице).
   // -----------------------------------------------------------------------
   const objBindings = objects
     .map((obj) => {
@@ -175,7 +183,7 @@ export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
     })
     .filter((b) => b.groups.length > 0);
 
-  // Общий итог по всем объектам (для сводного листа).
+  // Общий итог по всем объектам (последняя строка листа).
   const grandTotal = objBindings.reduce((sum, b) => sum + b.unpaidTotal, 0);
 
   // Создаём новую книгу Excel.
@@ -185,23 +193,24 @@ export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
   const headerRow = ['№', ...cols.map((c) => HEADER_LABELS[c] ?? c)];
 
   // -----------------------------------------------------------------------
-  // 4. Для каждого объекта формируем лист.
+  // 4. Собираем все данные на один лист.
   // -----------------------------------------------------------------------
-  for (const { obj, groups, unpaidTotal } of objBindings) {
-    // data — массив строк (массивов ячеек), каждая строка — кортеж колонок.
-    // Это формат XLSX.utils.aoa_to_sheet (Array of Arrays).
-    const data: unknown[][] = [];
+  const data: unknown[][] = [];
 
-    // --- Верхние строки листа (орг, дата, название объекта) ---
-    data.push([orgName]);
-    data.push([dayjs(date).format('DD.MM.YYYY')]);
+  // --- Верхние строки (орг, дата) ---
+  data.push([orgName]);
+  data.push([dayjs(date).format('DD.MM.YYYY')]);
+  data.push([]);
+
+  // --- Для каждого объекта: заголовок + таблица ---
+  for (const { obj, groups } of objBindings) {
+    // Строка с названием объекта
     data.push([obj.name]);
-    data.push([]);
 
-    // --- Шапка таблицы ---
+    // Шапка таблицы
     data.push(headerRow);
 
-    // --- Строки счетов ---
+    // Строки счетов
     let rowNum = 0;
     for (const group of groups) {
       for (const invoice of group.invoices) {
@@ -211,14 +220,11 @@ export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
         rowNum++;
         const row: unknown[] = [rowNum];
         for (const colId of cols) {
-          row.push(cellText(colId, invoice, marksByInvoice));
+          row.push(cellText(colId, invoice, marksByInvoice, usersMap));
         }
         data.push(row);
 
         // ---- Копии для частичных оплат (payment_amounts[1..n]) ----
-        // Каждая копия — отдельная строка без номера, только колонка
-        // «Оплачено» заполняется суммой этого платежа.
-        // Если копий нет (amounts.length <= 1) — пропускаем.
         if (hasCopies) {
           for (let i = 1; i < amounts.length; i++) {
             const copyAmt = amounts[i]!;
@@ -227,7 +233,6 @@ export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
               if (colId === 'paid') {
                 copyRow.push(formatAmountRub(copyAmt));
               } else if (colId === 'purpose') {
-                // Дублируем назначение, чтобы было понятно, к какому счету относится.
                 copyRow.push(invoice.purpose);
               } else {
                 copyRow.push('');
@@ -238,7 +243,6 @@ export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
         }
 
         // ---- Строка остатка (если оплачено частично) ----
-        // Показываем, сколько ещё осталось доплатить.
         if (hasRemainder) {
           const remainderRow: unknown[] = [''];
           for (const colId of cols) {
@@ -257,51 +261,22 @@ export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
       }
     }
 
-    // --- Пустая строка перед итогом ---
+    // Пустая строка между объектами
     data.push([]);
-
-    // --- Итоговая строка по объекту ---
-    const totalRow: unknown[] = [];
-    totalRow.push(`Итого по «${obj.name}»: ${formatAmountRub(unpaidTotal)}`);
-    data.push(totalRow);
-
-    // ---------------------------------------------------------------------
-    // Преобразуем массив строк в лист Excel и настраиваем ширину колонок.
-    // ws['!cols'] — массив объектов { wch: N }, где N — ширина в символах.
-    // Первая колонка (№) — 5 символов, остальные — по 24.
-    // ---------------------------------------------------------------------
-    const ws = XLSX.utils.aoa_to_sheet(data);
-
-    ws['!cols'] = [{ wch: 5 }, ...cols.map(() => ({ wch: 24 }))];
-
-    // Имя листа: название объекта (не длиннее 31 символа — ограничение Excel).
-    const sheetName = obj.name.slice(0, 31);
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
   }
 
-  // -----------------------------------------------------------------------
-  // 5. Лист сводки «Итого».
-  //    Содержит суммы по каждому объекту и общий итог.
-  // -----------------------------------------------------------------------
-  const summaryData: unknown[][] = [];
-  summaryData.push([orgName]);
-  summaryData.push([dayjs(date).format('DD.MM.YYYY')]);
-  summaryData.push([]);
-  summaryData.push(['Объект', 'Итого']);
-  for (const { obj, unpaidTotal } of objBindings) {
-    summaryData.push([obj.name, formatAmountRub(unpaidTotal)]);
-  }
-  summaryData.push([]);
-  summaryData.push(['ОБЩИЙ ИТОГО', formatAmountRub(grandTotal)]);
+  // --- Итоговая строка ---
+  data.push([`Итого по всем объектам: ${formatAmountRub(grandTotal)}`]);
 
-  const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-  summaryWs['!cols'] = [{ wch: 30 }, { wch: 20 }];
-  XLSX.utils.book_append_sheet(wb, summaryWs, 'Итого');
+  // -----------------------------------------------------------------------
+  // 5. Создаём один лист и настраиваем ширину колонок.
+  // -----------------------------------------------------------------------
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{ wch: 5 }, ...cols.map(() => ({ wch: 24 }))];
+  XLSX.utils.book_append_sheet(wb, ws, 'Счета');
 
   // -----------------------------------------------------------------------
   // 6. Сохранение файла.
-  //    Имя: Счета[_НазваниеОбъекта]_YYYY-MM-DD.xlsx
-  //    Если объектов несколько, название объекта не добавляется.
   // -----------------------------------------------------------------------
   const suffix = isSingleObject ? `_${objects[0]!.name.replace(/[/\\?*[\]:]/g, '_')}` : '';
   const fileName = `Счета${suffix}_${dayjs(date).format('YYYY-MM-DD')}.xlsx`;

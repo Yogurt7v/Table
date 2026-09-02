@@ -17,6 +17,7 @@ export const ALL_INVOICE_COLUMNS: InvoiceColumnDef[] = [
   { id: 'files', label: 'Файлы' },
   { id: 'actions', label: 'Действия' },
   { id: 'payment_mark', label: 'Отметка' },
+  { id: 'initiator', label: 'Инициатор' },
 ];
 
 export const DEFAULT_VISIBLE_COLUMNS: InvoiceColumnId[] = ALL_INVOICE_COLUMNS.map(

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { notifications } from '@mantine/notifications';
 import type { IAccountingObject, IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
+
 import { createEmptyDraft, validateDraftForm, isDraftDirty, type DraftInvoiceForm } from './invoice-field-access';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { useBeforeUnloadGuard } from '@/shared/hooks/useBeforeUnloadGuard';

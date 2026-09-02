@@ -11,6 +11,7 @@ CHANGELOG.md
 node_modules
 dist
 dist-ssr
+builds/
 *.local
 *.env
 
@@ -34,3 +35,6 @@ pb_public/
 tools/
 TableApp/
 TableApp.zip
+.opencode
+.vscode
+standalone

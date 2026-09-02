@@ -21,13 +21,13 @@ import './index.css';
 
 dayjs.locale('ru');
 
-async function enableMocks() {
-  if (!import.meta.env.DEV) return;
-  const { worker } = await import('@/mocks/browser');
-  await worker.start({ onUnhandledRequest: 'bypass' });
-}
+// async function enableMocks() {
+//   if (!import.meta.env.DEV) return;
+//   const { worker } = await import('@/mocks/browser');
+//   await worker.start({ onUnhandledRequest: 'bypass' });
+// }
 
-enableMocks().then(() => {
+// enableMocks().then(() => {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -59,4 +59,3 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
-});

@@ -16,7 +16,7 @@ import {
   FileButton,
   Stack,
 } from '@mantine/core';
-import { IconX, IconCheck, IconPaperclip, IconGripVertical, IconInbox } from '@tabler/icons-react';
+import { IconX, IconCheck, IconPaperclip, IconGripVertical, IconInbox, IconPlus } from '@tabler/icons-react';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -28,6 +28,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { useUserMap } from '@/shared/hooks/useUserMap';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type { DraftFieldErrorKey, DraftFieldErrors, DraftInvoiceForm } from './invoice-field-access';
@@ -42,6 +43,7 @@ import {
   saveColumnSizing,
   type ColumnSizingState,
 } from './invoice-table-column-sizing';
+
 
 function shortenFileName(name: string): string {
   const dotIndex = name.lastIndexOf('.');
@@ -153,6 +155,7 @@ export function GroupedInvoiceTable({
   onReorderGroups,
   onAddClick,
 }: GroupedInvoiceTableProps) {
+  const userMap = useUserMap();
   const groups = useMemo(() => groupInvoicesByCounterparty(invoices), [invoices]);
 
   const marksByInvoice = useMemo(() => {
@@ -607,6 +610,14 @@ export function GroupedInvoiceTable({
       },
       renderDraft: () => null,
     },
+    initiator: {
+      width: 120,
+      header: 'Инициатор',
+      renderCell: (invoice) => (
+        <>{userMap.get(invoice.created_by)?.name ?? '—'}</>
+      ),
+      renderDraft: () => null,
+    },
   };
 
   return (
@@ -642,6 +653,19 @@ export function GroupedInvoiceTable({
 
       {/* Desktop table */}
       <Box visibleFrom="sm">
+        {permissions.canCreate && onAddClick && (
+          <Group justify="flex-end" mb="sm">
+            <Button
+              size="md"
+              variant="light"
+              leftSection={<IconPlus size={18} />}
+              disabled={isDraftOpen}
+              onClick={onAddClick}
+            >
+              Добавить счёт
+            </Button>
+          </Group>
+        )}
         <Table highlightOnHover className="invoices-table" style={{ width: '100%', maxWidth: '100%', tableLayout: 'fixed' }}>
           <Table.Thead>
             <Table.Tr>
@@ -699,7 +723,7 @@ export function GroupedInvoiceTable({
             >
               {groups.map((group) => {
                 const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
-                const BORDER = `1.5px dashed var(--org-color, var(--mantine-primary-color-filled))`;
+                const BORDER = '3.5px solid var(--org-color, var(--mantine-primary-color-filled))';
                 return (
                   <SortableGroupBody key={group.counterparty} id={group.counterparty}>
                     {({ listeners, isOver }) =>

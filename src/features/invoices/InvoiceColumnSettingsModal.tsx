@@ -18,7 +18,10 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ALL_INVOICE_COLUMNS, DEFAULT_VISIBLE_COLUMNS } from './invoice-columns';
+import {
+  ALL_INVOICE_COLUMNS,
+  DEFAULT_VISIBLE_COLUMNS,
+} from './invoice-columns';
 import type { InvoiceColumnId } from '@/shared/types';
 
 interface InvoiceColumnSettingsModalProps {
