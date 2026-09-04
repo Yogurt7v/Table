@@ -87,6 +87,18 @@ function SortableGroupBody({
   );
 }
 
+function StaticGroupBody({
+  children,
+}: {
+  children: (ctx: {
+    listeners: Record<string, unknown>;
+    isDragging: boolean;
+    isOver: boolean;
+  }) => React.ReactNode;
+}) {
+  return <Table.Tbody>{children({ listeners: {}, isDragging: false, isOver: false })}</Table.Tbody>;
+}
+
 interface GroupedInvoiceTableProps {
   orgId: string;
   invoices: IInvoice[];
@@ -110,6 +122,7 @@ interface GroupedInvoiceTableProps {
     canDelete: boolean;
     canViewHistory: boolean;
     canMove: boolean;
+    canPay: boolean;
     canMarkPayment: boolean;
     canViewPaymentMarks: boolean;
     canViewPaidDate: boolean;
@@ -157,6 +170,7 @@ export function GroupedInvoiceTable({
 }: GroupedInvoiceTableProps) {
   const userMap = useUserMap();
   const groups = useMemo(() => groupInvoicesByCounterparty(invoices), [invoices]);
+  const canDrag = permissions.canMove;
 
   const marksByInvoice = useMemo(() => {
     const map: Record<string, IPaymentMark> = {};
@@ -437,7 +451,7 @@ export function GroupedInvoiceTable({
       header: 'Оплачено',
       renderCell: (invoice) => {
         const amounts = invoice.payment_amounts;
-        if (permissions.canUpdate) {
+        if (permissions.canPay) {
           if (amounts.length > 0) {
             const isLast = amounts.length === 1;
             return (
@@ -486,9 +500,9 @@ export function GroupedInvoiceTable({
         }
         if (amounts.length > 0) {
           return (
-            <Text size="xs" fw={600}>
+            <Badge color="green" variant="light">
               {formatAmountRub(amounts[0]!)}
-            </Text>
+            </Badge>
           );
         }
         if (invoice.paid) {
@@ -716,44 +730,45 @@ export function GroupedInvoiceTable({
               })}
             </Table.Tr>
           </Table.Thead>
-          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-            <SortableContext
-              items={groups.map((g) => g.counterparty)}
-              strategy={verticalListSortingStrategy}
-            >
-              {groups.map((group) => {
-                const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
-                const BORDER = '3.5px solid var(--org-color, var(--mantine-primary-color-filled))';
-                return (
-                  <SortableGroupBody key={group.counterparty} id={group.counterparty}>
-                    {({ listeners, isOver }) =>
-                      group.invoices.flatMap((invoice, idx) => {
-                        const getExpandedCount = (inv: IInvoice) => {
-                          const amts = inv.payment_amounts ?? [];
-                          const tPaid = amts.reduce((s, a) => s + a, 0);
-                          let extra = 0;
-                          if (amts.length > 1) extra += amts.length - 1;
-                          if (tPaid > 0 && inv.amount - tPaid > 0) extra += 1;
-                          return 1 + extra;
-                        };
+          {canDrag ? (
+            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+              <SortableContext
+                items={groups.map((g) => g.counterparty)}
+                strategy={verticalListSortingStrategy}
+              >
+                {groups.map((group) => {
+                  const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
+                  const BORDER = '3.5px solid var(--org-color, var(--mantine-primary-color-filled))';
+                  return (
+                    <SortableGroupBody key={group.counterparty} id={group.counterparty}>
+                      {({ listeners, isOver }) =>
+                        group.invoices.flatMap((invoice, idx) => {
+                          const getExpandedCount = (inv: IInvoice) => {
+                            const amts = inv.payment_amounts ?? [];
+                            const tPaid = amts.reduce((s, a) => s + a, 0);
+                            let extra = 0;
+                            if (amts.length > 1) extra += amts.length - 1;
+                            if (tPaid > 0 && inv.amount - tPaid > 0) extra += 1;
+                            return 1 + extra;
+                          };
 
-                        const precedingRows = group.invoices
-                          .slice(0, idx)
-                          .reduce((sum, inv) => sum + getExpandedCount(inv), 0);
-                        const followingRows = group.invoices
-                          .slice(idx + 1)
-                          .reduce((sum, inv) => sum + getExpandedCount(inv), 0);
-                        const isGroupFirst = precedingRows === 0;
-                        const isGroupLast = followingRows === 0;
+                          const precedingRows = group.invoices
+                            .slice(0, idx)
+                            .reduce((sum, inv) => sum + getExpandedCount(inv), 0);
+                          const followingRows = group.invoices
+                            .slice(idx + 1)
+                            .reduce((sum, inv) => sum + getExpandedCount(inv), 0);
+                          const isGroupFirst = precedingRows === 0;
+                          const isGroupLast = followingRows === 0;
 
-                        const invoiceNumber = getInvoiceNumber(groups, invoice.id);
-                        const showCounterparty = idx === counterpartyRowIndex - 1;
-                        const paid = invoice.paid;
-                        const isHighlighted = highlightedIds.includes(invoice.id);
-                        const hasMark = !!marksByInvoice[invoice.id];
+                          const invoiceNumber = getInvoiceNumber(groups, invoice.id);
+                          const showCounterparty = idx === counterpartyRowIndex - 1;
+                          const paid = invoice.paid;
+                          const isHighlighted = highlightedIds.includes(invoice.id);
+                          const hasMark = !!marksByInvoice[invoice.id];
 
-                        const isNumHandle = true;
-                        const isCpHandle = showCounterparty;
+                          const isNumHandle = true;
+                          const isCpHandle = showCounterparty;
 
                         const amounts = invoice.payment_amounts ?? [];
                         const totalPaid = amounts.reduce((s, a) => s + a, 0);
@@ -1031,6 +1046,287 @@ export function GroupedInvoiceTable({
               )}
             </SortableContext>
           </DndContext>
+          ) : (
+            <>
+              {groups.map((group) => {
+                const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
+                const BORDER = '3.5px solid var(--org-color, var(--mantine-primary-color-filled))';
+                return (
+                   <StaticGroupBody key={group.counterparty}>
+                    {() =>
+                      group.invoices.flatMap((invoice, idx) => {
+                        const getExpandedCount = (inv: IInvoice) => {
+                          const amts = inv.payment_amounts ?? [];
+                          const tPaid = amts.reduce((s, a) => s + a, 0);
+                          let extra = 0;
+                          if (amts.length > 1) extra += amts.length - 1;
+                          if (tPaid > 0 && inv.amount - tPaid > 0) extra += 1;
+                          return 1 + extra;
+                        };
+
+                        const precedingRows = group.invoices
+                          .slice(0, idx)
+                          .reduce((sum, inv) => sum + getExpandedCount(inv), 0);
+                        const followingRows = group.invoices
+                          .slice(idx + 1)
+                          .reduce((sum, inv) => sum + getExpandedCount(inv), 0);
+                        const isGroupFirst = precedingRows === 0;
+                        const isGroupLast = followingRows === 0;
+
+                        const invoiceNumber = getInvoiceNumber(groups, invoice.id);
+                        const showCounterparty = idx === counterpartyRowIndex - 1;
+                        const paid = invoice.paid;
+                        const isHighlighted = highlightedIds.includes(invoice.id);
+                        const hasMark = !!marksByInvoice[invoice.id];
+
+                        const amounts = invoice.payment_amounts ?? [];
+                        const totalPaid = amounts.reduce((s, a) => s + a, 0);
+                        const remaining = invoice.amount - totalPaid;
+
+                        const hasCopies = amounts.length > 1;
+                        const hasRemainder = totalPaid > 0 && remaining > 0;
+                        const extraRows =
+                          (hasCopies ? amounts.length - 1 : 0) + (hasRemainder ? 1 : 0);
+                        const isLastRow = isGroupLast && extraRows === 0;
+
+                        const rowStyle: React.CSSProperties = {
+                          borderLeft: BORDER,
+                          borderRight: BORDER,
+                          ...(isGroupFirst ? { borderTop: BORDER } : {}),
+                          ...(isLastRow ? { borderBottom: BORDER } : {}),
+                            ...(paid
+                              ? { backgroundColor: 'var(--mantine-color-yellow-1)' }
+                              : hasMark
+                                ? { backgroundColor: 'var(--mantine-color-green-0)' }
+                                : isHighlighted
+                                  ? { backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)' }
+                                  : {}),
+                        };
+
+                        const rows: React.ReactNode[] = [];
+
+                        // 1. Original row
+                        rows.push(
+                          <Table.Tr key={invoice.id} style={rowStyle}>
+                            <Table.Td
+                              style={{
+                                overflow: 'hidden',
+                                maxWidth: '100%',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  overflow: 'hidden',
+                                  maxWidth: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 2,
+                                }}
+                              >
+                                {invoiceNumber})
+                              </div>
+                            </Table.Td>
+                            {filteredColumns.map((colId) => {
+                              const col = columnRenderers[colId];
+                              const width = columnSizing[colId] ?? col.width;
+                              return (
+                                <Table.Td
+                                  key={colId}
+                                  style={{
+                                    width,
+                                  }}
+                                >
+                                  <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                                    {colId === 'counterparty' && showCounterparty ? (
+                                      <Text fw={600}>{group.counterparty}</Text>
+                                    ) : colId === 'counterparty' ? null : (
+                                      col.renderCell(invoice)
+                                    )}
+                                  </div>
+                                </Table.Td>
+                              );
+                            })}
+                          </Table.Tr>,
+                        );
+
+                        // 2. Copy rows for payment_amounts[1..n]
+                        if (amounts.length > 1) {
+                          for (let i = 1; i < amounts.length; i++) {
+                            const copyAmt = amounts[i]!;
+                            const copyId = `${invoice.id}__p${i - 1}`;
+                            const suffix = `__p${i - 1}`;
+                            rows.push(
+                              <Table.Tr
+                                key={copyId}
+                                style={{
+                                  borderLeft: BORDER,
+                                  borderRight: BORDER,
+                                  ...(isGroupLast && !hasRemainder && i === amounts.length - 1
+                                    ? { borderBottom: BORDER }
+                                    : {}),
+                                  backgroundColor: 'var(--mantine-color-yellow-1)',
+                                  fontSize: '0.9em',
+                                }}
+                              >
+                                <Table.Td
+                                  style={{
+                                    overflow: 'hidden',
+                                    maxWidth: '100%',
+                                    color: 'var(--mantine-color-dimmed)',
+                                  }}
+                                >
+                                  <div style={{ overflow: 'hidden', maxWidth: '100%' }} />
+                                </Table.Td>
+                                {filteredColumns.map((colId) => {
+                                  const col = columnRenderers[colId];
+                                  const width = columnSizing[colId] ?? col.width;
+                                  return (
+                                    <Table.Td key={colId} style={{ width }}>
+                                      <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                                        {colId === 'counterparty' ? null : colId === 'paid' ? (
+                                          <Badge color="green" variant="light">
+                                            {formatAmountRub(copyAmt)}
+                                          </Badge>
+                                        ) : colId === 'purpose' ? (
+                                          <Text size="xs" c="dimmed" fs="italic">
+                                            {invoice.purpose}
+                                          </Text>
+                                        ) : (
+                                          col.renderCell({
+                                            ...invoice,
+                                            id: copyId,
+                                            comment: invoice.copy_comments?.[suffix] ?? invoice.comment,
+                                            amount: copyAmt,
+                                            paid: true,
+                                            paid_amount: null,
+                                            payment_amounts: [],
+                                            paid_date: invoice.paid_date,
+                                          })
+                                        )}
+                                      </div>
+                                    </Table.Td>
+                                  );
+                                })}
+                              </Table.Tr>,
+                            );
+                          }
+                        }
+
+                        // 3. Remainder row
+                        if (totalPaid > 0 && remaining > 0) {
+                          const remainderId = `${invoice.id}__r`;
+                          const remainderInvoice = {
+                            ...invoice,
+                            id: remainderId,
+                            amount: remaining,
+                            paid: false,
+                            paid_amount: null,
+                            payment_amounts: [],
+                            paid_date: null,
+                          };
+                          rows.push(
+                            <Table.Tr
+                              key={remainderId}
+                              style={{
+                                borderLeft: BORDER,
+                                borderRight: BORDER,
+                                ...(isGroupLast ? { borderBottom: BORDER } : {}),
+                                backgroundColor: 'var(--mantine-color-gray-0)',
+                                fontSize: '0.9em',
+                              }}
+                            >
+                              <Table.Td
+                                style={{
+                                  overflow: 'hidden',
+                                  maxWidth: '100%',
+                                  color: 'var(--mantine-color-dimmed)',
+                                }}
+                              >
+                                <div style={{ overflow: 'hidden', maxWidth: '100%' }} />
+                              </Table.Td>
+                              {filteredColumns.map((colId) => {
+                                const col = columnRenderers[colId];
+                                const width = columnSizing[colId] ?? col.width;
+                                return (
+                                  <Table.Td key={colId} style={{ width }}>
+                                    <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                                      {colId === 'counterparty' ? null : colId === 'amount' ? (
+                                        <Text size="xs">
+                                          <Text component="span" fw={700}>Остаток:</Text> {formatAmountRub(remaining)}
+                                        </Text>
+                                      ) : colId === 'purpose' ? (
+                                        <Text size="xs" c="dimmed" fs="italic">
+                                          {invoice.purpose}
+                                        </Text>
+                                      ) : (
+                                        col.renderCell({
+                                          ...remainderInvoice,
+                                          comment: invoice.copy_comments?.['__r'] ?? invoice.comment,
+                                        })
+                                      )}
+                                    </div>
+                                  </Table.Td>
+                                );
+                              })}
+                            </Table.Tr>,
+                          );
+                        }
+
+                        return rows;
+                      })
+                    }
+                  </StaticGroupBody>
+                );
+              })}
+              {isDraftOpen && draftForm && (
+                <Table.Tbody>
+                  <Table.Tr style={{ backgroundColor: 'var(--mantine-color-blue-0)' }}>
+                    <Table.Td>
+                      <div style={{ overflow: 'hidden', maxWidth: '100%' }}>—</div>
+                    </Table.Td>
+                    {filteredColumns.map((colId) => {
+                      const col = columnRenderers[colId];
+                      const width = columnSizing[colId] ?? col.width;
+                      return (
+                        <Table.Td key={colId} style={{ width }}>
+                          <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                            {colId === 'actions' ? (
+                              <Group gap={4} wrap="nowrap">
+                                <Tooltip label="Сохранить">
+                                  <ActionIcon
+                                    size="lg"
+                                    color="green"
+                                    variant="filled"
+                                    aria-label="Сохранить счёт"
+                                    onClick={handleDraftSaveClick}
+                                  >
+                                    <IconCheck size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
+                                <Tooltip label="Отмена">
+                                  <ActionIcon
+                                    size="lg"
+                                    color="gray"
+                                    variant="filled"
+                                    aria-label="Отменить добавление"
+                                    onClick={requestDraftCancel}
+                                  >
+                                    <IconX size={14} />
+                                  </ActionIcon>
+                                </Tooltip>
+                              </Group>
+                            ) : (
+                              col.renderDraft()
+                            )}
+                          </div>
+                        </Table.Td>
+                      );
+                    })}
+                  </Table.Tr>
+                </Table.Tbody>
+              )}
+            </>
+          )}
         </Table>
       </Box>
 

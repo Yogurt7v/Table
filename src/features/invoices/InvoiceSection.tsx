@@ -15,6 +15,7 @@ import { exportInvoicesToExcel } from '@/features/invoices/exportInvoicesToExcel
 import { SearchResultsView } from '@/features/invoices/components/SearchResultsView';
 import { InvoiceObjectBlock } from '@/features/invoices/components/InvoiceObjectBlock';
 import { DEFAULT_VISIBLE_COLUMNS } from '@/features/invoices/invoice-columns';
+import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
 
 import { useOrg } from '@/shared/context/OrgContext';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -106,11 +107,12 @@ export function InvoiceSection({
   const saveColumns = useUpsertUserSetting('invoice_columns');
 
   const visibleColumns: InvoiceColumnId[] = useMemo(() => {
+    const allowedColumns = getVisibleColumnsForRole(permissions.role);
     if (Array.isArray(savedColumns) && savedColumns.length > 0) {
-      return savedColumns as InvoiceColumnId[];
+      return savedColumns.filter((c) => allowedColumns.includes(c)) as InvoiceColumnId[];
     }
-    return DEFAULT_VISIBLE_COLUMNS;
-  }, [savedColumns]);
+    return DEFAULT_VISIBLE_COLUMNS.filter((c) => allowedColumns.includes(c));
+  }, [savedColumns, permissions.role]);
 
   const handleColumnChange = (columns: InvoiceColumnId[]) => {
     saveColumns.mutate(columns);
@@ -292,6 +294,7 @@ export function InvoiceSection({
         canViewPaymentMarks={permissions.canViewPaymentMarks}
         canViewPaidDate={permissions.canViewPaidDate}
         usersMap={usersMap}
+        role={permissions.role}
       />
     );
   }
@@ -323,7 +326,7 @@ export function InvoiceSection({
       {grandTotal > 0 && (
         <Paper withBorder p="md" mt="lg">
           <Text ta="right" fw={700} size="lg">
-            Итого по всем объектам: {formatAmountRub(grandTotal)}
+            ИТОГО: {formatAmountRub(grandTotal)}
           </Text>
         </Paper>
       )}
@@ -333,6 +336,7 @@ export function InvoiceSection({
         value={visibleColumns}
         onChange={handleColumnChange}
         onClose={() => setColumnSettingsOpen(false)}
+        role={permissions.role}
       />
       {permissions.canViewPaymentMarks && markedTotal > 0 && (
         <Box visibleFrom="sm">

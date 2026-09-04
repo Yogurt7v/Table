@@ -18,17 +18,17 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
-  ALL_INVOICE_COLUMNS,
-  DEFAULT_VISIBLE_COLUMNS,
-} from './invoice-columns';
+import { DEFAULT_VISIBLE_COLUMNS } from './invoice-columns';
+import { getColumnSettingsItems } from './invoice-column-visibility';
 import type { InvoiceColumnId } from '@/shared/types';
+import type { OrgRole } from './invoice-field-access';
 
 interface InvoiceColumnSettingsModalProps {
   opened: boolean;
   value: InvoiceColumnId[];
   onChange: (columns: InvoiceColumnId[]) => void;
   onClose: () => void;
+  role: OrgRole;
 }
 
 interface ColumnItem {
@@ -77,19 +77,20 @@ function SortableColumn({
   );
 }
 
-function buildInitialItems(value: InvoiceColumnId[]): ColumnItem[] {
+function buildInitialItems(value: InvoiceColumnId[], role: OrgRole): ColumnItem[] {
   const result: ColumnItem[] = [];
   const added = new Set<InvoiceColumnId>();
+  const allowedColumns = getColumnSettingsItems(role);
 
   for (const id of value) {
-    const def = ALL_INVOICE_COLUMNS.find((c) => c.id === id);
+    const def = allowedColumns.find((c) => c.id === id);
     if (def) {
       result.push({ id, label: def.label, visible: true });
       added.add(id);
     }
   }
 
-  for (const def of ALL_INVOICE_COLUMNS) {
+  for (const def of allowedColumns) {
     if (!added.has(def.id)) {
       result.push({ id: def.id, label: def.label, visible: false });
     }
@@ -103,8 +104,9 @@ export function InvoiceColumnSettingsModal({
   value,
   onChange,
   onClose,
+  role,
 }: InvoiceColumnSettingsModalProps) {
-  const [items, setItems] = useState<ColumnItem[]>(() => buildInitialItems(value));
+  const [items, setItems] = useState<ColumnItem[]>(() => buildInitialItems(value, role));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -125,7 +127,7 @@ export function InvoiceColumnSettingsModal({
   };
 
   const handleReset = () => {
-    setItems(buildInitialItems(DEFAULT_VISIBLE_COLUMNS));
+    setItems(buildInitialItems(DEFAULT_VISIBLE_COLUMNS, role));
   };
 
   const handleSave = () => {

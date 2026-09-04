@@ -17,7 +17,7 @@ export function useCreateInvoice(orgId: string, date: string) {
       const normalized = normalizeInvoice(created);
       queryClient.setQueryData<IInvoice[]>(['invoices', orgId, date], (old) => {
         const next = old ? [...old.filter((i) => i.id !== normalized.id), normalized] : [normalized];
-        return next.sort((a, b) => a.seq - b.seq);
+        return next;
       });
     },
 

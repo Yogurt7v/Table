@@ -5,7 +5,9 @@ import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
+import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
 import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
+import type { OrgRole } from '@/features/invoices/invoice-field-access';
 import dayjs from 'dayjs';
 
 interface PrintableInvoicesProps {
@@ -17,6 +19,7 @@ interface PrintableInvoicesProps {
   canViewPaymentMarks: boolean;
   canViewPaidDate: boolean;
   usersMap: Map<string, IUser>;
+  role: OrgRole;
 }
 
 const HEADER_LABELS: Partial<Record<InvoiceColumnId, string>> = {
@@ -41,6 +44,7 @@ export function PrintableInvoices({
   canViewPaymentMarks,
   canViewPaidDate,
   usersMap,
+  role,
 }: PrintableInvoicesProps) {
   const { currentOrg } = useOrg();
 
@@ -55,14 +59,17 @@ export function PrintableInvoices({
   }, [paymentMarks]);
 
   const printColumns = useMemo(
-    () =>
-      visibleColumns.filter((colId) => {
+    () => {
+      const allowedColumns = getVisibleColumnsForRole(role);
+      return visibleColumns.filter((colId) => {
+        if (!allowedColumns.includes(colId)) return false;
         if (colId === 'actions' || colId === 'files') return false;
         if (colId === 'payment_mark' && !canViewPaymentMarks) return false;
         if (colId === 'paid_date' && !canViewPaidDate) return false;
         return true;
-      }),
-    [visibleColumns, canViewPaymentMarks, canViewPaidDate],
+      });
+    },
+    [visibleColumns, canViewPaymentMarks, canViewPaidDate, role],
   );
 
   const objBindings = useMemo(() => {
