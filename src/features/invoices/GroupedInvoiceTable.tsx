@@ -680,6 +680,7 @@ export function GroupedInvoiceTable({
             </Button>
           </Group>
         )}
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <Table highlightOnHover className="invoices-table" style={{ width: '100%', maxWidth: '100%', tableLayout: 'fixed' }}>
           <Table.Thead>
             <Table.Tr>
@@ -731,7 +732,6 @@ export function GroupedInvoiceTable({
             </Table.Tr>
           </Table.Thead>
           {canDrag ? (
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
               <SortableContext
                 items={groups.map((g) => g.counterparty)}
                 strategy={verticalListSortingStrategy}
@@ -1045,7 +1045,6 @@ export function GroupedInvoiceTable({
                 </Table.Tbody>
               )}
             </SortableContext>
-          </DndContext>
           ) : (
             <>
               {groups.map((group) => {
@@ -1328,6 +1327,7 @@ export function GroupedInvoiceTable({
             </>
           )}
         </Table>
+        </DndContext>
       </Box>
 
       {/* Modals */}

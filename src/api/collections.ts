@@ -401,7 +401,7 @@ export function deleteInvoiceFile(id: string) {
 }
 
 export function getInvoiceFileUrl(fileRecord: IInvoiceFile) {
-  return pb.files.getUrl(fileRecord, fileRecord.file);
+  return pb.files.getURL(fileRecord, fileRecord.file);
 }
 
 function stripInvisible(s: string): string {
