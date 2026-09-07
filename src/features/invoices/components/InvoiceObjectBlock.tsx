@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Paper, Title, Group, Button, Skeleton, Stack, Text, ActionIcon, Tooltip, Collapse } from '@mantine/core';
 import { IconPlus, IconPrinter, IconFileExport, IconChevronRight, IconChevronDown } from '@tabler/icons-react';
+import { useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -59,19 +60,11 @@ export function InvoiceObjectBlock({
     return invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id) ?? [];
   }, [invoices, hidePaid, obj.id]);
 
+  const { isCollapsed, toggle } = useCollapsedObjects();
+  const collapsed = isCollapsed(obj.id);
+
   const isDraftOpen = draftObjectId === obj.id;
   const hasDraftElsewhere = draftObjectId !== null && draftObjectId !== obj.id;
-
-  const [collapsed, setCollapsed] = useState(() =>
-    localStorage.getItem(`collapsed-objects:${orgId}:${obj.id}`) === 'true',
-  );
-
-  const toggle = () => {
-    setCollapsed((prev) => {
-      localStorage.setItem(`collapsed-objects:${orgId}:${obj.id}`, String(!prev));
-      return !prev;
-    });
-  };
 
   const totalAmount = useMemo(() => {
     return objInvoices.reduce((sum, inv) => {
@@ -89,7 +82,7 @@ export function InvoiceObjectBlock({
       p="sm"
       style={{ borderLeft: '3px solid var(--org-color, #228be6)' }}
     >
-      <Group gap={4} mb="sm" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={toggle}>
+      <Group gap={4} mb="sm" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggle(obj.id)}>
         {collapsed ? <IconChevronRight size={18} /> : <IconChevronDown size={18} />}
         <Title order={5}>{obj.name}</Title>
         {onPrint && (

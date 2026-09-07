@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Switch, Box } from '@mantine/core';
-import { IconPrinter, IconSettings, IconFileExport } from '@tabler/icons-react';
+import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Switch, Box, Button } from '@mantine/core';
+import { IconPrinter, IconSettings, IconFileExport, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
 import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
@@ -16,12 +16,13 @@ import { SearchResultsView } from '@/features/invoices/components/SearchResultsV
 import { InvoiceObjectBlock } from '@/features/invoices/components/InvoiceObjectBlock';
 import { DEFAULT_VISIBLE_COLUMNS } from '@/features/invoices/invoice-columns';
 import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
+import { CollapsedObjectsProvider, useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
 
 import { useOrg } from '@/shared/context/OrgContext';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
-import type { IInvoice, IInvoiceFile, InvoiceColumnId } from '@/shared/types';
+import type { IInvoice, IInvoiceFile, IAccountingObject, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 
 interface InvoiceSectionProps {
   orgId: string;
@@ -61,6 +62,147 @@ function computeHighlightedIds(
         String(inv.amount).includes(lower),
     )
     .map((i) => i.id);
+}
+
+interface ObjectsListProps {
+  orgId: string;
+  date: string;
+  objects: IAccountingObject[];
+  invoices: IInvoice[] | undefined;
+  hidePaid: boolean;
+  highlightedIds: string[];
+  draftObjectId: string | null;
+  permissions: { canCreate: boolean; role: string };
+  paymentMarks: IPaymentMark[] | undefined;
+  filesByInvoice: Record<string, IInvoiceFile[]>;
+  visibleColumns: InvoiceColumnId[];
+  onOpenDraft: (id: string) => void;
+  onCancelDraft: () => void;
+  onPrint?: (objId: string) => void;
+  onExport?: (objId: string) => void;
+  onColumnSettingsClick: () => void;
+  onPrintAll: () => void;
+  onExportAll: () => void;
+  hidePaidChecked: boolean;
+  onHidePaidChange: (checked: boolean) => void;
+  paidTodayTotal: number;
+}
+
+function ObjectsList({
+  orgId,
+  date,
+  objects,
+  invoices,
+  hidePaid,
+  highlightedIds,
+  draftObjectId,
+  permissions,
+  paymentMarks,
+  filesByInvoice,
+  visibleColumns,
+  onOpenDraft,
+  onCancelDraft,
+  onPrint,
+  onExport,
+  onColumnSettingsClick,
+  onPrintAll,
+  onExportAll,
+  hidePaidChecked,
+  onHidePaidChange,
+  paidTodayTotal,
+}: ObjectsListProps) {
+  const { collapsedIds, collapseAll, expandAll } = useCollapsedObjects();
+  const allCollapsed = objects.length > 0 && objects.every((o) => collapsedIds.has(o.id));
+
+  return (
+    <>
+      <Group justify="space-between" mb="sm" wrap="wrap">
+        <Group gap={4}>
+          <Title order={5}>Счета</Title>
+          <Tooltip label="Настройка колонок">
+            <ActionIcon
+              size="md"
+              variant="subtle"
+              color="gray"
+              aria-label="Настройка колонок"
+              onClick={onColumnSettingsClick}
+            >
+              <IconSettings size={20} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip label="Печать">
+            <ActionIcon
+              size="md"
+              variant="subtle"
+              color="gray"
+              aria-label="Печать"
+              onClick={onPrintAll}
+            >
+              <IconPrinter size={20} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Экспорт в Excel">
+            <ActionIcon
+              size="md"
+              variant="subtle"
+              color="gray"
+              aria-label="Экспорт в Excel"
+              onClick={onExportAll}
+            >
+              <IconFileExport size={20} />
+            </ActionIcon>
+          </Tooltip>
+          {objects.length > 1 && (
+            <Button
+              size="compact-sm"
+              variant="light"
+              color="gray"
+              w={300}
+              rightSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
+              onClick={allCollapsed ? expandAll : collapseAll}
+            >
+              {allCollapsed ? 'Развернуть' : 'Свернуть'}
+            </Button>
+          )}
+          {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && (
+            <Switch
+              size="xs"
+              label="Скрыть оплаченные"
+              checked={hidePaidChecked}
+              onChange={(e) => onHidePaidChange(e.currentTarget.checked)}
+            />
+          )}
+          {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && paidTodayTotal > 0 && (
+            <Text size="sm" c="dimmed">
+              Оплачено: {formatAmountRub(paidTodayTotal)}
+            </Text>
+          )}
+        </Group>
+      </Group>
+      {objects.map((obj) => (
+        <InvoiceObjectBlock
+          key={obj.id}
+          obj={obj}
+          invoices={invoices}
+          hidePaid={hidePaid}
+          orgId={orgId}
+          date={date}
+          highlightedIds={highlightedIds}
+          draftObjectId={draftObjectId}
+          permissions={{ canCreate: permissions.canCreate }}
+          accountingObjects={objects}
+          paymentMarks={paymentMarks}
+          filesByInvoice={filesByInvoice}
+          visibleColumns={visibleColumns}
+          onOpenDraft={onOpenDraft}
+          onCancelDraft={onCancelDraft}
+          onPrint={onPrint}
+          onExport={onExport}
+        />
+      ))}
+    </>
+  );
 }
 
 export function InvoiceSection({
@@ -198,6 +340,8 @@ export function InvoiceSection({
     });
   };
 
+  const objectIds = useMemo(() => objects?.map((o) => o.id) ?? [], [objects]);
+
   if (!orgId) return null;
 
   if (!objects)
@@ -208,60 +352,6 @@ export function InvoiceSection({
         <Skeleton height={140} radius="md" />
       </Stack>
     );
-
-  const tableHeader = (
-    <Group justify="space-between" mb="sm" wrap="wrap">
-      <Group gap={4}>
-        <Title order={5}>Счета</Title>
-        <Tooltip label="Настройка колонок">
-          <ActionIcon
-            size="md"
-            variant="subtle"
-            color="gray"
-            aria-label="Настройка колонок"
-            onClick={() => setColumnSettingsOpen(true)}
-          >
-            <IconSettings size={20} />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label="Печать">
-          <ActionIcon
-            size="md"
-            variant="subtle"
-            color="gray"
-            aria-label="Печать"
-            onClick={() => handlePrint()}
-          >
-            <IconPrinter size={20} />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label="Экспорт в Excel">
-          <ActionIcon
-            size="md"
-            variant="subtle"
-            color="gray"
-            aria-label="Экспорт в Excel"
-            onClick={() => handleExportExcel()}
-          >
-            <IconFileExport size={20} />
-          </ActionIcon>
-        </Tooltip>
-        {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && (
-          <Switch
-            size="xs"
-            label="Скрыть оплаченные"
-            checked={hidePaid}
-            onChange={(e) => setHidePaid(e.currentTarget.checked)}
-          />
-        )}
-        {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && paidTodayTotal > 0 && (
-          <Text size="sm" c="dimmed">
-            Оплачено: {formatAmountRub(paidTodayTotal)}
-          </Text>
-        )}
-      </Group>
-    </Group>
-  );
 
   if (searchAll && searchResults) {
     return (
@@ -301,19 +391,16 @@ export function InvoiceSection({
 
   return (
     <>
-      {tableHeader}
-      {objects.map((obj) => (
-        <InvoiceObjectBlock
-          key={obj.id}
-          obj={obj}
-          invoices={invoices}
-          hidePaid={hidePaid}
+      <CollapsedObjectsProvider orgId={orgId} objectIds={objectIds}>
+        <ObjectsList
           orgId={orgId}
           date={date}
+          objects={objects}
+          invoices={invoices}
+          hidePaid={hidePaid}
           highlightedIds={highlightedIds}
           draftObjectId={draftObjectId}
-          permissions={{ canCreate: permissions.canCreate }}
-          accountingObjects={objects}
+          permissions={{ canCreate: permissions.canCreate, role: permissions.role }}
           paymentMarks={paymentMarks}
           filesByInvoice={filesByInvoice}
           visibleColumns={visibleColumns}
@@ -321,8 +408,14 @@ export function InvoiceSection({
           onCancelDraft={() => setDraftObjectId(null)}
           onPrint={(objId) => handlePrint(objId)}
           onExport={(objId) => handleExportExcel(objId)}
+          onColumnSettingsClick={() => setColumnSettingsOpen(true)}
+          onPrintAll={() => handlePrint()}
+          onExportAll={() => handleExportExcel()}
+          hidePaidChecked={hidePaid}
+          onHidePaidChange={setHidePaid}
+          paidTodayTotal={paidTodayTotal}
         />
-      ))}
+      </CollapsedObjectsProvider>
       {grandTotal > 0 && (
         <Paper withBorder p="md" mt="lg">
           <Text ta="right" fw={700} size="lg">
