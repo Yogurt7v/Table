@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AppShell, Group, Text, Select, Anchor, ActionIcon, Box, Stack, Tooltip } from '@mantine/core';
-import { IconHome, IconSettings, IconUser, IconLogout } from '@tabler/icons-react';
+import { IconHome, IconChevronUp, IconSettings, IconUser, IconLogout } from '@tabler/icons-react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
@@ -14,6 +14,18 @@ export function AppLayout() {
   const { currentOrgId, setCurrentOrgId, organizations, currentOrg } = useOrg();
   const currentRole = useCurrentUserRole(currentOrgId);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 200);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const isHomePage = pathname === '/';
+  const showScrollUp = isHomePage && scrolled;
 
   useEffect(() => {
     if (currentOrg?.color) {
@@ -26,6 +38,14 @@ export function AppLayout() {
     navigate('/login', { replace: true });
   };
 
+  const handleHomeClick = () => {
+    if (isHomePage) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <AppShell header={{ height: { base: 88, sm: 56 } }} padding="md">
       <AppShell.Header
@@ -36,14 +56,22 @@ export function AppLayout() {
           <Stack h="100%" gap={4} justify="center">
             <Group justify="space-between" wrap="nowrap">
               <Group gap={4} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  aria-label="На главную"
-                  onClick={() => navigate('/')}
-                >
-                  <IconHome size={22} />
-                </ActionIcon>
+                <Tooltip label={showScrollUp ? 'Наверх' : 'На главную'}>
+                  <ActionIcon
+                    variant="subtle"
+                    color="gray"
+                    aria-label={showScrollUp ? 'Наверх' : 'На главную'}
+                    onClick={handleHomeClick}
+                    style={{ position: 'relative' }}
+                  >
+                    <span style={{ opacity: showScrollUp ? 0 : 1, transition: 'opacity 0.2s', position: 'absolute' }}>
+                      <IconHome size={22} />
+                    </span>
+                    <span style={{ opacity: showScrollUp ? 1 : 0, transition: 'opacity 0.2s', position: 'absolute' }}>
+                      <IconChevronUp size={22} />
+                    </span>
+                  </ActionIcon>
+                </Tooltip>
                 <Select
                   data={organizations.map((o) => ({ value: o.id, label: o.name, color: o.color }))}
                   value={currentOrgId || null}
@@ -121,14 +149,22 @@ export function AppLayout() {
         <Box visibleFrom="sm" h="100%" px="md">
           <Group h="100%" justify="space-between">
             <Group>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                aria-label="На главную"
-                onClick={() => navigate('/')}
-              >
-                <IconHome size={22} />
-              </ActionIcon>
+              <Tooltip label={showScrollUp ? 'Наверх' : 'На главную'}>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  aria-label={showScrollUp ? 'Наверх' : 'На главную'}
+                  onClick={handleHomeClick}
+                  style={{ position: 'relative' }}
+                >
+                  <span style={{ opacity: showScrollUp ? 0 : 1, transition: 'opacity 0.2s', position: 'absolute' }}>
+                    <IconHome size={22} />
+                  </span>
+                  <span style={{ opacity: showScrollUp ? 1 : 0, transition: 'opacity 0.2s', position: 'absolute' }}>
+                    <IconChevronUp size={22} />
+                  </span>
+                </ActionIcon>
+              </Tooltip>
               <Select
                 data={organizations.map((o) => ({ value: o.id, label: o.name, color: o.color }))}
                 value={currentOrgId || null}
