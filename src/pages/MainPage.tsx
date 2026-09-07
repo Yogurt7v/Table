@@ -13,7 +13,7 @@ import { InvoiceSection } from '@/features/invoices/InvoiceSection';
 export function MainPage() {
   const { currentOrgId, organizationsLoading } = useOrg();
   const { logout } = useAuth();
-  const { searchText, searchAll, setSearchAll } = useSearch();
+  const { searchAll, setSearchAll } = useSearch();
   const [date, setDate] = useState<Date>(new Date());
   const dateStr = dayjs(date).format('YYYY-MM-DD');
 
@@ -85,7 +85,6 @@ export function MainPage() {
         <InvoiceSection
           orgId={currentOrgId}
           date={dateStr}
-          searchText={searchText}
           searchAll={searchAll}
           onBackToDate={() => setSearchAll(false)}
           bankTotal={accounts?.reduce((s, a) => s + a.balance, 0) ?? 0}

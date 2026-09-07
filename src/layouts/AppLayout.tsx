@@ -60,6 +60,7 @@ export function AppLayout() {
                   <ActionIcon
                     variant="subtle"
                     color="gray"
+                    size="lg"
                     aria-label={showScrollUp ? 'Наверх' : 'На главную'}
                     onClick={handleHomeClick}
                     style={{ position: 'relative' }}
@@ -153,6 +154,7 @@ export function AppLayout() {
                 <ActionIcon
                   variant="subtle"
                   color="gray"
+                  size="lg"
                   aria-label={showScrollUp ? 'Наверх' : 'На главную'}
                   onClick={handleHomeClick}
                   style={{ position: 'relative' }}

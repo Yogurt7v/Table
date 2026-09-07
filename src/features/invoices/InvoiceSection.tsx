@@ -19,6 +19,7 @@ import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-vis
 import { CollapsedObjectsProvider, useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
 
 import { useOrg } from '@/shared/context/OrgContext';
+import { useSearch } from '@/shared/context/SearchContext';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
@@ -27,7 +28,6 @@ import type { IInvoice, IInvoiceFile, IAccountingObject, IPaymentMark, InvoiceCo
 interface InvoiceSectionProps {
   orgId: string;
   date: string;
-  searchText: string;
   searchAll: boolean;
   onBackToDate: () => void;
   bankTotal: number;
@@ -208,11 +208,11 @@ function ObjectsList({
 export function InvoiceSection({
   orgId,
   date,
-  searchText,
   searchAll,
   onBackToDate,
   bankTotal,
 }: InvoiceSectionProps) {
+  const { debouncedSearchText } = useSearch();
   const objects = useAccessibleObjects(orgId);
   const { data: invoices } = useInvoices(orgId, date);
   const { data: searchResults } = useSearchInvoices(orgId);
@@ -271,8 +271,8 @@ export function InvoiceSection({
   }, [orgFiles]);
 
   const highlightedIds = useMemo(
-    () => computeHighlightedIds(searchText, searchResults, invoices),
-    [searchText, searchResults, invoices],
+    () => computeHighlightedIds(debouncedSearchText, searchResults, invoices),
+    [debouncedSearchText, searchResults, invoices],
   );
 
   const markedTotal = useMemo(() => {
@@ -356,7 +356,7 @@ export function InvoiceSection({
   if (searchAll && searchResults) {
     return (
       <SearchResultsView
-        searchText={searchText}
+        searchText={debouncedSearchText}
         searchResults={searchResults}
         date={date}
         onBackToDate={onBackToDate}
