@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPaymentMarks, createPaymentMark, deletePaymentMark } from '@/api/collections';
 import { pb } from '@/api/client';
+import type { PaymentMarkStatus } from '@/shared/types';
 
 export function usePaymentMarks(orgId: string) {
   const queryClient = useQueryClient();
@@ -30,6 +31,7 @@ export function useCreatePaymentMark(orgId: string) {
       invoice_id: string;
       amount?: number | null;
       comment?: string;
+      status?: PaymentMarkStatus;
     }) => createPaymentMark({ ...data, organization_id: orgId }),
     onSettled: () => qc.invalidateQueries({ queryKey: ['payment_marks', orgId] }),
   });

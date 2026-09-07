@@ -1,5 +1,5 @@
-import { Modal, Stack, Text, Group, ActionIcon, FileInput, Button, Loader } from '@mantine/core';
-import { IconTrash, IconUpload } from '@tabler/icons-react';
+import { Modal, Stack, Text, Group, ActionIcon, FileButton, Button, Loader } from '@mantine/core';
+import { IconTrash, IconUpload, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { useQuery } from '@tanstack/react-query';
@@ -101,24 +101,51 @@ export function InvoiceFilesModal({
       )}
 
       {canManageFiles && (
-        <Group gap="sm" align="flex-end">
-          <FileInput
-            value={fileToUpload}
-            onChange={setFileToUpload}
-            placeholder="Выберите файл"
-            clearable
-            style={{ flex: 1 }}
-          />
+        <Stack gap="xs">
+          <FileButton onChange={setFileToUpload}>
+            {(props) => (
+              <Button
+                {...props}
+                variant="default"
+                leftSection={<IconUpload size={14} />}
+                disabled={createFile.isPending}
+                fullWidth
+              >
+                Выбрать файл
+              </Button>
+            )}
+          </FileButton>
+
+          {fileToUpload && (
+            <Group gap="xs" wrap="nowrap">
+              <Text
+                size="sm"
+                style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+              >
+                {fileToUpload.name}
+              </Text>
+              <ActionIcon
+                size="sm"
+                color="red"
+                variant="subtle"
+                aria-label="Снять выбор файла"
+                onClick={() => setFileToUpload(null)}
+              >
+                <IconX size={14} />
+              </ActionIcon>
+            </Group>
+          )}
+
           <Button
-            size="sm"
             leftSection={<IconUpload size={14} />}
             disabled={!fileToUpload}
             loading={createFile.isPending}
             onClick={handleUpload}
+            fullWidth
           >
-            Добавить
+            Загрузить
           </Button>
-        </Group>
+        </Stack>
       )}
 
       <ConfirmModal

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { notifications } from '@mantine/notifications';
+import { IconCircleCheckFilled } from '@tabler/icons-react';
 import type { IAccountingObject, IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 
 import { createEmptyDraft, validateDraftForm, isDraftDirty, type DraftInvoiceForm } from './invoice-field-access';
@@ -11,8 +12,10 @@ import { useDeleteInvoice } from '@/shared/hooks/useDeleteInvoice';
 import { useMoveInvoice } from '@/shared/hooks/useMoveInvoice';
 import { useReorderInvoices } from '@/shared/hooks/useReorderInvoices';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
+import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { useCreatePaymentMark, useDeletePaymentMark } from '@/shared/hooks/usePaymentMarks';
+import { APPROVAL_MARK_STATUS, PARTIAL_MARK_STATUS, PAID_MARK_STATUS } from './payment-mark-status';
 import { useCreateInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
 import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -37,6 +40,7 @@ interface InvoiceTableProps {
   filesByInvoice?: Record<string, IInvoiceFile[]>;
   visibleColumns: InvoiceColumnId[];
   onAddClick?: () => void;
+  allInvoices?: IInvoice[];
 }
 
 export function InvoiceTable({
@@ -53,6 +57,7 @@ export function InvoiceTable({
   filesByInvoice,
   visibleColumns,
   onAddClick,
+  allInvoices,
 }: InvoiceTableProps) {
   const permissions = useInvoicePermissions(orgId);
   const createInvoice = useCreateInvoice(orgId, date);
@@ -67,11 +72,34 @@ export function InvoiceTable({
   const handleReorderGroups = (counterpartyOrder: string[]) => {
     const groups = groupInvoicesByCounterparty(invoices);
     const map = new Map(groups.map((g) => [g.counterparty, g.invoices]));
-    const flatIds = counterpartyOrder.flatMap((cp) => {
+    const visibleOrder = counterpartyOrder.flatMap((cp) => {
       const g = map.get(cp);
       return g ? g.map((inv) => inv.id) : [];
     });
-    reorderInvoices.mutate(flatIds);
+    const visibleSet = new Set(visibleOrder);
+
+    const allSorted = [...(allInvoices ?? [])].sort((a, b) => {
+      const seqA = (a.seq ?? 0) || Infinity;
+      const seqB = (b.seq ?? 0) || Infinity;
+      return seqA - seqB;
+    });
+
+    const mergedIds: string[] = [];
+    let visIdx = 0;
+    for (const inv of allSorted) {
+      if (visibleSet.has(inv.id)) {
+        mergedIds.push(visibleOrder[visIdx]!);
+        visIdx++;
+      } else {
+        mergedIds.push(inv.id);
+      }
+    }
+    while (visIdx < visibleOrder.length) {
+      mergedIds.push(visibleOrder[visIdx]!);
+      visIdx++;
+    }
+
+    reorderInvoices.mutate(mergedIds);
   };
 
   const [draftForm, setDraftForm] = useState<DraftInvoiceForm>(createEmptyDraft);
@@ -157,7 +185,21 @@ export function InvoiceTable({
       }
     }
     onCancelDraft();
-    notifications.show({ color: 'green', message: 'Счёт добавлен' });
+    notifications.show({
+      color: 'green',
+      icon: <IconCircleCheckFilled size={20} />,
+      title: 'Счёт добавлен',
+      message: `${draftForm.counterparty} · ${formatAmountRub(draftForm.amount)}`,
+      autoClose: 4500,
+      styles: {
+        root: {
+          backgroundColor: 'var(--mantine-color-green-0)',
+          borderLeft: '4px solid var(--mantine-color-green-6)',
+          boxShadow: 'var(--mantine-shadow-md)',
+        },
+        title: { fontWeight: 700 },
+      },
+    });
   };
 
   const handleEditInvoice = (data: DraftInvoiceForm) => {
@@ -278,7 +320,7 @@ export function InvoiceTable({
   const handleMarkForPayment = (invoice: IInvoice) => {
     const realId = invoice.id.endsWith('__r') ? invoice.id.slice(0, -3) : invoice.id;
     createPaymentMark.mutate(
-      { invoice_id: realId, amount: invoice.amount },
+      { invoice_id: realId, amount: invoice.amount, status: PAID_MARK_STATUS },
       {
         onSuccess: () => {
           notifications.show({ color: 'green', message: 'Счёт отмечен к оплате' });
@@ -290,10 +332,25 @@ export function InvoiceTable({
     );
   };
 
+  const handleMarkForApproval = (invoice: IInvoice) => {
+    const realId = invoice.id.endsWith('__r') ? invoice.id.slice(0, -3) : invoice.id;
+    createPaymentMark.mutate(
+      { invoice_id: realId, amount: invoice.amount, status: APPROVAL_MARK_STATUS },
+      {
+        onSuccess: () => {
+          notifications.show({ color: 'green', message: 'Счёт отправлен на согласование' });
+        },
+        onError: () => {
+          notifications.show({ color: 'red', message: 'Не удалось отметить счёт' });
+        },
+      },
+    );
+  };
+
   const handleMarkPartialPayment = (invoiceId: string, amount: number | undefined, comment: string) => {
     const realId = invoiceId.endsWith('__r') ? invoiceId.slice(0, -3) : invoiceId;
     createPaymentMark.mutate(
-      { invoice_id: realId, amount, comment },
+      { invoice_id: realId, amount, comment, status: PARTIAL_MARK_STATUS },
       {
         onSuccess: () => {
           notifications.show({ color: 'green', message: 'Частичная оплата отмечена' });
@@ -318,6 +375,7 @@ export function InvoiceTable({
       <GroupedInvoiceTable
         orgId={orgId}
         invoices={invoices}
+        allInvoices={allInvoices}
         isDraftOpen={isDraftOpen}
         draftForm={draftForm}
         counterpartyResults={counterpartySearch.results}
@@ -349,6 +407,7 @@ export function InvoiceTable({
         permissions={permissions}
         paymentMarks={paymentMarks}
         onMarkForPayment={handleMarkForPayment}
+        onMarkForApproval={handleMarkForApproval}
         onMarkPartialPayment={handleMarkPartialPayment}
         onClearPaymentMark={handleClearPaymentMark}
         filesByInvoice={filesByInvoice}

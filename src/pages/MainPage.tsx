@@ -50,8 +50,8 @@ export function MainPage() {
           value={date}
           onChange={(v) => v && setDate(v)}
           valueFormat="D MMMM YYYY, dddd"
-          w={{ base: '100%', sm: 320 }}
-          maw={320}
+          // w={{ base: '100%', sm: 400 }}
+          maw={400}
           styles={{
             input: {
               fontWeight: 700,

@@ -33,6 +33,7 @@ export function normalizeInvoice(record: IInvoice): IInvoice {
       record.copy_comments && typeof record.copy_comments === 'object'
         ? (record.copy_comments as Record<string, string>)
         : {},
+    original_invoice_id: record.original_invoice_id || undefined,
   };
 }
 

@@ -12,25 +12,16 @@ cronAdd('invoice-rollover', '* * * * *', function () {
     return str ? JSON.parse(str) : [];
   }
 
-  function dateToStr(d) {
-    if (!d) return '';
-    if (typeof d === 'string') return d.slice(0, 10);
-    return String(d).slice(0, 10);
-  }
-
-  function eachDay(fromDate, toDate, fn) {
-    var d = new Date(fromDate + 'T00:00:00Z');
-    var end = new Date(toDate + 'T00:00:00Z');
-    while (d <= end) {
-      fn(d.toISOString().slice(0, 10));
-      d.setDate(d.getDate() + 1);
-    }
-  }
-
   try {
     var today = new Date().toISOString().slice(0, 10);
     var collection = $app.findCollectionByNameOrId('invoices');
-    var invoices = $app.findRecordsByFilter('invoices', 'paid = true && payment_amounts != null', '', 0, 0);
+    var invoices = $app.findRecordsByFilter(
+      'invoices',
+      'paid = true && payment_amounts != null',
+      '',
+      0,
+      0,
+    );
 
     for (var i = 0; i < invoices.length; i++) {
       try {
@@ -39,54 +30,133 @@ cronAdd('invoice-rollover', '* * * * *', function () {
         if (amounts.length === 0) continue;
 
         var totalPaid = 0;
-        for (var j = 0; j < amounts.length; j++) totalPaid = totalPaid + Number(amounts[j]);
+        for (var j = 0; j < amounts.length; j++) {
+          totalPaid = totalPaid + Number(amounts[j]);
+        }
         var remaining = Number(inv.get('amount') || 0) - totalPaid;
-        var invDate = dateToStr(inv.get('date'));
 
-        var rollovers = $app.findRecordsByFilter('invoices', 'original_invoice_id = "' + inv.id + '"', '', 0, 0);
+        var rollovers = $app.findRecordsByFilter(
+          'invoices',
+          'original_invoice_id = "' + inv.id + '"',
+          '',
+          0,
+          0,
+        );
 
-        if (remaining <= 0) {
-          for (var r = 0; r < rollovers.length; r++) $app.delete(rollovers[r]);
+        if (totalPaid <= 0 || remaining <= 0) {
+          for (var r = 0; r < rollovers.length; r++) {
+            $app.delete(rollovers[r]);
+          }
           continue;
         }
 
-        var byDate = {};
-        for (var r = 0; r < rollovers.length; r++) {
-          byDate[dateToStr(rollovers[r].get('date'))] = rollovers[r];
-        }
+        if (rollovers.length > 0) {
+          var r = rollovers[0];
+          var needUpdate = false;
+          if (Number(r.get('amount') || 0) !== remaining) {
+            r.set('amount', remaining);
+            needUpdate = true;
+          }
+          if (r.get('date') !== today) {
+            r.set('date', today);
+            needUpdate = true;
+          }
+          if (needUpdate) {
+            $app.save(r);
+          }
+          for (var k = 1; k < rollovers.length; k++) {
+            $app.delete(rollovers[k]);
+          }
 
-        eachDay(invDate, today, function (dateStr) {
+          // Копируем файлы оригинального счёта, если у rollover-записи их ещё нет
           try {
-            if (dateStr === invDate) return;
-            if (byDate[dateStr]) {
-              var r = byDate[dateStr];
-              if (Number(r.get('amount') || 0) !== remaining) {
-                r.set('amount', remaining);
-                $app.save(r);
+            var existingFiles = $app.findRecordsByFilter(
+              'invoice_files',
+              'invoice_id = "' + r.id + '"',
+              '',
+              0,
+              0,
+            );
+            if (existingFiles.length === 0) {
+              var origFiles = $app.findRecordsByFilter(
+                'invoice_files',
+                'invoice_id = "' + inv.id + '"',
+                '',
+                0,
+                0,
+              );
+              var filesCol = $app.findCollectionByNameOrId('invoice_files');
+              for (var f = 0; f < origFiles.length; f++) {
+                try {
+                  var srcKey = origFiles[f].baseFilesPath() + '/' + origFiles[f].get('file');
+                  var sys = $app.newFilesystem();
+                  try {
+                    var reuploadable = sys.getReuploadableFile(srcKey, true);
+                    var fileRec = new Record(filesCol);
+                    fileRec.set('invoice_id', r.id);
+                    fileRec.set('organization_id', r.get('organization_id'));
+                    fileRec.set('name', origFiles[f].get('name'));
+                    fileRec.set('file', reuploadable);
+                    $app.save(fileRec);
+                  } finally {
+                    sys.close();
+                  }
+                } catch (err) {
+                  console.log('[rollover] file copy error', String(err));
+                }
               }
-              delete byDate[dateStr];
-            } else {
-              var r = new Record(collection);
-              r.set('organization_id', inv.get('organization_id'));
-              r.set('accounting_object_id', inv.get('accounting_object_id'));
-              r.set('date', dateStr);
-              r.set('counterparty', inv.get('counterparty'));
-              r.set('purpose', inv.get('purpose'));
-              r.set('contract_no', inv.get('contract_no'));
-              r.set('invoice_no', inv.get('invoice_no'));
-              r.set('amount', remaining);
-              r.set('paid', false);
-              r.set('comment', inv.get('comment'));
-              r.set('original_invoice_id', inv.id);
-              $app.save(r);
             }
           } catch (err) {
-            console.log('[rollover] eachDay error', String(err));
+            console.log('[rollover] file check error', String(err));
           }
-        });
+        } else {
+          var r = new Record(collection);
+          r.set('organization_id', inv.get('organization_id'));
+          r.set('accounting_object_id', inv.get('accounting_object_id'));
+          r.set('date', today);
+          r.set('counterparty', inv.get('counterparty'));
+          r.set('purpose', inv.get('purpose'));
+          r.set('contract_no', inv.get('contract_no'));
+          r.set('invoice_no', inv.get('invoice_no'));
+          r.set('amount', remaining);
+          r.set('paid', false);
+          r.set('comment', inv.get('comment'));
+          r.set('original_invoice_id', inv.id);
+          r.set('created_by', inv.get('created_by') || inv.get('updated_by') || '');
+          $app.save(r);
 
-        for (var dateKey in byDate) {
-          if (byDate.hasOwnProperty(dateKey)) $app.delete(byDate[dateKey]);
+          // Копируем файлы оригинального счёта в rollover-запись
+          try {
+            var origFiles = $app.findRecordsByFilter(
+              'invoice_files',
+              'invoice_id = "' + inv.id + '"',
+              '',
+              0,
+              0,
+            );
+            var filesCol = $app.findCollectionByNameOrId('invoice_files');
+            for (var f = 0; f < origFiles.length; f++) {
+              try {
+                var srcKey = origFiles[f].baseFilesPath() + '/' + origFiles[f].get('file');
+                var sys = $app.newFilesystem();
+                try {
+                  var reuploadable = sys.getReuploadableFile(srcKey, true);
+                  var fileRec = new Record(filesCol);
+                  fileRec.set('invoice_id', r.id);
+                  fileRec.set('organization_id', r.get('organization_id'));
+                  fileRec.set('name', origFiles[f].get('name'));
+                  fileRec.set('file', reuploadable);
+                  $app.save(fileRec);
+                } finally {
+                  sys.close();
+                }
+              } catch (err) {
+                console.log('[rollover] file copy error', String(err));
+              }
+            }
+          } catch (err) {
+            console.log('[rollover] file copy error', String(err));
+          }
         }
       } catch (err) {
         console.log('[rollover] invoice error', String(err));

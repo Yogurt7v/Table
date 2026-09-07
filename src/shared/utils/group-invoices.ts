@@ -9,8 +9,15 @@ export interface InvoiceGroup {
  * Группирует счета по контрагентам.
  * Внутри группы счета сортируются по seq.
  * Группы сортируются по минимальному seq в группе.
+ *
+ * Если передан `allInvoices` (полный список счетов, включая скрытые),
+ * порядок групп вычисляется по нему — это сохраняет стабильный порядок
+ * контрагентов даже при скрытии оплаченных счетов.
  */
-export function groupInvoicesByCounterparty(invoices: IInvoice[]): InvoiceGroup[] {
+export function groupInvoicesByCounterparty(
+  invoices: IInvoice[],
+  allInvoices?: IInvoice[],
+): InvoiceGroup[] {
   const grouped = new Map<string, IInvoice[]>();
 
   invoices.forEach((inv) => {
@@ -30,9 +37,19 @@ export function groupInvoicesByCounterparty(invoices: IInvoice[]): InvoiceGroup[
     result.push({ counterparty, invoices });
   });
 
+  const orderSource = allInvoices ?? invoices;
+  const orderMap = new Map<string, number>();
+  orderSource.forEach((inv) => {
+    const seq = (inv.seq ?? 0) || Infinity;
+    const current = orderMap.get(inv.counterparty) ?? Infinity;
+    if (seq < current) {
+      orderMap.set(inv.counterparty, seq);
+    }
+  });
+
   result.sort((a, b) => {
-    const seqA = Math.min(...a.invoices.map((inv) => inv.seq ?? 0)) || Infinity;
-    const seqB = Math.min(...b.invoices.map((inv) => inv.seq ?? 0)) || Infinity;
+    const seqA = orderMap.get(a.counterparty) ?? Infinity;
+    const seqB = orderMap.get(b.counterparty) ?? Infinity;
     return seqA - seqB;
   });
 

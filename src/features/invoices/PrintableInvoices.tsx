@@ -6,6 +6,7 @@ import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
+import { paymentMarkLabel } from '@/features/invoices/payment-mark-status';
 import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
 import type { OrgRole } from '@/features/invoices/invoice-field-access';
 import dayjs from 'dayjs';
@@ -97,8 +98,10 @@ export function PrintableInvoices({
   const renderPaymentMarkText = (invoice: IInvoice): string => {
     const mark = marksByInvoice[invoice.id];
     if (!mark) return '—';
-    if (mark.amount == null) return `К оплате: ${formatAmountRub(invoice.amount)}`;
-    const parts = [`К оплате: ${formatAmountRub(mark.amount)}`];
+    const label = paymentMarkLabel(mark, invoice.amount);
+    const amountText =
+      mark.amount == null ? formatAmountRub(invoice.amount) : formatAmountRub(mark.amount);
+    const parts = [`${label}: ${amountText}`];
     if (mark.comment) parts.push(`(${mark.comment})`);
     return parts.join(' ');
   };

@@ -11,6 +11,7 @@ import type {
   IInvoiceHistory,
   INotification,
   IPaymentMark,
+  PaymentMarkStatus,
   IUser,
   IUserSetting,
   IOrganizationUser,
@@ -147,7 +148,7 @@ export function getInvoices(orgId: string, date: string) {
   return pb
     .collection('invoices')
     .getFullList<IInvoice>({
-      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && paid_date ~ "${today}"))`,
+      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && paid_date ~ "${today}") || (original_invoice_id != "" && date = "${today}"))`,
       sort: '-created',
     })
     .then((list) => list.map(normalizeInvoice));
@@ -277,12 +278,14 @@ export function createPaymentMark(data: {
   organization_id: string;
   amount?: number | null;
   comment?: string;
+  status?: PaymentMarkStatus;
 }) {
   return pb.collection('payment_marks').create<IPaymentMark>({
     invoice_id: data.invoice_id,
     organization_id: data.organization_id,
     amount: data.amount ?? null,
     comment: data.comment ?? '',
+    status: data.status,
     created_by: pb.authStore.model?.id,
   });
 }

@@ -48,6 +48,7 @@ export interface IInvoice {
   copy_comments: Record<string, string>;
   created_by: string;
   updated_by: string;
+  original_invoice_id?: string;
   created?: string;
 }
 
@@ -101,12 +102,15 @@ export interface IOrganizationUser {
   };
 }
 
+export type PaymentMarkStatus = 'proposed' | 'approved' | 'partial';
+
 export interface IPaymentMark {
   id: string;
   invoice_id: string;
   organization_id: string;
   amount: number | null;
   comment: string;
+  status?: PaymentMarkStatus;
   created_by: string;
   created: string;
   expand?: {

@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Switch, Box, Button } from '@mantine/core';
-import { IconPrinter, IconSettings, IconFileExport, IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
+import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Menu, Box, Button } from '@mantine/core';
+import { IconPrinter, IconSettings, IconFileExport, IconChevronsDown, IconChevronsUp, IconX, IconFilter, IconCheck } from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
 import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
@@ -22,8 +22,14 @@ import { useOrg } from '@/shared/context/OrgContext';
 import { useSearch } from '@/shared/context/SearchContext';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
-import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
+import type { InvoiceFilterType } from '@/features/invoices/utils/invoice-filter';
+import {
+  ALL_INVOICE_FILTERS,
+  INVOICE_FILTER_LABELS,
+  filterInvoices,
+} from '@/features/invoices/utils/invoice-filter';
 import type { IInvoice, IInvoiceFile, IAccountingObject, IPaymentMark, InvoiceColumnId } from '@/shared/types';
+import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 
 interface InvoiceSectionProps {
   orgId: string;
@@ -69,7 +75,7 @@ interface ObjectsListProps {
   date: string;
   objects: IAccountingObject[];
   invoices: IInvoice[] | undefined;
-  hidePaid: boolean;
+  activeFilters: InvoiceFilterType[];
   highlightedIds: string[];
   draftObjectId: string | null;
   permissions: { canCreate: boolean; role: string };
@@ -83,8 +89,8 @@ interface ObjectsListProps {
   onColumnSettingsClick: () => void;
   onPrintAll: () => void;
   onExportAll: () => void;
-  hidePaidChecked: boolean;
-  onHidePaidChange: (checked: boolean) => void;
+  activeFilters: InvoiceFilterType[];
+  onActiveFiltersChange: (filters: InvoiceFilterType[]) => void;
   paidTodayTotal: number;
 }
 
@@ -93,7 +99,7 @@ function ObjectsList({
   date,
   objects,
   invoices,
-  hidePaid,
+  activeFilters,
   highlightedIds,
   draftObjectId,
   permissions,
@@ -107,8 +113,7 @@ function ObjectsList({
   onColumnSettingsClick,
   onPrintAll,
   onExportAll,
-  hidePaidChecked,
-  onHidePaidChange,
+  onActiveFiltersChange,
   paidTodayTotal,
 }: ObjectsListProps) {
   const { collapsedIds, collapseAll, expandAll } = useCollapsedObjects();
@@ -117,7 +122,7 @@ function ObjectsList({
   return (
     <>
       <Group justify="space-between" mb="sm" wrap="wrap">
-        <Group gap={4}>
+        <Group gap={8}>
           <Title order={5}>Счета</Title>
           <Tooltip label="Настройка колонок">
             <ActionIcon
@@ -153,6 +158,61 @@ function ObjectsList({
               <IconFileExport size={20} />
             </ActionIcon>
           </Tooltip>
+
+
+          {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && (
+            <Menu shadow="md" width={240} closeOnItemClick={false}>
+              <Menu.Target>
+                <Button
+                  size="compact-sm"
+                  variant="light"
+                  color={activeFilters.length > 0 ? 'blue' : 'gray'}
+                  leftSection={<IconFilter size={16} />}
+                >
+                  {activeFilters.length > 0 ? `Фильтр (${activeFilters.length})` : 'Фильтр'}
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Label>Статус счёта</Menu.Label>
+                {ALL_INVOICE_FILTERS.map((filter) => {
+                  const isActive = activeFilters.includes(filter);
+                  return (
+                    <Menu.Item
+                      key={filter}
+                      leftSection={
+                        isActive ? <IconCheck size={16} color="var(--mantine-color-blue-filled)" /> : <Box w={16} />
+                      }
+                      color={isActive ? 'blue' : undefined}
+                      onClick={() =>
+                        onActiveFiltersChange(
+                          isActive
+                            ? activeFilters.filter((f) => f !== filter)
+                            : [...activeFilters, filter],
+                        )
+                      }
+                    >
+                      {INVOICE_FILTER_LABELS[filter]}
+                    </Menu.Item>
+                  );
+                })}
+                <Menu.Divider />
+                <Menu.Item
+                  color="red"
+                  disabled={activeFilters.length === 0}
+                  leftSection={<IconX size={16} />}
+                  closeMenuOnClick
+                  onClick={() => onActiveFiltersChange([])}
+                >
+                  Сбросить
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          )}
+          {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && paidTodayTotal > 0 && (
+            <Text size="sm" c="dimmed">
+              Оплачено: {formatAmountRub(paidTodayTotal)}
+            </Text>
+          )}
           {objects.length > 1 && (
             <Button
               size="compact-sm"
@@ -165,19 +225,6 @@ function ObjectsList({
               {allCollapsed ? 'Развернуть' : 'Свернуть'}
             </Button>
           )}
-          {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && (
-            <Switch
-              size="xs"
-              label="Скрыть оплаченные"
-              checked={hidePaidChecked}
-              onChange={(e) => onHidePaidChange(e.currentTarget.checked)}
-            />
-          )}
-          {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && paidTodayTotal > 0 && (
-            <Text size="sm" c="dimmed">
-              Оплачено: {formatAmountRub(paidTodayTotal)}
-            </Text>
-          )}
         </Group>
       </Group>
       {objects.map((obj) => (
@@ -185,7 +232,7 @@ function ObjectsList({
           key={obj.id}
           obj={obj}
           invoices={invoices}
-          hidePaid={hidePaid}
+          activeFilters={activeFilters}
           orgId={orgId}
           date={date}
           highlightedIds={highlightedIds}
@@ -224,7 +271,7 @@ export function InvoiceSection({
   const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
   const [printingTarget, setPrintingTarget] = useState<null | 'all' | string>(null);
-  const [hidePaid, setHidePaid] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<InvoiceFilterType[]>([]);
 
   const isPrinting = printingTarget !== null;
 
@@ -298,26 +345,19 @@ export function InvoiceSection({
       }, 0);
   }, [invoices, date]);
 
-  const printInvoices = useMemo(() => {
-    if (!hidePaid || !invoices) return invoices ?? [];
-    return invoices.flatMap((inv) => {
-      if (!inv.paid) return [inv];
-      const { amounts, remaining } = getInvoicePaymentInfo(inv);
-      if (amounts.length === 0) return [];
-      if (remaining <= 0) return [];
-      return [{ ...inv, amount: remaining, paid: false, paid_amount: null, payment_amounts: [], paid_date: null }];
-    });
-  }, [invoices, hidePaid]);
+  const printInvoices = useMemo(
+    () => filterInvoices(invoices, paymentMarks, activeFilters),
+    [invoices, paymentMarks, activeFilters],
+  );
 
   const grandTotal = useMemo(() => {
-    const source = hidePaid ? printInvoices : invoices ?? [];
-    return source.reduce((sum, inv) => {
+    return printInvoices.reduce((sum, inv) => {
       if (!inv.paid) return sum + inv.amount;
       const { amounts, remaining } = getInvoicePaymentInfo(inv);
       if (amounts.length > 0 && remaining > 0) return sum + remaining;
       return sum;
     }, 0);
-  }, [hidePaid, printInvoices, invoices]);
+  }, [printInvoices]);
 
   const handleExportExcel = (objectId?: string) => {
     if (!currentOrg || !invoices || !objects) return;
@@ -370,7 +410,7 @@ export function InvoiceSection({
     );
     const printInvoicesFiltered =
       printingTarget === 'all'
-        ? invoices ?? []
+        ? printInvoices
         : printInvoices.filter(
             (inv) => normalizeRelationId(inv.accounting_object_id) === printingTarget,
           );
@@ -397,7 +437,7 @@ export function InvoiceSection({
           date={date}
           objects={objects}
           invoices={invoices}
-          hidePaid={hidePaid}
+          activeFilters={activeFilters}
           highlightedIds={highlightedIds}
           draftObjectId={draftObjectId}
           permissions={{ canCreate: permissions.canCreate, role: permissions.role }}
@@ -411,8 +451,8 @@ export function InvoiceSection({
           onColumnSettingsClick={() => setColumnSettingsOpen(true)}
           onPrintAll={() => handlePrint()}
           onExportAll={() => handleExportExcel()}
-          hidePaidChecked={hidePaid}
-          onHidePaidChange={setHidePaid}
+          activeFilters={activeFilters}
+          onActiveFiltersChange={setActiveFilters}
           paidTodayTotal={paidTodayTotal}
         />
       </CollapsedObjectsProvider>
@@ -442,24 +482,6 @@ export function InvoiceSection({
                 c={isOverBalance ? 'red' : undefined}
               >
                 Итого к оплате: {formatAmountRub(markedTotal)}
-              </Text>
-            </Paper>
-          </Affix>
-        </Box>
-      )}
-      {permissions.canViewPaymentMarks && markedTotal > 0 && (
-        <Box hiddenFrom="sm">
-          <Affix position={{ bottom: 16, right: 16 }} zIndex={100}>
-            <Paper
-              // withBorder
-              px="sm"
-              py={6}
-              radius="xl"
-              shadow="lg"
-              style={{ backgroundColor: 'var(--mantine-color-body)' }}
-            >
-              <Text size="sm" fw={700} c={isOverBalance ? 'red' : undefined}>
-                К оплате: {formatAmountRub(markedTotal)}
               </Text>
             </Paper>
           </Affix>

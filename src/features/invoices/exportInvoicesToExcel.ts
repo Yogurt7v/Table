@@ -24,6 +24,7 @@ import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
+import { getPaymentMarkKind } from './payment-mark-status';
 
 // ---------------------------------------------------------------------------
 // Соответствие InvoiceColumnId → заголовок столбца в Excel.
@@ -88,11 +89,13 @@ function cellText(
       return invoice.comment || '—';
 
     case 'payment_mark': {
-      // Отметка к оплате: сумма + комментарий.
+      // Отметка о платеже: статус + сумма + комментарий.
       const mark = marksByInvoice[invoice.id];
       if (!mark) return '—';
-      if (mark.amount == null) return `К оплате: ${formatAmountRub(invoice.amount)}`;
-      const parts = [`К оплате: ${formatAmountRub(mark.amount)}`];
+      const kind = getPaymentMarkKind(mark, invoice.amount);
+      const label = kind === 'approval' ? 'Согласование' : kind === 'partial' ? 'Частично' : 'К оплате';
+      if (mark.amount == null) return `${label}: ${formatAmountRub(invoice.amount)}`;
+      const parts = [`${label}: ${formatAmountRub(mark.amount)}`];
       if (mark.comment) parts.push(`(${mark.comment})`);
       return parts.join(' ');
     }

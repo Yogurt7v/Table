@@ -22,7 +22,7 @@ onRecordCreate((e) => {
   // --- Seq auto-numbering ---
   try {
     var seqRecord = e.record;
-    if (!(seqRecord.get('seq') > 0)) {
+    if (!(seqRecord.get('seq') > 0) && !seqRecord.get('original_invoice_id')) {
       var seqOrgId = seqRecord.get('organization_id');
       var seqDate = seqRecord.get('date');
       if (seqOrgId && seqDate) {
@@ -44,6 +44,7 @@ onRecordCreate((e) => {
   // --- Notification ---
   try {
     var rec = e.record;
+    if (rec.get('original_invoice_id')) { e.next(); return; }
     var invOrgId = rec.get('organization_id');
     var invId = rec.id;
     var actorId = rec.get('created_by');
@@ -93,6 +94,7 @@ onRecordCreate((e) => {
 onRecordUpdate((e) => {
   try {
     var rec = e.record;
+    if (rec.get('original_invoice_id')) { e.next(); return; }
     var oldRec = $app.findRecordById('invoices', rec.id);
     if (!oldRec) { e.next(); return; }
 

@@ -12,9 +12,19 @@ const invoice: IInvoice = {
   paid_date: '', comment: '', created_by: 'admin1', updated_by: 'admin1',
 };
 
-const mark: IPaymentMark = {
+const partialMark: IPaymentMark = {
   id: 'pm1', invoice_id: 'inv1', organization_id: 'org1',
-  amount: 30000, comment: 'Частично', created_by: 'admin1', created: '2026-06-02',
+  amount: 30000, comment: 'Частично', status: 'partial', created_by: 'admin1', created: '2026-06-02',
+};
+
+const paidMark: IPaymentMark = {
+  id: 'pm3', invoice_id: 'inv1', organization_id: 'org1',
+  amount: 50000, comment: '', status: 'approved', created_by: 'admin1', created: '2026-06-02',
+};
+
+const approvalMark: IPaymentMark = {
+  id: 'pm2', invoice_id: 'inv1', organization_id: 'org1',
+  amount: 50000, comment: '', status: 'proposed', created_by: 'boss1', created: '2026-06-02',
 };
 
 describe('PaymentMarkCell', () => {
@@ -33,21 +43,67 @@ describe('PaymentMarkCell', () => {
 
     expect(screen.getByText('Оплатить')).toBeInTheDocument();
     expect(screen.getByText('Частично')).toBeInTheDocument();
+    expect(screen.getByText('Согласование')).toBeInTheDocument();
   });
 
-  it('shows mark details when mark exists', () => {
+  it('shows partial mark with its own label', () => {
     renderWithProviders(
       <table><tbody><tr><td>
         <PaymentMarkCell
           invoice={invoice}
-          mark={mark}
+          mark={partialMark}
           canMarkPayment
           canViewPaymentMarks
         />
       </td></tr></tbody></table>,
     );
 
-    expect(screen.getByText(/30 000/)).toBeInTheDocument();
+    expect(screen.getByText(/Частично: 30 000/)).toBeInTheDocument();
+  });
+
+  it('shows paid mark with its own label', () => {
+    renderWithProviders(
+      <table><tbody><tr><td>
+        <PaymentMarkCell
+          invoice={invoice}
+          mark={paidMark}
+          canMarkPayment
+          canViewPaymentMarks
+        />
+      </td></tr></tbody></table>,
+    );
+
+    expect(screen.getByText(/Оплатить: 50 000/)).toBeInTheDocument();
+  });
+
+  it('shows approval mark with its own label', () => {
+    renderWithProviders(
+      <table><tbody><tr><td>
+        <PaymentMarkCell
+          invoice={invoice}
+          mark={approvalMark}
+          canMarkPayment
+          canViewPaymentMarks
+        />
+      </td></tr></tbody></table>,
+    );
+
+    expect(screen.getByText(/Согласование: 50 000/)).toBeInTheDocument();
+  });
+
+  it('shows status labels in view-only mode (moderator)', () => {
+    renderWithProviders(
+      <table><tbody><tr><td>
+        <PaymentMarkCell
+          invoice={invoice}
+          mark={paidMark}
+          canMarkPayment={false}
+          canViewPaymentMarks
+        />
+      </td></tr></tbody></table>,
+    );
+
+    expect(screen.getByText(/Оплатить: 50 000/)).toBeInTheDocument();
   });
 
   it('shows dash when cannot view payment marks', () => {

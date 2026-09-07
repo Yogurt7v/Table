@@ -40,7 +40,7 @@ export function AppLayout() {
 
   const handleHomeClick = () => {
     if (isHomePage) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'auto' });
     } else {
       navigate('/');
     }

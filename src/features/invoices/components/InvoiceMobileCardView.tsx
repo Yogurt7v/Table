@@ -22,6 +22,7 @@ import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { getInvoiceFileUrl } from '@/api/collections';
 import { useUserMap } from '@/shared/hooks/useUserMap';
+import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
 import { PaymentMarkCell } from './PaymentMarkCell';
 import { InvoiceActionsCell } from './InvoiceActionsCell';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -46,6 +47,7 @@ interface Permissions {
 
 interface InvoiceMobileCardViewProps {
   invoices: IInvoice[];
+  allInvoices?: IInvoice[];
   marksByInvoice: Record<string, IPaymentMark>;
   filesByInvoice?: Record<string, IInvoiceFile[]>;
   highlightedIds: string[];
@@ -63,6 +65,7 @@ interface InvoiceMobileCardViewProps {
   onCopy?: (invoice: IInvoice) => void;
   onDelete: (invoice: IInvoice) => void;
   onMarkForPayment?: (invoice: IInvoice) => void;
+  onMarkForApproval?: (invoice: IInvoice) => void;
   onClearPaymentMark?: (markId: string) => void;
   onOpenPayModal: (invoice: IInvoice) => void;
   onClearPaymentConfirm: (invoiceId: string) => void;
@@ -81,6 +84,7 @@ function shortenFileName(name: string): string {
 
 export function InvoiceMobileCardView({
   invoices,
+  allInvoices,
   marksByInvoice,
   filesByInvoice,
   highlightedIds,
@@ -99,14 +103,18 @@ export function InvoiceMobileCardView({
   onDelete,
   onClearPaymentMark,
   onMarkForPayment,
+  onMarkForApproval,
   onOpenPayModal,
   onClearPaymentConfirm,
   onOpenPartialModal,
 }: InvoiceMobileCardViewProps) {
   const userMap = useUserMap();
-  const groups = groupInvoicesByCounterparty(invoices);
+  const groups = groupInvoicesByCounterparty(invoices, allInvoices);
   const [draftErrors, setDraftErrors] = useState<DraftFieldErrors>({});
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const draftCardRef = useAutoScrollIntoView<HTMLDivElement>({
+    enabled: isDraftOpen && !!draftForm,
+  });
 
   const requestDraftCancel = () => {
     if (draftForm && isDraftDirty(draftForm)) {
@@ -287,7 +295,10 @@ export function InvoiceMobileCardView({
 
                   {hasRemainder && (
                     <Text mt={2}>
-                      <Text component="span" fw={700}>Остаток:</Text> {formatAmountRub(invoice.amount - totalPaid)}
+                      <Text component="span" fw={700}>
+                        Остаток:
+                      </Text>{' '}
+                      {formatAmountRub(invoice.amount - totalPaid)}
                     </Text>
                   )}
 
@@ -299,6 +310,7 @@ export function InvoiceMobileCardView({
                         canMarkPayment={permissions.canMarkPayment}
                         canViewPaymentMarks={permissions.canViewPaymentMarks}
                         onMarkForPayment={onMarkForPayment}
+                        onMarkForApproval={onMarkForApproval}
                         onOpenPartialModal={onOpenPartialModal}
                         onClearPaymentMark={onClearPaymentMark}
                       />
@@ -351,10 +363,29 @@ export function InvoiceMobileCardView({
       })}
 
       {isDraftOpen && draftForm && (
-        <Paper withBorder p="sm" style={{ backgroundColor: 'var(--mantine-color-blue-0)' }}>
-          <Text fw={600} size="sm" mb="xs">
+        <Paper
+          ref={draftCardRef}
+          withBorder
+          p="sm"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)',
+            borderColor: 'var(--org-color, #228be6)',
+            boxShadow:
+              'inset 0 0 0 1px color-mix(in srgb, var(--org-color, #228be6) 40%, transparent)',
+            animation: 'draft-pulse 1.4s ease-out 1',
+          }}
+        >
+          <Badge
+            size="sm"
+            variant="light"
+            mb="xs"
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)',
+              color: 'var(--org-color, #228be6)',
+            }}
+          >
             Новый счёт
-          </Text>
+          </Badge>
           <Stack gap="xs">
             <Autocomplete
               size="sm"

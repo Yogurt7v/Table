@@ -42,7 +42,7 @@ describe('InvoiceFilesModal', () => {
       />,
     );
 
-    expect(screen.getByText('Выберите файл')).toBeInTheDocument();
-    expect(screen.getByText('Добавить')).toBeInTheDocument();
+    expect(screen.getByText('Выбрать файл')).toBeInTheDocument();
+    expect(screen.getByText('Загрузить')).toBeInTheDocument();
   });
 });

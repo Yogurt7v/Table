@@ -22,3 +22,21 @@ body {
 .invoices-table tr:focus-within .row-grip-icon {
   opacity: 0.55;
 }
+
+@keyframes draft-pulse {
+  0%,
+  40% {
+    background-color: color-mix(in srgb, var(--org-color, #228be6) 22%, transparent);
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, var(--org-color, #228be6) 45%, transparent),
+      0 0 0 5px color-mix(in srgb, var(--org-color, #228be6) 10%, transparent);
+  }
+  20% {
+    background-color: color-mix(in srgb, var(--org-color, #228be6) 15%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--org-color, #228be6) 40%, transparent);
+  }
+  100% {
+    background-color: color-mix(in srgb, var(--org-color, #228be6) 15%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--org-color, #228be6) 40%, transparent);
+  }
+}

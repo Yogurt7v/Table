@@ -6,13 +6,15 @@ import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
+import { matchesInvoiceFilter } from '@/features/invoices/utils/invoice-filter';
+import type { InvoiceFilterType } from '@/features/invoices/utils/invoice-filter';
 import type { IInvoice, IAccountingObject, IPaymentMark, IInvoiceFile, InvoiceColumnId } from '@/shared/types';
 
 
 interface InvoiceObjectBlockProps {
   obj: IAccountingObject;
   invoices: IInvoice[] | undefined;
-  hidePaid: boolean;
+  activeFilters: InvoiceFilterType[];
   orgId: string;
   date: string;
   highlightedIds: string[];
@@ -31,7 +33,7 @@ interface InvoiceObjectBlockProps {
 export function InvoiceObjectBlock({
   obj,
   invoices,
-  hidePaid,
+  activeFilters,
   orgId,
   date,
   highlightedIds,
@@ -47,18 +49,11 @@ export function InvoiceObjectBlock({
   onExport,
 }: InvoiceObjectBlockProps) {
   const objInvoices = useMemo(() => {
-    if (hidePaid && invoices) {
-      return invoices.flatMap((i) => {
-        if (normalizeRelationId(i.accounting_object_id) !== obj.id) return [];
-        if (!i.paid) return [i];
-        const { amounts, remaining } = getInvoicePaymentInfo(i);
-        if (amounts.length === 0) return [];
-        if (remaining <= 0) return [];
-        return [{ ...i, amount: remaining, paid: false, paid_amount: null, payment_amounts: [], paid_date: null }];
-      });
-    }
-    return invoices?.filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id) ?? [];
-  }, [invoices, hidePaid, obj.id]);
+    if (!invoices) return [];
+    return invoices
+      .filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id)
+      .filter((i) => matchesInvoiceFilter(i, paymentMarks, activeFilters));
+  }, [invoices, paymentMarks, activeFilters, obj.id]);
 
   const { isCollapsed, toggle } = useCollapsedObjects();
   const collapsed = isCollapsed(obj.id);
@@ -132,6 +127,7 @@ export function InvoiceObjectBlock({
               objectId={obj.id}
               date={date}
               invoices={objInvoices}
+              allInvoices={invoices}
               highlightedIds={highlightedIds}
               isDraftOpen={isDraftOpen}
               onOpenDraft={onOpenDraft}

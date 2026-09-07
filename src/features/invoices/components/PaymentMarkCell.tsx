@@ -2,6 +2,7 @@ import { Group, Box, Text, Tooltip, ActionIcon, Checkbox, Button } from '@mantin
 import { IconX } from '@tabler/icons-react';
 import type { IInvoice, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { paymentMarkLabel } from '../payment-mark-status';
 
 interface PaymentMarkCellProps {
   invoice: IInvoice;
@@ -9,6 +10,7 @@ interface PaymentMarkCellProps {
   canMarkPayment: boolean;
   canViewPaymentMarks: boolean;
   onMarkForPayment?: (invoice: IInvoice) => void;
+  onMarkForApproval?: (invoice: IInvoice) => void;
   onOpenPartialModal?: (invoice: IInvoice) => void;
   onClearPaymentMark?: (markId: string) => void;
 }
@@ -19,6 +21,7 @@ export function PaymentMarkCell({
   canMarkPayment,
   canViewPaymentMarks,
   onMarkForPayment,
+  onMarkForApproval,
   onOpenPartialModal,
   onClearPaymentMark,
 }: PaymentMarkCellProps) {
@@ -30,7 +33,7 @@ export function PaymentMarkCell({
             <Group gap={4} wrap="nowrap">
               <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
                 <Text size="xs" fw={600}>
-                  Оплатить: {mark.comment}
+                  {paymentMarkLabel(mark, invoice.amount)}: {mark.comment}
                 </Text>
               </Box>
               <Tooltip label="Убрать отметку">
@@ -60,7 +63,7 @@ export function PaymentMarkCell({
         <Group gap={4} wrap="nowrap">
           <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
             <Text size="xs" fw={600}>
-              Оплатить: {formatAmountRub(mark.amount)}
+              {paymentMarkLabel(mark, invoice.amount)}: {formatAmountRub(mark.amount)}
             </Text>
             {mark.comment && (
               <Tooltip label={mark.comment}>
@@ -103,6 +106,9 @@ export function PaymentMarkCell({
         >
           Частично
         </Button>
+        <Button size="xs" variant="subtle" onClick={() => onMarkForApproval?.(invoice)}>
+          Согласование
+        </Button>
       </Group>
     );
   }
@@ -112,7 +118,7 @@ export function PaymentMarkCell({
       if (mark.comment) {
         return (
           <Text size="xs" fw={600}>
-            Оплатить: {mark.comment}
+            {paymentMarkLabel(mark, invoice.amount)}: {mark.comment}
           </Text>
         );
       }
@@ -125,7 +131,7 @@ export function PaymentMarkCell({
     return (
       <Box style={{ fontSize: 12, lineHeight: 1.3 }}>
         <Text size="xs" fw={600}>
-          {formatAmountRub(mark.amount)}
+          {paymentMarkLabel(mark, invoice.amount)}: {formatAmountRub(mark.amount)}
         </Text>
         {mark.comment && (
           <Text size="xs" c="dimmed">
