@@ -1,21 +1,43 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AppShell, Group, Text, Select, Anchor, ActionIcon, Box, Stack, Tooltip } from '@mantine/core';
+import {
+  AppShell,
+  Group,
+  Text,
+  Select,
+  Anchor,
+  ActionIcon,
+  Box,
+  Stack,
+  Tooltip,
+  Collapse,
+} from '@mantine/core';
 import { IconHome, IconChevronUp, IconSettings, IconUser, IconLogout } from '@tabler/icons-react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
+import { DatePinnedProvider, useDatePinned } from '@/shared/context/DatePinnedContext';
 import { InvoiceSearch } from '@/features/invoices/InvoiceSearch';
 import { NotificationsBell } from '@/features/notifications/NotificationsBell';
+import { MainDatePicker } from '@/shared/components/MainDatePicker';
 
 export function AppLayout() {
+  return (
+    <DatePinnedProvider>
+      <AppLayoutContent />
+    </DatePinnedProvider>
+  );
+}
+
+function AppLayoutContent() {
   const { user, logout } = useAuth();
   const { currentOrgId, setCurrentOrgId, organizations, currentOrg } = useOrg();
   const currentRole = useCurrentUserRole(currentOrgId);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
+  const { pinned } = useDatePinned();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 200);
@@ -47,10 +69,8 @@ export function AppLayout() {
   };
 
   return (
-    <AppShell header={{ height: { base: 88, sm: 56 } }} padding="md">
-      <AppShell.Header
-        style={{ borderBottom: '3px solid var(--org-color, #228be6)' }}
-      >
+    <AppShell header={{ height: { base: pinned ? 132 : 88, sm: 56 } }} padding="md">
+      <AppShell.Header style={{ borderBottom: '3px solid var(--org-color, #228be6)' }}>
         {/* Mobile layout */}
         <Box hiddenFrom="sm" h="100%" px="md">
           <Stack h="100%" gap={4} justify="center">
@@ -65,10 +85,22 @@ export function AppLayout() {
                     onClick={handleHomeClick}
                     style={{ position: 'relative' }}
                   >
-                    <span style={{ opacity: showScrollUp ? 0 : 1, transition: 'opacity 0.2s', position: 'absolute' }}>
+                    <span
+                      style={{
+                        opacity: showScrollUp ? 0 : 1,
+                        transition: 'opacity 0.2s',
+                        position: 'absolute',
+                      }}
+                    >
                       <IconHome size={22} />
                     </span>
-                    <span style={{ opacity: showScrollUp ? 1 : 0, transition: 'opacity 0.2s', position: 'absolute' }}>
+                    <span
+                      style={{
+                        opacity: showScrollUp ? 1 : 0,
+                        transition: 'opacity 0.2s',
+                        position: 'absolute',
+                      }}
+                    >
                       <IconChevronUp size={22} />
                     </span>
                   </ActionIcon>
@@ -143,6 +175,11 @@ export function AppLayout() {
               </Group>
             </Group>
             <InvoiceSearch />
+            <Collapse in={pinned} transitionDuration={200}>
+              <Box className="date-pinned-row" py={2}>
+                <MainDatePicker variant="header" />
+              </Box>
+            </Collapse>
           </Stack>
         </Box>
 
@@ -159,10 +196,22 @@ export function AppLayout() {
                   onClick={handleHomeClick}
                   style={{ position: 'relative' }}
                 >
-                  <span style={{ opacity: showScrollUp ? 0 : 1, transition: 'opacity 0.2s', position: 'absolute' }}>
+                  <span
+                    style={{
+                      opacity: showScrollUp ? 0 : 1,
+                      transition: 'opacity 0.2s',
+                      position: 'absolute',
+                    }}
+                  >
                     <IconHome size={22} />
                   </span>
-                  <span style={{ opacity: showScrollUp ? 1 : 0, transition: 'opacity 0.2s', position: 'absolute' }}>
+                  <span
+                    style={{
+                      opacity: showScrollUp ? 1 : 0,
+                      transition: 'opacity 0.2s',
+                      position: 'absolute',
+                    }}
+                  >
                     <IconChevronUp size={22} />
                   </span>
                 </ActionIcon>
@@ -219,6 +268,19 @@ export function AppLayout() {
               </Anchor>
             </Group>
           </Group>
+        </Box>
+
+        {/* Desktop pinned date overlay */}
+        <Box
+          visibleFrom="sm"
+          className={
+            pinned ? 'date-pinned-overlay date-pinned-overlay--visible' : 'date-pinned-overlay'
+          }
+          style={{ pointerEvents: 'none' }}
+        >
+          <div className="date-pinned-overlay__pill">
+            <MainDatePicker variant="header" />
+          </div>
         </Box>
       </AppShell.Header>
       <AppShell.Main>

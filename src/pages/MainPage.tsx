@@ -1,12 +1,12 @@
 import { Container, Stack, Loader, Paper, Text, Button, Center } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
-import { IconCalendar } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useSearch } from '@/shared/context/SearchContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
+import { useDatePinned } from '@/shared/context/DatePinnedContext';
 import { useBankAccounts } from '@/shared/hooks/useBankAccounts';
+import { MainDatePicker } from '@/shared/components/MainDatePicker';
 import { AccountList } from '@/features/accounts/AccountList';
 import { InvoiceSection } from '@/features/invoices/InvoiceSection';
 
@@ -14,7 +14,8 @@ export function MainPage() {
   const { currentOrgId, organizationsLoading } = useOrg();
   const { logout } = useAuth();
   const { searchAll, setSearchAll } = useSearch();
-  const { selectedDate: date, setSelectedDate: setDate } = useInvoiceNavigation();
+  const { selectedDate: date } = useInvoiceNavigation();
+  const { pinned, registerAnchor } = useDatePinned();
   const dateStr = dayjs(date).format('YYYY-MM-DD');
 
   const { data: accounts, isLoading: accountsLoading } = useBankAccounts(currentOrgId, dateStr);
@@ -44,41 +45,17 @@ export function MainPage() {
   return (
     <Container size="fluid" py="md">
       <Stack gap="lg">
-        <DatePickerInput
-          maxDate={new Date()}
-          leftSection={<IconCalendar size={20} />}
-          value={date}
-          onChange={(v) => v && setDate(v)}
-          valueFormat="D MMMM YYYY, dddd"
-          // w={{ base: '100%', sm: 400 }}
-          maw={400}
-          styles={{
-            input: {
-              fontWeight: 700,
-              fontSize: 'var(--mantine-font-size-lg)',
-            },
-          }}
-          renderDay={(renderDate) => {
-            const isToday = dayjs(renderDate).isSame(dayjs(), 'day');
-            return (
-              <div
-                style={{
-                  ...(isToday && {
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    border: '2px solid var(--mantine-primary-color-filled)',
-                  }),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {dayjs(renderDate).date()}
-              </div>
-            );
-          }}
-        />
+        <div ref={registerAnchor} className="main-date-picker-page">
+          <div
+            className={
+              pinned
+                ? 'date-pinned-page-calendar date-pinned-page-calendar--off'
+                : 'date-pinned-page-calendar'
+            }
+          >
+            <MainDatePicker variant="page" />
+          </div>
+        </div>
 
         <AccountList accounts={accounts} loading={accountsLoading} date={dateStr} />
 
