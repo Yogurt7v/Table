@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Text, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconCircleCheckFilled } from '@tabler/icons-react';
 import type { IAccountingObject, IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
@@ -24,6 +25,7 @@ import { InvoiceMoveModal } from './InvoiceMoveModal';
 import { InvoiceEditModal } from './InvoiceEditModal';
 import { InvoiceFilesModal } from './InvoiceFilesModal';
 import { buildInvoiceDelta } from '@/features/invoices/utils/build-invoice-delta';
+import { findDuplicateInvoices } from '@/api/collections';
 import { GroupedInvoiceTable } from './GroupedInvoiceTable';
 
 interface InvoiceTableProps {
@@ -104,6 +106,8 @@ export function InvoiceTable({
 
   const [draftForm, setDraftForm] = useState<DraftInvoiceForm>(createEmptyDraft);
   const counterpartySearch = useCounterpartySearch(orgId, draftForm.counterparty);
+  const [duplicateInvoices, setDuplicateInvoices] = useState<IInvoice[]>([]);
+  const [pendingDuplicateForm, setPendingDuplicateForm] = useState<DraftInvoiceForm | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<IInvoice | null>(null);
   const [clearMarkTarget, setClearMarkTarget] = useState<string | null>(null);
   const [historyInvoice, setHistoryInvoice] = useState<IInvoice | null>(null);
@@ -149,31 +153,44 @@ export function InvoiceTable({
       notifications.show({ color: 'red', message: error });
       return;
     }
+    const invoiceNo = draftForm.invoice_no.trim();
+    if (invoiceNo !== '-') {
+      const duplicates = await findDuplicateInvoices(orgId, invoiceNo).catch(() => []);
+      if (duplicates.length > 0) {
+        setDuplicateInvoices(duplicates);
+        setPendingDuplicateForm(draftForm);
+        return;
+      }
+    }
+    await performCreateInvoice(draftForm);
+  };
+
+  const performCreateInvoice = async (form: DraftInvoiceForm) => {
     let created;
     try {
       created = await createInvoice.mutateAsync({
         organization_id: orgId,
         accounting_object_id: objectId,
         date,
-        counterparty: draftForm.counterparty.trim(),
-        purpose: draftForm.purpose.trim(),
-        contract_no: draftForm.contract_no.trim(),
-        invoice_no: draftForm.invoice_no.trim(),
-        amount: draftForm.amount,
-        paid: draftForm.paid,
-        paid_date: draftForm.paid_date,
-        comment: draftForm.comment.trim(),
+        counterparty: form.counterparty.trim(),
+        purpose: form.purpose.trim(),
+        contract_no: form.contract_no.trim(),
+        invoice_no: form.invoice_no.trim(),
+        amount: form.amount,
+        paid: form.paid,
+        paid_date: form.paid_date,
+        comment: form.comment.trim(),
       });
     } catch {
       notifications.show({ color: 'red', message: 'Не удалось создать счёт' });
       return;
     }
-    if (draftForm.file && created?.id) {
+    if (form.file && created?.id) {
       try {
         await createInvoiceFile.mutateAsync({
           invoiceId: created.id,
-          file: draftForm.file,
-          name: draftForm.file.name,
+          file: form.file,
+          name: form.file.name,
         });
       } catch {
         notifications.show({
@@ -189,7 +206,7 @@ export function InvoiceTable({
       color: 'green',
       icon: <IconCircleCheckFilled size={20} />,
       title: 'Счёт добавлен',
-      message: `${draftForm.counterparty} · ${formatAmountRub(draftForm.amount)}`,
+      message: `${form.counterparty} · ${formatAmountRub(form.amount)}`,
       autoClose: 4500,
       styles: {
         root: {
@@ -428,6 +445,34 @@ export function InvoiceTable({
         title="Удаление счёта"
         message={`Удалить счёт «${deleteTarget?.counterparty || deleteTarget?.invoice_no || ''}»?`}
         loading={deleteInvoice.isPending}
+      />
+      <ConfirmModal
+        opened={duplicateInvoices.length > 0}
+        onClose={() => {
+          setDuplicateInvoices([]);
+          setPendingDuplicateForm(null);
+        }}
+        onConfirm={() => {
+          const form = pendingDuplicateForm;
+          setDuplicateInvoices([]);
+          setPendingDuplicateForm(null);
+          if (form) void performCreateInvoice(form);
+        }}
+        title="Возможный дубль счёта"
+        color="yellow"
+        confirmLabel="Создать всё равно"
+        cancelLabel="Отмена"
+        message={
+          <Stack gap="xs">
+            <Text size="sm">Такой счёт уже существует:</Text>
+            {duplicateInvoices.map((inv) => (
+              <Text key={inv.id} size="sm" c="dimmed">
+                {inv.date} · {inv.counterparty} · {formatAmountRub(inv.amount)}
+              </Text>
+            ))}
+            <Text size="sm">Создать дубль счёта «{duplicateInvoices[0]?.invoice_no}»?</Text>
+          </Stack>
+        }
       />
       <ConfirmModal
         opened={!!clearMarkTarget}

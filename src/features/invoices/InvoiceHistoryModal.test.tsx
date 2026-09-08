@@ -206,4 +206,71 @@ describe('InvoiceHistoryModal', () => {
       expect(screen.getByText(/зачёркнуты/)).toBeInTheDocument();
     });
   });
+
+  it('shows mark created event', async () => {
+    const markEntry: IInvoiceHistory = {
+      id: 'h4',
+      invoice_id: 'inv1',
+      author: 'Босс',
+      changed_at: '2026-06-02T10:00:00Z',
+      type: 'mark_created',
+      previous_data: { status: 'approved', amount: 50000, comment: 'Срочно' },
+    };
+    vi.mocked(getInvoiceHistory).mockResolvedValue([markEntry]);
+
+    renderWithProviders(
+      <InvoiceHistoryModal
+        opened
+        invoiceId="inv1"
+        invoiceLabel="Счёт №1"
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Босс')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Оплатить/)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/50[\s\u00a0]000,00 ₽/)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Срочно/)).toBeInTheDocument();
+  });
+
+  it('shows mark deleted event with line-through', async () => {
+    const markEntry: IInvoiceHistory = {
+      id: 'h5',
+      invoice_id: 'inv1',
+      author: 'Босс',
+      changed_at: '2026-06-02T11:00:00Z',
+      type: 'mark_deleted',
+      previous_data: { status: 'proposed', amount: 50000, comment: '' },
+    };
+    vi.mocked(getInvoiceHistory).mockResolvedValue([markEntry]);
+
+    renderWithProviders(
+      <InvoiceHistoryModal
+        opened
+        invoiceId="inv1"
+        invoiceLabel="Счёт №1"
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Согласование/)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      const struck = screen.getByText(/отменена/);
+      expect(struck.closest('[class*="mantine-Text-root"]')).toHaveStyle({
+        textDecoration: 'line-through',
+      });
+    });
+  });
 });

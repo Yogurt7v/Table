@@ -23,6 +23,29 @@ body {
   opacity: 0.55;
 }
 
+@keyframes row-scan {
+  0% {
+    background-position: calc(100% + 30px) 0;
+  }
+  100% {
+    background-position: -120px 0;
+  }
+}
+
+.row-flash {
+  background-image: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(34, 139, 230, 0.12) 35%,
+    rgba(34, 139, 230, 0.32) 50%,
+    rgba(34, 139, 230, 0.12) 65%,
+    transparent 100%
+  );
+  background-size: 110px 100%;
+  background-repeat: no-repeat;
+  animation: row-scan 0.45s linear 5;
+}
+
 @keyframes draft-pulse {
   0%,
   40% {

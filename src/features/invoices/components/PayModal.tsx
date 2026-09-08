@@ -18,7 +18,7 @@ export function PayModal({ opened, onClose, invoice, amount, onAmountChange, onP
 
   if (!invoice) return null;
 
-  const parsedAmount = Math.min(Number(amount), invoice.amount);
+  const parsedAmount = Number(amount);
   const isValid = parsedAmount > 0;
   const isDirty = amount !== '' && Number(amount) !== invoice.amount;
 
@@ -71,8 +71,6 @@ export function PayModal({ opened, onClose, invoice, amount, onAmountChange, onP
           thousandSeparator=" "
           decimalSeparator=","
           min={0}
-          max={invoice.amount}
-          clampBehavior="strict"
         />
         <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={requestClose}>

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Container, Stack, Loader, Paper, Text, Button, Center } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar } from '@tabler/icons-react';
@@ -6,6 +5,7 @@ import dayjs from 'dayjs';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useSearch } from '@/shared/context/SearchContext';
+import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
 import { useBankAccounts } from '@/shared/hooks/useBankAccounts';
 import { AccountList } from '@/features/accounts/AccountList';
 import { InvoiceSection } from '@/features/invoices/InvoiceSection';
@@ -14,7 +14,7 @@ export function MainPage() {
   const { currentOrgId, organizationsLoading } = useOrg();
   const { logout } = useAuth();
   const { searchAll, setSearchAll } = useSearch();
-  const [date, setDate] = useState<Date>(new Date());
+  const { selectedDate: date, setSelectedDate: setDate } = useInvoiceNavigation();
   const dateStr = dayjs(date).format('YYYY-MM-DD');
 
   const { data: accounts, isLoading: accountsLoading } = useBankAccounts(currentOrgId, dateStr);

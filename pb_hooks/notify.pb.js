@@ -1,5 +1,17 @@
 /// <reference path="../pb_data/types.d.ts" />
 
+// ── Helpers ──
+
+function resolveObjectName(app, objectId) {
+  if (!objectId) return '';
+  try {
+    var obj = app.findRecordById('accounting_objects', objectId);
+    return obj ? (obj.get('name') || '') : '';
+  } catch (_) {
+    return '';
+  }
+}
+
 // ── Fill actor fields on request ──
 
 onRecordCreateRequest((e) => {
@@ -59,6 +71,9 @@ onRecordCreate((e) => {
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
     var eventText = 'Создан счёт: ' + counterparty + ', ' + amtStr + ' \u20BD';
+    var objName = resolveObjectName($app, rec.get('accounting_object_id'));
+    var invPaid = rec.get('paid') || false;
+    var invDate = rec.get('date') || '';
 
     var orgUsers = $app.findRecordsByFilter(
       'organization_users',
@@ -80,6 +95,10 @@ onRecordCreate((e) => {
       notifRec.set('message', eventText);
       notifRec.set('actor_name', actorName);
       notifRec.set('read', false);
+      notifRec.set('object_name', objName);
+      notifRec.set('amount', amount);
+      notifRec.set('paid', invPaid);
+      notifRec.set('invoice_date', invDate);
       $app.save(notifRec);
     }
   } catch (err) {
@@ -111,6 +130,9 @@ onRecordUpdate((e) => {
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
+    var objName = resolveObjectName($app, rec.get('accounting_object_id'));
+    var invPaid = rec.get('paid') || false;
+    var invDate = rec.get('date') || '';
 
     var paidChanged = String(oldRec.get('paid')) !== String(rec.get('paid'));
     var notifType, eventText;
@@ -147,6 +169,10 @@ onRecordUpdate((e) => {
       notifRec.set('message', eventText);
       notifRec.set('actor_name', actorName);
       notifRec.set('read', false);
+      notifRec.set('object_name', objName);
+      notifRec.set('amount', amount);
+      notifRec.set('paid', invPaid);
+      notifRec.set('invoice_date', invDate);
       $app.save(notifRec);
     }
   } catch (err) {
@@ -177,17 +203,25 @@ onRecordCreate((e) => {
     var counterparty = inv.get('counterparty');
     var pmAmount = pm.get('amount');
     var pmComment = pm.get('comment');
+    var objName = resolveObjectName($app, inv.get('accounting_object_id'));
+    var invAmount = inv.get('amount');
+    var invPaid = inv.get('paid') || false;
+    var invDate = inv.get('date') || '';
     var eventText;
     if (pmAmount !== null && pmAmount !== undefined && pmAmount !== 0) {
       eventText = 'Отметка об оплате: ' + counterparty + ', ' + String(pmAmount) + ' \u20BD';
     } else if (pmComment) {
       eventText = 'Отметка об оплате: ' + counterparty + ', ' + pmComment;
     } else {
-      var fallbackAmt = inv.get('amount') !== null && inv.get('amount') !== undefined
-        ? String(Math.round(Number(inv.get('amount'))))
+      var fallbackAmt = invAmount !== null && invAmount !== undefined
+        ? String(Math.round(Number(invAmount)))
         : '0';
       eventText = 'Отметка об оплате: ' + counterparty + ', ' + fallbackAmt + ' \u20BD';
     }
+    var notifAmount =
+      pmAmount !== null && pmAmount !== undefined && pmAmount !== 0
+        ? pmAmount
+        : invAmount;
 
     var orgUsers = $app.findRecordsByFilter(
       'organization_users',
@@ -209,6 +243,10 @@ onRecordCreate((e) => {
       notifRec.set('message', eventText);
       notifRec.set('actor_name', actorName);
       notifRec.set('read', false);
+      notifRec.set('object_name', objName);
+      notifRec.set('amount', notifAmount);
+      notifRec.set('paid', invPaid);
+      notifRec.set('invoice_date', invDate);
       $app.save(notifRec);
     }
   } catch (err) {

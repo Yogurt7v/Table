@@ -82,12 +82,15 @@ export interface IInvoiceFile {
   created?: string;
 }
 
+export type InvoiceHistoryType = '' | 'mark_created' | 'mark_deleted';
+
 export interface IInvoiceHistory {
   id: string;
   invoice_id: string;
   author: string;
   changed_at: string;
   previous_data: Record<string, unknown>;
+  type?: InvoiceHistoryType;
 }
 
 export interface IOrganizationUser {
@@ -127,6 +130,10 @@ export interface INotification {
   event: string;
   message: string;
   actor_name: string;
+  object_name?: string;
+  amount?: number;
+  paid?: boolean;
+  invoice_date?: string;
   read: boolean;
   created: string;
 }

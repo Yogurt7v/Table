@@ -6,6 +6,7 @@ interface CollapsedObjectsContextValue {
   toggle: (id: string) => void;
   collapseAll: () => void;
   expandAll: () => void;
+  expand: (ids: string[]) => void;
 }
 
 const CollapsedObjectsContext = createContext<CollapsedObjectsContextValue | null>(null);
@@ -64,11 +65,24 @@ export function CollapsedObjectsProvider({
     writeStorage(orgId, next);
   }, [orgId]);
 
+  const expand = useCallback(
+    (ids: string[]) => {
+      setCollapsedIds((prev) => {
+        if (ids.every((id) => !prev.has(id))) return prev;
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        writeStorage(orgId, next);
+        return next;
+      });
+    },
+    [orgId],
+  );
+
   const isCollapsed = useCallback((id: string) => collapsedIds.has(id), [collapsedIds]);
 
   const value = useMemo(
-    () => ({ collapsedIds, isCollapsed, toggle, collapseAll, expandAll }),
-    [collapsedIds, isCollapsed, toggle, collapseAll, expandAll],
+    () => ({ collapsedIds, isCollapsed, toggle, collapseAll, expandAll, expand }),
+    [collapsedIds, isCollapsed, toggle, collapseAll, expandAll, expand],
   );
 
   return (

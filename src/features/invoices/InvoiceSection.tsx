@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Menu, Box, Button } from '@mantine/core';
 import { IconPrinter, IconSettings, IconFileExport, IconChevronsDown, IconChevronsUp, IconX, IconFilter, IconCheck } from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
@@ -20,11 +20,13 @@ import { CollapsedObjectsProvider, useCollapsedObjects } from '@/shared/context/
 
 import { useOrg } from '@/shared/context/OrgContext';
 import { useSearch } from '@/shared/context/SearchContext';
+import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import type { InvoiceFilterType } from '@/features/invoices/utils/invoice-filter';
 import {
   ALL_INVOICE_FILTERS,
+  REDUCED_INVOICE_FILTERS,
   INVOICE_FILTER_LABELS,
   filterInvoices,
 } from '@/features/invoices/utils/invoice-filter';
@@ -118,6 +120,7 @@ function ObjectsList({
 }: ObjectsListProps) {
   const { collapsedIds, collapseAll, expandAll } = useCollapsedObjects();
   const allCollapsed = objects.length > 0 && objects.every((o) => collapsedIds.has(o.id));
+  const isFullAccess = permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
 
   return (
     <>
@@ -160,8 +163,7 @@ function ObjectsList({
           </Tooltip>
 
 
-          {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && (
-            <Menu shadow="md" width={240} closeOnItemClick={false}>
+          <Menu shadow="md" width={240} closeOnItemClick={false}>
               <Menu.Target>
                 <Button
                   size="compact-sm"
@@ -174,7 +176,7 @@ function ObjectsList({
               </Menu.Target>
               <Menu.Dropdown>
                 <Menu.Label>Статус счёта</Menu.Label>
-                {ALL_INVOICE_FILTERS.map((filter) => {
+                {(isFullAccess ? ALL_INVOICE_FILTERS : REDUCED_INVOICE_FILTERS).map((filter) => {
                   const isActive = activeFilters.includes(filter);
                   return (
                     <Menu.Item
@@ -207,8 +209,7 @@ function ObjectsList({
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>
-          )}
-          {(permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss') && paidTodayTotal > 0 && (
+          {paidTodayTotal > 0 && (
             <Text size="sm" c="dimmed">
               Оплачено: {formatAmountRub(paidTodayTotal)}
             </Text>
@@ -252,6 +253,67 @@ function ObjectsList({
   );
 }
 
+function flashHighlightRow(invoiceId: string) {
+  const el = document.querySelector(
+    `[data-highlight-id="${CSS.escape(invoiceId)}"]`,
+  );
+  if (!el || el.classList.contains('row-flash')) return;
+  el.classList.add('row-flash');
+  window.setTimeout(() => {
+    el.classList.remove('row-flash');
+  }, 2600);
+}
+
+function AutoExpandOnHighlight({
+  highlightedInvoiceId,
+  highlightRequestId,
+  objects,
+  invoices,
+}: {
+  highlightedInvoiceId: string | null;
+  highlightRequestId: number;
+  objects: IAccountingObject[] | undefined;
+  invoices: IInvoice[] | undefined;
+}) {
+  const { expand } = useCollapsedObjects();
+
+  const lastHandledRequestId = useRef(0);
+
+  useEffect(() => {
+    if (!highlightedInvoiceId || !invoices || !objects) return;
+    if (highlightRequestId === lastHandledRequestId.current) return;
+    lastHandledRequestId.current = highlightRequestId;
+
+    const target = invoices.find((i) => i.id === highlightedInvoiceId);
+    if (!target) return;
+    const objectId = normalizeRelationId(target.accounting_object_id);
+    const hasObject = objects.some((o) => o.id === objectId);
+    if (hasObject) expand([objectId]);
+
+    const el = document.querySelector(
+      `[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`,
+    );
+    if (el) {
+      flashHighlightRow(highlightedInvoiceId);
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const targetEl = document.querySelector(
+        `[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`,
+      );
+      if (targetEl) {
+        flashHighlightRow(highlightedInvoiceId);
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [highlightedInvoiceId, highlightRequestId, invoices, objects, expand]);
+
+  return null;
+}
+
 export function InvoiceSection({
   orgId,
   date,
@@ -260,6 +322,11 @@ export function InvoiceSection({
   bankTotal,
 }: InvoiceSectionProps) {
   const { debouncedSearchText } = useSearch();
+  const {
+    highlightedInvoiceId,
+    highlightRequestId,
+    clearHighlight,
+  } = useInvoiceNavigation();
   const objects = useAccessibleObjects(orgId);
   const { data: invoices } = useInvoices(orgId, date);
   const { data: searchResults } = useSearchInvoices(orgId);
@@ -318,8 +385,11 @@ export function InvoiceSection({
   }, [orgFiles]);
 
   const highlightedIds = useMemo(
-    () => computeHighlightedIds(debouncedSearchText, searchResults, invoices),
-    [debouncedSearchText, searchResults, invoices],
+    () =>
+      highlightedInvoiceId
+        ? Array.from(new Set([...computeHighlightedIds(debouncedSearchText, searchResults, invoices), highlightedInvoiceId]))
+        : computeHighlightedIds(debouncedSearchText, searchResults, invoices),
+    [debouncedSearchText, searchResults, invoices, highlightedInvoiceId],
   );
 
   const markedTotal = useMemo(() => {
@@ -382,6 +452,16 @@ export function InvoiceSection({
 
   const objectIds = useMemo(() => objects?.map((o) => o.id) ?? [], [objects]);
 
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.('.mantine-Drawer-root')) return;
+      clearHighlight();
+      document.querySelectorAll('.row-flash').forEach((el) => el.classList.remove('row-flash'));
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, [clearHighlight]);
+
   if (!orgId) return null;
 
   if (!objects)
@@ -432,6 +512,12 @@ export function InvoiceSection({
   return (
     <>
       <CollapsedObjectsProvider orgId={orgId} objectIds={objectIds}>
+        <AutoExpandOnHighlight
+          highlightedInvoiceId={highlightedInvoiceId}
+          highlightRequestId={highlightRequestId}
+          objects={objects}
+          invoices={invoices}
+        />
         <ObjectsList
           orgId={orgId}
           date={date}

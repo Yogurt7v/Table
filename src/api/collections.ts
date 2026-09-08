@@ -234,14 +234,8 @@ export async function updateInvoiceWithHistory(
   data: Partial<IInvoice>,
   previousData: Record<string, unknown>,
 ) {
-  // Записываем историю
-  const author = pb.authStore.model?.name || pb.authStore.model?.email || 'unknown';
-  await pb.collection('invoice_history').create({
-    invoice_id: id,
-    author,
-    changed_at: new Date().toISOString(),
-    previous_data: JSON.stringify(previousData),
-  });
+  // Записываем историю (type не задаём — обычное изменение счёта)
+  await createInvoiceHistoryRecord(id, { previous_data: previousData });
 
   // Обновляем счёт
   return updateInvoice(id, data);
@@ -264,6 +258,31 @@ export function getInvoiceHistory(invoiceId: string) {
   });
 }
 
+function getCurrentAuthor(): string {
+  return pb.authStore.model?.name || pb.authStore.model?.email || 'unknown';
+}
+
+export function createInvoiceHistoryRecord(
+  invoiceId: string,
+  data: { type?: InvoiceHistoryType; previous_data: Record<string, unknown> },
+) {
+  return pb.collection('invoice_history').create<IInvoiceHistory>({
+    invoice_id: invoiceId,
+    author: getCurrentAuthor(),
+    changed_at: new Date().toISOString(),
+    type: data.type ?? '',
+    previous_data: JSON.stringify(data.previous_data),
+  });
+}
+
+export function createPaymentMarkHistory(
+  invoiceId: string,
+  type: 'mark_created' | 'mark_deleted',
+  markData: Record<string, unknown>,
+) {
+  return createInvoiceHistoryRecord(invoiceId, { type, previous_data: markData });
+}
+
 // --- Payment Marks ---
 
 export function getPaymentMarks(orgId: string) {
@@ -273,14 +292,14 @@ export function getPaymentMarks(orgId: string) {
   });
 }
 
-export function createPaymentMark(data: {
+export async function createPaymentMark(data: {
   invoice_id: string;
   organization_id: string;
   amount?: number | null;
   comment?: string;
   status?: PaymentMarkStatus;
 }) {
-  return pb.collection('payment_marks').create<IPaymentMark>({
+  const mark = await pb.collection('payment_marks').create<IPaymentMark>({
     invoice_id: data.invoice_id,
     organization_id: data.organization_id,
     amount: data.amount ?? null,
@@ -288,9 +307,25 @@ export function createPaymentMark(data: {
     status: data.status,
     created_by: pb.authStore.model?.id,
   });
+
+  await createPaymentMarkHistory(data.invoice_id, 'mark_created', {
+    status: mark.status ?? null,
+    amount: mark.amount,
+    comment: mark.comment,
+  });
+
+  return mark;
 }
 
-export function deletePaymentMark(id: string) {
+export async function deletePaymentMark(id: string) {
+  const mark = await pb.collection('payment_marks').getOne<IPaymentMark>(id);
+
+  await createPaymentMarkHistory(mark.invoice_id, 'mark_deleted', {
+    status: mark.status ?? null,
+    amount: mark.amount,
+    comment: mark.comment,
+  });
+
   return pb.collection('payment_marks').delete(id);
 }
 
@@ -415,6 +450,17 @@ function stripInvisible(s: string): string {
     .trim();
 }
 
+export function findDuplicateInvoices(orgId: string, invoiceNo: string) {
+  return pb
+    .collection('invoices')
+    .getFullList<IInvoice>({
+      filter: `organization_id = "${orgId}" && invoice_no = "${invoiceNo}"`,
+      fields: 'id,invoice_no,counterparty,amount,date',
+      sort: '-date',
+    })
+    .then((list) => list.map(normalizeInvoice));
+}
+
 export function searchAllInvoices(orgId: string, text: string) {
   const clean = stripInvisible(text);
   return pb.collection('invoices').getFullList<IInvoice>({
@@ -425,9 +471,21 @@ export function searchAllInvoices(orgId: string, text: string) {
 
 // --- Notifications ---
 
-export function getNotifications(userId: string) {
-  return pb.collection('notifications').getList<INotification>(1, 50, {
-    filter: `user_id = "${userId}"`,
+export const NOTIFICATIONS_PAGE_SIZE = 20;
+
+export function getNotificationsPage(userId: string, beforeCreated?: string) {
+  const filter = beforeCreated
+    ? `user_id = "${userId}" && created < "${beforeCreated}"`
+    : `user_id = "${userId}"`;
+  return pb.collection('notifications').getList<INotification>(1, NOTIFICATIONS_PAGE_SIZE, {
+    filter,
+    sort: '-created',
+  });
+}
+
+export function getNotificationsByDate(userId: string, date: string) {
+  return pb.collection('notifications').getFullList<INotification>({
+    filter: `user_id = "${userId}" && created >= "${date} 00:00:00" && created <= "${date} 23:59:59"`,
     sort: '-created',
   });
 }

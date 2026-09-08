@@ -80,12 +80,14 @@ export const notification1: INotification = {
   id: 'notif1', organization_id: 'org1', user_id: 'admin1',
   invoice_id: 'inv1', type: 'invoice_created', event: 'created',
   message: 'Создан счёт №1', actor_name: 'Админ',
+  object_name: 'Основной объект', amount: 50000, paid: false, invoice_date: '2026-06-02',
   read: false, created: '2026-06-02T10:00:00Z',
 };
 export const notification2: INotification = {
   id: 'notif2', organization_id: 'org1', user_id: 'admin1',
   invoice_id: 'inv2', type: 'payment_marked', event: 'payment_marked',
   message: 'Оплачен счёт №2', actor_name: 'Админ',
+  object_name: 'Основной объект', amount: 30000, paid: true, invoice_date: '2026-06-02',
   read: true, created: '2026-06-02T11:00:00Z',
 };
 

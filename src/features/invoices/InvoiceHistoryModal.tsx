@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { getInvoiceHistory, getInvoice } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import type { IInvoice } from '@/shared/types';
+import type { IInvoice, PaymentMarkStatus } from '@/shared/types';
 
 const FIELD_LABELS: Record<string, string> = {
   counterparty: 'Контрагент',
@@ -31,12 +31,22 @@ interface HistoryDiff {
   to: unknown;
 }
 
+type MarkEventKind = 'created' | 'deleted';
+
+interface MarkEvent {
+  kind: MarkEventKind;
+  status: PaymentMarkStatus | null;
+  amount: number | null;
+  comment: string;
+}
+
 interface HistoryEntryDiffs {
   entryId: string;
   changedAt: string;
   author: string;
   diffs: HistoryDiff[];
   paymentDiff: { from: boolean; to: boolean; amount: number | null; date: string | null } | null;
+  markEvent: MarkEvent | null;
 }
 
 interface InvoiceHistoryModalProps {
@@ -93,6 +103,7 @@ export function InvoiceHistoryModal({
               </Group>
               <Divider mb={6} />
               <Group gap={4} wrap="wrap">
+                {item.markEvent && <MarkEventBadge event={item.markEvent} />}
                 {item.paymentDiff && (
                   <PaymentBadge diff={item.paymentDiff} />
                 )}
@@ -149,6 +160,29 @@ function computeHistoryDiffs(
     const diffs: HistoryDiff[] = [];
     let paymentDiff: HistoryEntryDiffs['paymentDiff'] = null;
 
+    if (entry.type === 'mark_created' || entry.type === 'mark_deleted') {
+      const status = (prev['status'] as PaymentMarkStatus | undefined) ?? null;
+      const amount =
+        typeof prev['amount'] === 'number' ? prev['amount'] : Number(prev['amount'] ?? 0) || null;
+      const comment = typeof prev['comment'] === 'string' ? prev['comment'] : '';
+      const markEvent: HistoryEntryDiffs['markEvent'] = {
+        kind: entry.type === 'mark_created' ? 'created' : 'deleted',
+        status,
+        amount: typeof amount === 'number' && !Number.isNaN(amount) ? amount : null,
+        comment,
+      };
+      results.push({
+        entryId: entry.id,
+        changedAt: entry.changed_at,
+        author: entry.author,
+        diffs,
+        paymentDiff,
+        markEvent,
+      });
+      continue;
+    }
+
+
     const paidFrom = prev['paid'];
     const paidDateFrom = prev['paid_date'];
     const amountsFrom = Array.isArray(prev['payment_amounts'])
@@ -194,6 +228,7 @@ function computeHistoryDiffs(
         author: entry.author,
         diffs,
         paymentDiff,
+        markEvent: null,
       });
     }
   }
@@ -252,4 +287,37 @@ function formatHistoryValue(key: string, value: unknown): string {
   if (value == null || value === '') return '—';
   if (key === 'amount') return formatAmountRub(Number(value));
   return String(value);
+}
+
+const MARK_STATUS_LABELS: Record<PaymentMarkStatus, string> = {
+  proposed: 'Согласование',
+  approved: 'Оплатить',
+  partial: 'Частично',
+};
+
+function markStatusLabel(status: PaymentMarkStatus | null): string {
+  return status ? MARK_STATUS_LABELS[status] : 'Отметка';
+}
+
+function MarkEventBadge({ event }: { event: MarkEvent }) {
+  const statusText = markStatusLabel(event.status);
+  const amountText = event.amount ? ` · ${formatAmountRub(event.amount)}` : '';
+  const commentText = event.comment ? ` · ${event.comment}` : '';
+
+  if (event.kind === 'deleted') {
+    return (
+      <Badge variant="light" color="red" size="sm">
+        <Text component="span" td="line-through" c="dimmed">
+          {statusText}:{amountText} - отменена
+        </Text>
+        {commentText && <Text component="span"> {commentText}</Text>}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="light" color="violet" size="sm">
+      {statusText}{amountText}{commentText}
+    </Badge>
+  );
 }

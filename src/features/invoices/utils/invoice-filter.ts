@@ -20,6 +20,8 @@ export const ALL_INVOICE_FILTERS: InvoiceFilterType[] = [
   'partial',
 ];
 
+export const REDUCED_INVOICE_FILTERS: InvoiceFilterType[] = ['unpaid', 'paid', 'partial'];
+
 export function findInvoicePaymentMark(
   paymentMarks: IPaymentMark[] | undefined,
   invoiceId: string,

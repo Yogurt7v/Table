@@ -48,7 +48,7 @@ export function PartialPaymentModal({
   const handleSubmit = () => {
     if (!canSubmit) return;
     if (hasAmount) {
-      const amount = Math.min(parsedAmount, data.invoice.amount);
+      const amount = parsedAmount;
       onSave(data.invoice.id, amount, data.comment);
     } else {
       onSave(data.invoice.id, undefined, data.comment);
@@ -104,8 +104,6 @@ export function PartialPaymentModal({
           thousandSeparator=" "
           decimalSeparator=","
           min={0}
-          max={data.invoice.amount}
-          clampBehavior="strict"
         />
         <Textarea
           label="Комментарий к оплате"

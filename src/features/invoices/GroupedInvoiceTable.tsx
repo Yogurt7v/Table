@@ -841,7 +841,11 @@ export function GroupedInvoiceTable({
 
                           // 1. Original row
                           rows.push(
-                            <Table.Tr key={invoice.id} style={rowStyle}>
+                            <Table.Tr
+                              key={invoice.id}
+                              style={rowStyle}
+                              data-highlight-id={isHighlighted ? invoice.id : undefined}
+                            >
                               <Table.Td
                                 {...(isNumHandle ? listeners : {})}
                                 style={{
