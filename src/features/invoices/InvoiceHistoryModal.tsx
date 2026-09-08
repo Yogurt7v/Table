@@ -1,9 +1,10 @@
+import { useEffect } from 'react';
 import { Modal, Text, Loader, Paper, Group, Badge, Divider } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { getInvoiceHistory, getInvoice } from '@/api/collections';
+import { getInvoiceHistoryChain } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import type { IInvoice, PaymentMarkStatus } from '@/shared/types';
+import type { IInvoice, IInvoiceHistory, PaymentMarkStatus } from '@/shared/types';
 
 const FIELD_LABELS: Record<string, string> = {
   counterparty: 'Контрагент',
@@ -40,13 +41,21 @@ interface MarkEvent {
   comment: string;
 }
 
+interface CopyEvent {
+  amount: number | null;
+  sourcePaidAmount: number | null;
+  sourceId: string | null;
+}
+
 interface HistoryEntryDiffs {
   entryId: string;
   changedAt: string;
   author: string;
+  isCopy: boolean;
   diffs: HistoryDiff[];
   paymentDiff: { from: boolean; to: boolean; amount: number | null; date: string | null } | null;
   markEvent: MarkEvent | null;
+  copyEvent: CopyEvent | null;
 }
 
 interface InvoiceHistoryModalProps {
@@ -62,31 +71,42 @@ export function InvoiceHistoryModal({
   opened,
   onClose,
 }: InvoiceHistoryModalProps) {
-  const { data: history, isLoading: historyLoading } = useQuery({
+  const { data: saga, isLoading: historyLoading, isError, error } = useQuery({
     queryKey: ['invoice_history', invoiceId],
-    queryFn: () => getInvoiceHistory(invoiceId!),
+    queryFn: () => getInvoiceHistoryChain(invoiceId!),
     enabled: opened && !!invoiceId,
   });
 
-  const { data: invoice, isLoading: invoiceLoading } = useQuery({
-    queryKey: ['invoice', invoiceId],
-    queryFn: () => getInvoice(invoiceId!),
-    enabled: opened && !!invoiceId,
-  });
+  const isLoading = historyLoading;
 
-  const isLoading = historyLoading || invoiceLoading;
+  useEffect(() => {
+    if (isError && error) {
+      console.error('[InvoiceHistoryModal]', error);
+    }
+  }, [isError, error]);
 
-  const entries = computeHistoryDiffs(history ?? [], invoice ?? null);
+  const entries = saga
+    ? saga.flatMap(({ invoice, history }) =>
+        computeHistoryDiffs(history, invoice, !!invoice.original_invoice_id),
+      )
+    : [];
+  entries.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
 
   return (
     <Modal opened={opened} onClose={onClose} title={`История: ${invoiceLabel}`} size="lg">
       {isLoading && <Loader size="sm" />}
 
-      {!isLoading && entries.length === 0 && (
+      {!isLoading && isError && (
+        <Text c="red" size="sm">
+          Не удалось загрузить историю: {error instanceof Error ? error.message : 'неизвестная ошибка'}
+        </Text>
+      )}
+
+      {!isLoading && !isError && entries.length === 0 && (
         <Text c="dimmed">Изменений пока нет</Text>
       )}
 
-      {!isLoading && entries.length > 0 && (
+      {!isLoading && !isError && entries.length > 0 && (
         <>
           <Text size="xs" c="dimmed" mb="sm">
             Старые значения зачёркнуты
@@ -103,6 +123,12 @@ export function InvoiceHistoryModal({
               </Group>
               <Divider mb={6} />
               <Group gap={4} wrap="wrap">
+                {item.isCopy && (
+                  <Badge size="xs" variant="light" color="gray">
+                    копия
+                  </Badge>
+                )}
+                {item.copyEvent && <CopyEventBadge event={item.copyEvent} />}
                 {item.markEvent && <MarkEventBadge event={item.markEvent} />}
                 {item.paymentDiff && (
                   <PaymentBadge diff={item.paymentDiff} />
@@ -136,6 +162,7 @@ export function InvoiceHistoryModal({
 function computeHistoryDiffs(
   history: IInvoiceHistory[],
   currentInvoice: IInvoice | null,
+  isCopy: boolean,
 ): HistoryEntryDiffs[] {
   if (history.length === 0) return [];
 
@@ -175,9 +202,31 @@ function computeHistoryDiffs(
         entryId: entry.id,
         changedAt: entry.changed_at,
         author: entry.author,
+        isCopy,
         diffs,
         paymentDiff,
         markEvent,
+        copyEvent: null,
+      });
+      continue;
+    }
+
+    if (entry.type === 'copy_created') {
+      const copyEvent: CopyEvent = {
+        amount: typeof prev['amount'] === 'number' ? prev['amount'] : Number(prev['amount'] ?? 0) || null,
+        sourcePaidAmount:
+          typeof prev['source_paid_amount'] === 'number' ? prev['source_paid_amount'] : null,
+        sourceId: typeof prev['original_invoice_id'] === 'string' ? prev['original_invoice_id'] : null,
+      };
+      results.push({
+        entryId: entry.id,
+        changedAt: entry.changed_at,
+        author: entry.author,
+        isCopy,
+        diffs,
+        paymentDiff: null,
+        markEvent: null,
+        copyEvent,
       });
       continue;
     }
@@ -226,9 +275,11 @@ function computeHistoryDiffs(
         entryId: entry.id,
         changedAt: entry.changed_at,
         author: entry.author,
+        isCopy,
         diffs,
         paymentDiff,
         markEvent: null,
+        copyEvent: null,
       });
     }
   }
@@ -297,6 +348,18 @@ const MARK_STATUS_LABELS: Record<PaymentMarkStatus, string> = {
 
 function markStatusLabel(status: PaymentMarkStatus | null): string {
   return status ? MARK_STATUS_LABELS[status] : 'Отметка';
+}
+
+function CopyEventBadge({ event }: { event: CopyEvent }) {
+  const amountText = event.amount ? ` · остаток ${formatAmountRub(event.amount)}` : '';
+  const paidText = event.sourcePaidAmount
+    ? ` · из частичной оплаты ${formatAmountRub(event.sourcePaidAmount)}`
+    : '';
+  return (
+    <Badge variant="light" color="gray" size="sm">
+      Создана копия{amountText}{paidText}
+    </Badge>
+  );
 }
 
 function MarkEventBadge({ event }: { event: MarkEvent }) {

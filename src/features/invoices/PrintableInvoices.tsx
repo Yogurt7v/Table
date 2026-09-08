@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useOrg } from '@/shared/context/OrgContext';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
@@ -81,9 +82,7 @@ export function PrintableInvoices({
         const groups = groupInvoicesByCounterparty(objInvoices);
         const unpaidTotal = objInvoices.reduce((sum, inv) => {
           if (!inv.paid) return sum + inv.amount;
-          const { amounts, remaining } = getInvoicePaymentInfo(inv);
-          if (amounts.length === 0) return sum;
-          return remaining > 0 ? sum + remaining : sum;
+          return sum;
         }, 0);
         return { obj, groups, unpaidTotal };
       })
@@ -117,7 +116,7 @@ export function PrintableInvoices({
       case 'invoice_no':
         return invoice.invoice_no;
       case 'amount':
-        return formatAmountRub(invoice.amount);
+        return formatAmountRub(getEffectiveAmount(invoice));
       case 'paid': {
         if (invoice.paid) {
           return formatAmountRub(invoice.payment_amounts?.reduce((s, a) => s + a, 0) ?? invoice.amount);

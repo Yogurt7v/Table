@@ -34,6 +34,8 @@ export function normalizeInvoice(record: IInvoice): IInvoice {
         ? (record.copy_comments as Record<string, string>)
         : {},
     original_invoice_id: record.original_invoice_id || undefined,
+    source_paid_amount: Number(record.source_paid_amount) || 0,
+    source_paid_date: normalizePbDate(record.source_paid_date),
   };
 }
 

@@ -5,11 +5,10 @@ import { InvoiceHistoryModal } from './InvoiceHistoryModal';
 import type { IInvoiceHistory, IInvoice } from '@/shared/types';
 
 vi.mock('@/api/collections', () => ({
-  getInvoiceHistory: vi.fn(),
-  getInvoice: vi.fn(),
+  getInvoiceHistoryChain: vi.fn(),
 }));
 
-import { getInvoiceHistory, getInvoice } from '@/api/collections';
+import { getInvoiceHistoryChain } from '@/api/collections';
 
 const mockInvoice: IInvoice = {
   id: 'inv1',
@@ -29,6 +28,8 @@ const mockInvoice: IInvoice = {
   comment: '',
   created_by: 'admin1',
   updated_by: 'admin1',
+  source_paid_amount: 0,
+  source_paid_date: '',
 };
 
 const mockEntry: IInvoiceHistory = {
@@ -52,11 +53,14 @@ const mockPaymentEntry: IInvoiceHistory = {
   },
 };
 
+function mockChain(history: IInvoiceHistory[], invoice: IInvoice = mockInvoice) {
+  return [{ invoice, history }];
+}
+
 describe('InvoiceHistoryModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getInvoiceHistory).mockResolvedValue([]);
-    vi.mocked(getInvoice).mockResolvedValue(mockInvoice);
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([]));
   });
 
   it('shows loading state when opened', () => {
@@ -73,7 +77,7 @@ describe('InvoiceHistoryModal', () => {
   });
 
   it('shows empty state when no history', async () => {
-    vi.mocked(getInvoiceHistory).mockResolvedValue([]);
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([]));
 
     renderWithProviders(
       <InvoiceHistoryModal
@@ -90,7 +94,7 @@ describe('InvoiceHistoryModal', () => {
   });
 
   it('fetches and displays history entries with from → to', async () => {
-    vi.mocked(getInvoiceHistory).mockResolvedValue([mockEntry]);
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([mockEntry]));
 
     renderWithProviders(
       <InvoiceHistoryModal
@@ -119,7 +123,7 @@ describe('InvoiceHistoryModal', () => {
   });
 
   it('hides payment_amounts and paid_amount from display', async () => {
-    vi.mocked(getInvoiceHistory).mockResolvedValue([mockPaymentEntry]);
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([mockPaymentEntry]));
 
     renderWithProviders(
       <InvoiceHistoryModal
@@ -150,8 +154,9 @@ describe('InvoiceHistoryModal', () => {
         payment_amounts: [5000],
       },
     };
-    vi.mocked(getInvoiceHistory).mockResolvedValue([paidEntry]);
-    vi.mocked(getInvoice).mockResolvedValue({ ...mockInvoice, paid: true, paid_date: '2026-06-01', payment_amounts: [5000] });
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(
+      mockChain([paidEntry], { ...mockInvoice, paid: true, paid_date: '2026-06-01', payment_amounts: [5000] }),
+    );
 
     renderWithProviders(
       <InvoiceHistoryModal
@@ -172,7 +177,7 @@ describe('InvoiceHistoryModal', () => {
   });
 
   it('applies line-through to old values', async () => {
-    vi.mocked(getInvoiceHistory).mockResolvedValue([mockEntry]);
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([mockEntry]));
 
     renderWithProviders(
       <InvoiceHistoryModal
@@ -190,8 +195,7 @@ describe('InvoiceHistoryModal', () => {
   });
 
   it('shows old header text', async () => {
-    vi.mocked(getInvoiceHistory).mockResolvedValue([mockEntry]);
-    vi.mocked(getInvoice).mockResolvedValue(mockInvoice);
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([mockEntry]));
 
     renderWithProviders(
       <InvoiceHistoryModal
@@ -216,7 +220,7 @@ describe('InvoiceHistoryModal', () => {
       type: 'mark_created',
       previous_data: { status: 'approved', amount: 50000, comment: 'Срочно' },
     };
-    vi.mocked(getInvoiceHistory).mockResolvedValue([markEntry]);
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([markEntry]));
 
     renderWithProviders(
       <InvoiceHistoryModal
@@ -251,7 +255,7 @@ describe('InvoiceHistoryModal', () => {
       type: 'mark_deleted',
       previous_data: { status: 'proposed', amount: 50000, comment: '' },
     };
-    vi.mocked(getInvoiceHistory).mockResolvedValue([markEntry]);
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([markEntry]));
 
     renderWithProviders(
       <InvoiceHistoryModal
@@ -271,6 +275,62 @@ describe('InvoiceHistoryModal', () => {
       expect(struck.closest('[class*="mantine-Text-root"]')).toHaveStyle({
         textDecoration: 'line-through',
       });
+    });
+  });
+
+  it('shows error state when loading fails', async () => {
+    vi.mocked(getInvoiceHistoryChain).mockRejectedValue(new Error('401 Unauthorized'));
+
+    renderWithProviders(
+      <InvoiceHistoryModal
+        opened
+        invoiceId="inv1"
+        invoiceLabel="Счёт №1"
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/не удалось загрузить историю/i)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/401 Unauthorized/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows copy created event', async () => {
+    const copyEntry: IInvoiceHistory = {
+      id: 'h6',
+      invoice_id: 'inv1',
+      author: 'Админ',
+      changed_at: '2026-06-02T12:00:00Z',
+      type: 'copy_created',
+      previous_data: { amount: 30000, source_paid_amount: 20000, original_invoice_id: 'src1' },
+    };
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(
+      mockChain([copyEntry], { ...mockInvoice, original_invoice_id: 'src1' }),
+    );
+
+    renderWithProviders(
+      <InvoiceHistoryModal
+        opened
+        invoiceId="inv1"
+        invoiceLabel="Счёт №1"
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Создана копия/)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/остаток 30[\s\u00a0]000,00 ₽/)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/из частичной оплаты 20[\s\u00a0]000,00 ₽/)).toBeInTheDocument();
     });
   });
 });

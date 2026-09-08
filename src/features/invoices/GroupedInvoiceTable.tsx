@@ -42,6 +42,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
@@ -458,7 +459,7 @@ export function GroupedInvoiceTable({
     amount: {
       width: 100,
       header: 'Сумма',
-      renderCell: (invoice) => <>{formatAmountRub(invoice.amount)}</>,
+      renderCell: (invoice) => <>{formatAmountRub(getEffectiveAmount(invoice))}</>,
       renderDraft: () => (
         <NumberInput
           size="xs"
@@ -812,7 +813,7 @@ export function GroupedInvoiceTable({
                           const remaining = invoice.amount - totalPaid;
 
                           const hasCopies = amounts.length > 1;
-                          const hasRemainder = totalPaid > 0 && remaining > 0;
+                          const hasRemainder = !paid && totalPaid > 0 && remaining > 0;
                           const extraRows =
                             (hasCopies ? amounts.length - 1 : 0) + (hasRemainder ? 1 : 0);
                           const isLastRow = isGroupLast && extraRows === 0;
@@ -869,6 +870,28 @@ export function GroupedInvoiceTable({
                                     style={{ flexShrink: 0, color: 'var(--mantine-color-gray-5)' }}
                                   />
                                   {invoiceNumber})
+                                  {invoice.original_invoice_id &&
+                                    invoice.source_paid_amount > 0 && (
+                                      <Tooltip
+                                        label={
+                                          <>
+                                            Оплачено: {formatAmountRub(invoice.source_paid_amount)}
+                                            {invoice.source_paid_date
+                                              ? ` · ${dayjs(invoice.source_paid_date).format('DD.MM.YYYY')}`
+                                              : ''}
+                                          </>
+                                        }
+                                      >
+                                        <Badge
+                                          size="xs"
+                                          variant="light"
+                                          color="gray"
+                                          style={{ flexShrink: 0 }}
+                                        >
+                                          из частичной оплаты
+                                        </Badge>
+                                      </Tooltip>
+                                    )}
                                 </div>
                               </Table.Td>
                               {filteredColumns.map((colId) => {
@@ -977,7 +1000,7 @@ export function GroupedInvoiceTable({
                           }
 
                           // 3. Remainder row
-                          if (totalPaid > 0 && remaining > 0) {
+                          if (!paid && totalPaid > 0 && remaining > 0) {
                             const remainderId = `${invoice.id}__r`;
                             const remainderInvoice = {
                               ...invoice,
@@ -1169,7 +1192,7 @@ export function GroupedInvoiceTable({
                           const remaining = invoice.amount - totalPaid;
 
                           const hasCopies = amounts.length > 1;
-                          const hasRemainder = totalPaid > 0 && remaining > 0;
+                          const hasRemainder = !paid && totalPaid > 0 && remaining > 0;
                           const extraRows =
                             (hasCopies ? amounts.length - 1 : 0) + (hasRemainder ? 1 : 0);
                           const isLastRow = isGroupLast && extraRows === 0;
@@ -1212,6 +1235,28 @@ export function GroupedInvoiceTable({
                                   }}
                                 >
                                   {invoiceNumber})
+                                  {invoice.original_invoice_id &&
+                                    invoice.source_paid_amount > 0 && (
+                                      <Tooltip
+                                        label={
+                                          <>
+                                            Оплачено: {formatAmountRub(invoice.source_paid_amount)}
+                                            {invoice.source_paid_date
+                                              ? ` · ${dayjs(invoice.source_paid_date).format('DD.MM.YYYY')}`
+                                              : ''}
+                                          </>
+                                        }
+                                      >
+                                        <Badge
+                                          size="xs"
+                                          variant="light"
+                                          color="gray"
+                                          style={{ flexShrink: 0 }}
+                                        >
+                                          из частичной оплаты
+                                        </Badge>
+                                      </Tooltip>
+                                    )}
                                 </div>
                               </Table.Td>
                               {filteredColumns.map((colId) => {
@@ -1302,7 +1347,7 @@ export function GroupedInvoiceTable({
                           }
 
                           // 3. Remainder row
-                          if (totalPaid > 0 && remaining > 0) {
+                          if (!paid && totalPaid > 0 && remaining > 0) {
                             const remainderId = `${invoice.id}__r`;
                             const remainderInvoice = {
                               ...invoice,

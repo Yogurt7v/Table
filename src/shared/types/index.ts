@@ -49,6 +49,8 @@ export interface IInvoice {
   created_by: string;
   updated_by: string;
   original_invoice_id?: string;
+  source_paid_amount: number;
+  source_paid_date: string;
   created?: string;
 }
 
@@ -82,7 +84,7 @@ export interface IInvoiceFile {
   created?: string;
 }
 
-export type InvoiceHistoryType = '' | 'mark_created' | 'mark_deleted';
+export type InvoiceHistoryType = '' | 'mark_created' | 'mark_deleted' | 'copy_created';
 
 export interface IInvoiceHistory {
   id: string;

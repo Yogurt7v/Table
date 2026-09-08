@@ -21,6 +21,7 @@ import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
@@ -70,7 +71,7 @@ function cellText(
       return invoice.invoice_no;
 
     case 'amount':
-      return formatAmountRub(invoice.amount);
+      return formatAmountRub(getEffectiveAmount(invoice));
 
     case 'paid': {
       // Если оплачен — показываем общую сумму проведённых платежей.
@@ -178,9 +179,7 @@ export function exportInvoicesToExcel(params: ExportInvoicesParams): void {
       const groups = groupInvoicesByCounterparty(objInvoices);
       const unpaidTotal = objInvoices.reduce((sum, inv) => {
         if (!inv.paid) return sum + inv.amount;
-        const { amounts, remaining } = getInvoicePaymentInfo(inv);
-        if (amounts.length === 0) return sum;
-        return remaining > 0 ? sum + remaining : sum;
+        return sum;
       }, 0);
       return { obj, groups, unpaidTotal };
     })

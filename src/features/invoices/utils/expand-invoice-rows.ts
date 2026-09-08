@@ -17,7 +17,7 @@ export function getInvoicePaymentInfo(invoice: IInvoice): InvoicePaymentInfo {
     totalPaid,
     remaining,
     hasCopies: amounts.length > 1,
-    hasRemainder: totalPaid > 0 && remaining > 0,
+    hasRemainder: !invoice.paid && totalPaid > 0 && remaining > 0,
   };
 }
 
@@ -49,6 +49,7 @@ export function createPaymentCopyInvoices(invoice: IInvoice): IInvoice[] {
 }
 
 export function createRemainderInvoice(invoice: IInvoice): IInvoice | null {
+  if (invoice.paid) return null;
   const { totalPaid, remaining } = getInvoicePaymentInfo(invoice);
   if (totalPaid <= 0 || remaining <= 0) return null;
   return cloneForDisplay(invoice, {

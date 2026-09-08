@@ -19,6 +19,7 @@ import {
 import { IconPaperclip } from '@tabler/icons-react';
 import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { getInvoiceFileUrl } from '@/api/collections';
 import { useUserMap } from '@/shared/hooks/useUserMap';
@@ -159,7 +160,7 @@ export function InvoiceMobileCardView({
   return (
     <Stack hiddenFrom="sm" gap="md">
       {groups.map((group) => {
-        const groupTotal = group.invoices.reduce((sum, inv) => sum + inv.amount, 0);
+        const groupTotal = group.invoices.reduce((sum, inv) => sum + getEffectiveAmount(inv), 0);
         return (
           <Paper
             key={group.counterparty}
@@ -175,7 +176,7 @@ export function InvoiceMobileCardView({
               const invoiceNumber = getInvoiceNumber(groups, invoice.id);
               const amounts = invoice.payment_amounts ?? [];
               const totalPaid = amounts.reduce((s, a) => s + a, 0);
-              const hasRemainder = totalPaid > 0 && invoice.amount - totalPaid > 0;
+              const hasRemainder = !invoice.paid && totalPaid > 0 && invoice.amount - totalPaid > 0;
               const invoiceFiles = filesByInvoice?.[invoice.id];
 
               return (
@@ -200,8 +201,26 @@ export function InvoiceMobileCardView({
                       <Text size="xs" c="dimmed">
                         {invoiceNumber})
                       </Text>
+                      {invoice.original_invoice_id && invoice.source_paid_amount > 0 && (
+                        <Tooltip
+                          label={`Оплачено: ${formatAmountRub(invoice.source_paid_amount)}${
+                            invoice.source_paid_date
+                              ? ` · ${dayjs(invoice.source_paid_date).format('DD.MM.YYYY')}`
+                              : ''
+                          }`}
+                        >
+                          <Badge
+                            size="xs"
+                            variant="light"
+                            color="gray"
+                            style={{ flexShrink: 0 }}
+                          >
+                            из частичной оплаты
+                          </Badge>
+                        </Tooltip>
+                      )}
                       <Text size="sm" fw={700}>
-                        {formatAmountRub(invoice.amount)}
+                        {formatAmountRub(getEffectiveAmount(invoice))}
                       </Text>
                     </Group>
                     {invoice.paid ? (

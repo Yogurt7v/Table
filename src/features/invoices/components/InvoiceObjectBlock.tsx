@@ -5,7 +5,6 @@ import { useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import { matchesInvoiceFilter } from '@/features/invoices/utils/invoice-filter';
 import type { InvoiceFilterType } from '@/features/invoices/utils/invoice-filter';
 import type { IInvoice, IAccountingObject, IPaymentMark, IInvoiceFile, InvoiceColumnId } from '@/shared/types';
@@ -64,8 +63,6 @@ export function InvoiceObjectBlock({
   const totalAmount = useMemo(() => {
     return objInvoices.reduce((sum, inv) => {
       if (!inv.paid) return sum + inv.amount;
-      const { amounts, remaining } = getInvoicePaymentInfo(inv);
-      if (amounts.length > 0 && remaining > 0) return sum + remaining;
       return sum;
     }, 0);
   }, [objInvoices]);

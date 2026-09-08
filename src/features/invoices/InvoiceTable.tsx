@@ -1,10 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Text, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconCircleCheckFilled } from '@tabler/icons-react';
-import type { IAccountingObject, IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
+import type {
+  IAccountingObject,
+  IInvoice,
+  IInvoiceFile,
+  IPaymentMark,
+  InvoiceColumnId,
+} from '@/shared/types';
 
-import { createEmptyDraft, validateDraftForm, isDraftDirty, type DraftInvoiceForm } from './invoice-field-access';
+import {
+  createEmptyDraft,
+  validateDraftForm,
+  isDraftDirty,
+  type DraftInvoiceForm,
+} from './invoice-field-access';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { useBeforeUnloadGuard } from '@/shared/hooks/useBeforeUnloadGuard';
 import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
@@ -25,7 +37,7 @@ import { InvoiceMoveModal } from './InvoiceMoveModal';
 import { InvoiceEditModal } from './InvoiceEditModal';
 import { InvoiceFilesModal } from './InvoiceFilesModal';
 import { buildInvoiceDelta } from '@/features/invoices/utils/build-invoice-delta';
-import { findDuplicateInvoices } from '@/api/collections';
+import { findDuplicateInvoices, syncInvoiceCopy } from '@/api/collections';
 import { GroupedInvoiceTable } from './GroupedInvoiceTable';
 
 interface InvoiceTableProps {
@@ -62,6 +74,7 @@ export function InvoiceTable({
   allInvoices,
 }: InvoiceTableProps) {
   const permissions = useInvoicePermissions(orgId);
+  const queryClient = useQueryClient();
   const createInvoice = useCreateInvoice(orgId, date);
   const updateInvoice = useUpdateInvoice(orgId, date);
   const deleteInvoice = useDeleteInvoice(orgId, date);
@@ -222,13 +235,18 @@ export function InvoiceTable({
   const handleEditInvoice = (data: DraftInvoiceForm) => {
     if (!editInvoice) return;
 
-    const suffix = (editInvoice as IInvoice & { _syntheticSuffix?: string | null })._syntheticSuffix;
+    const suffix = (editInvoice as IInvoice & { _syntheticSuffix?: string | null })
+      ._syntheticSuffix;
 
     if (suffix) {
       const copyComments = { ...(editInvoice.copy_comments ?? {}), [suffix]: data.comment };
       if (!data.comment) delete copyComments[suffix];
       updateInvoice.mutate(
-        { id: editInvoice.id, previousData: { copy_comments: editInvoice.copy_comments }, copy_comments: copyComments },
+        {
+          id: editInvoice.id,
+          previousData: { copy_comments: editInvoice.copy_comments },
+          copy_comments: copyComments,
+        },
         {
           onSuccess: () => {
             setEditInvoice(null);
@@ -242,7 +260,11 @@ export function InvoiceTable({
       return;
     }
 
-    const { updates, previousData, changed } = buildInvoiceDelta(data, editInvoice, date.slice(0, 10));
+    const { updates, previousData, changed } = buildInvoiceDelta(
+      data,
+      editInvoice,
+      date.slice(0, 10),
+    );
     if (!changed) {
       setEditInvoice(null);
       return;
@@ -290,6 +312,10 @@ export function InvoiceTable({
               },
             });
           }
+          void syncInvoiceCopy(invoice, newAmounts, true, date.slice(0, 10)).then(() => {
+            queryClient.invalidateQueries({ queryKey: ['invoices', orgId] });
+            queryClient.invalidateQueries({ queryKey: ['invoice_files', orgId] });
+          });
           notifications.show({ color: 'green', message: 'Статус счёта обновлён' });
         },
         onError: (error) => {
@@ -324,6 +350,10 @@ export function InvoiceTable({
       },
       {
         onSuccess: () => {
+          void syncInvoiceCopy(invoice, newAmounts, newAmounts.length > 0, invoice.paid_date || date.slice(0, 10)).then(() => {
+            queryClient.invalidateQueries({ queryKey: ['invoices', orgId] });
+            queryClient.invalidateQueries({ queryKey: ['invoice_files', orgId] });
+          });
           notifications.show({ color: 'green', message: 'Оплата снята' });
         },
         onError: (error) => {
@@ -364,7 +394,11 @@ export function InvoiceTable({
     );
   };
 
-  const handleMarkPartialPayment = (invoiceId: string, amount: number | undefined, comment: string) => {
+  const handleMarkPartialPayment = (
+    invoiceId: string,
+    amount: number | undefined,
+    comment: string,
+  ) => {
     const realId = invoiceId.endsWith('__r') ? invoiceId.slice(0, -3) : invoiceId;
     createPaymentMark.mutate(
       { invoice_id: realId, amount, comment, status: PARTIAL_MARK_STATUS },
@@ -407,7 +441,7 @@ export function InvoiceTable({
           const suffix = hasSuffix ? inv.id.slice(inv.id.indexOf('__')) : null;
           const realId = hasSuffix ? inv.id.slice(0, inv.id.indexOf('__')) : inv.id;
           const realInvoice = hasSuffix ? invoices.find((i) => i.id === realId) : null;
-          const copyComment = suffix ? realInvoice?.copy_comments?.[suffix] ?? '' : undefined;
+          const copyComment = suffix ? (realInvoice?.copy_comments?.[suffix] ?? '') : undefined;
           setEditInvoice({
             ...inv,
             id: realId,

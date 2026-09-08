@@ -22,7 +22,6 @@ import { useOrg } from '@/shared/context/OrgContext';
 import { useSearch } from '@/shared/context/SearchContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import type { InvoiceFilterType } from '@/features/invoices/utils/invoice-filter';
 import {
   ALL_INVOICE_FILTERS,
@@ -423,8 +422,6 @@ export function InvoiceSection({
   const grandTotal = useMemo(() => {
     return printInvoices.reduce((sum, inv) => {
       if (!inv.paid) return sum + inv.amount;
-      const { amounts, remaining } = getInvoicePaymentInfo(inv);
-      if (amounts.length > 0 && remaining > 0) return sum + remaining;
       return sum;
     }, 0);
   }, [printInvoices]);

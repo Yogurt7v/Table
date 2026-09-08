@@ -47,6 +47,14 @@ describe('getInvoicePaymentInfo', () => {
       hasCopies: true, hasRemainder: true,
     });
   });
+
+  it('hides remainder for paid invoices', () => {
+    const info = getInvoicePaymentInfo({ ...baseInvoice, paid: true, payment_amounts: [30000] });
+    expect(info).toEqual({
+      amounts: [30000], totalPaid: 30000, remaining: 20000,
+      hasCopies: false, hasRemainder: false,
+    });
+  });
 });
 
 describe('createPaymentCopyInvoices', () => {
@@ -79,6 +87,10 @@ describe('createRemainderInvoice', () => {
 
   it('returns null when fully paid', () => {
     expect(createRemainderInvoice({ ...baseInvoice, payment_amounts: [50000] })).toBeNull();
+  });
+
+  it('returns null when invoice is paid', () => {
+    expect(createRemainderInvoice({ ...baseInvoice, paid: true, payment_amounts: [30000] })).toBeNull();
   });
 
   it('returns remainder invoice when partially paid', () => {

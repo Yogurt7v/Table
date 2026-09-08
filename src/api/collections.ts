@@ -148,17 +148,21 @@ export function getInvoices(orgId: string, date: string) {
   return pb
     .collection('invoices')
     .getFullList<IInvoice>({
-      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && paid_date ~ "${today}") || (original_invoice_id != "" && date = "${today}"))`,
+      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && (paid_date ~ "${today}" || paid_date > "${today}")) || (original_invoice_id != "" && date = "${today}"))`,
       sort: '-created',
     })
-    .then((list) => list.map(normalizeInvoice));
+    .then((list) =>
+      list.map(normalizeInvoice).map((inv) => {
+        if (inv.paid && inv.paid_date > today) {
+          return { ...inv, paid: false, paid_date: '', paid_amount: null, payment_amounts: [] };
+        }
+        return inv;
+      }),
+    );
 }
 
 export function getInvoice(invoiceId: string) {
-  return pb
-    .collection('invoices')
-    .getOne<IInvoice>(invoiceId)
-    .then(normalizeInvoice);
+  return pb.collection('invoices').getOne<IInvoice>(invoiceId).then(normalizeInvoice);
 }
 
 export async function countInvoicesByOrg(orgId: string): Promise<number> {
@@ -204,6 +208,9 @@ export type CreateInvoiceInput = {
   paid?: boolean;
   paid_date?: string;
   comment?: string;
+  original_invoice_id?: string;
+  source_paid_amount?: number;
+  source_paid_date?: string;
 };
 
 export function createInvoice(data: CreateInvoiceInput) {
@@ -221,8 +228,75 @@ export function createInvoice(data: CreateInvoiceInput) {
       paid: data.paid ?? false,
       paid_date: data.paid_date ?? '',
       comment: data.comment ?? '',
+      original_invoice_id: data.original_invoice_id ?? '',
+      source_paid_amount: data.source_paid_amount ?? 0,
+      source_paid_date: data.source_paid_date ?? '',
     })
     .then(normalizeInvoice);
+}
+
+export function getInvoiceCopies(originalInvoiceId: string) {
+  return pb
+    .collection('invoices')
+    .getFullList<IInvoice>({
+      filter: `original_invoice_id = "${originalInvoiceId}"`,
+      sort: 'created',
+    })
+    .then((list) => list.map(normalizeInvoice));
+}
+
+async function deleteInvoiceTree(invoiceId: string) {
+  const children = await getInvoiceCopies(invoiceId);
+  for (const child of children) {
+    await deleteInvoiceTree(child.id);
+  }
+  await deleteInvoice(invoiceId);
+}
+
+/**
+ * Синхронизирует копию счёта на остаток: удаляет старые копии (вместе с
+ * вложенной цепочкой) и при положительном остатке создаёт новую со всеми
+ * полями оригинала (дата — день оплаты payDate).
+ */
+export async function syncInvoiceCopy(
+  source: IInvoice,
+  amounts: number[],
+  paid: boolean,
+  payDate: string,
+) {
+  const copies = await getInvoiceCopies(source.id);
+  await Promise.all(copies.map((c) => deleteInvoiceTree(c.id)));
+
+  if (!paid) return null;
+
+  const totalPaid = amounts.reduce((s, a) => s + (Number(a) || 0), 0);
+  const remaining = (Number(source.amount) || 0) - totalPaid;
+  if (remaining <= 0) return null;
+
+  return createInvoice({
+    organization_id: source.organization_id,
+    accounting_object_id: source.accounting_object_id,
+    date: payDate || source.date,
+    counterparty: source.counterparty,
+    purpose: source.purpose,
+    contract_no: source.contract_no,
+    invoice_no: source.invoice_no,
+    amount: remaining,
+    comment: source.comment,
+    original_invoice_id: source.id,
+    source_paid_amount: totalPaid,
+    source_paid_date: payDate || source.date,
+  }).then((copy) =>
+    createInvoiceHistoryRecord(copy.id, {
+      type: 'copy_created',
+      previous_data: {
+        amount: remaining,
+        source_paid_amount: totalPaid,
+        paid: false,
+        original_invoice_id: source.id,
+      },
+    }).then(() => copy),
+  );
 }
 
 export function updateInvoice(id: string, data: Partial<IInvoice>) {
@@ -256,6 +330,41 @@ export function getInvoiceHistory(invoiceId: string) {
     filter: `invoice_id = "${invoiceId}"`,
     sort: '-changed_at',
   });
+}
+
+/**
+ * Возвращает историю счёта вместе с историей всей цепочки «оригиналов»:
+ * идёт от копии по original_invoice_id до исходного счёта и собирает
+ * { invoice, history } для каждого звена.  Сбой чтения отдельного звена
+ * не обнуляет историю — недоступные звенья пропускаются.
+ */
+export async function getInvoiceHistoryChain(invoiceId: string) {
+  const chain: IInvoice[] = [];
+  let currentId: string | null = invoiceId;
+  const seen = new Set<string>();
+  while (currentId && !seen.has(currentId)) {
+    seen.add(currentId);
+    try {
+      const inv = await getInvoice(currentId);
+      chain.push(inv);
+      currentId = inv.original_invoice_id ?? null;
+    } catch {
+      break;
+    }
+  }
+  const results: { invoice: IInvoice; history: IInvoiceHistory[] }[] = [];
+  for (const invoice of chain) {
+    try {
+      const history = await getInvoiceHistory(invoice.id);
+      results.push({ invoice, history });
+    } catch {
+      // пропускаем недоступное звено
+    }
+  }
+  if (results.length === 0) {
+    throw new Error('Не удалось загрузить историю счёта');
+  }
+  return results;
 }
 
 function getCurrentAuthor(): string {
@@ -373,7 +482,10 @@ export function createOrganizationUser(
   });
 }
 
-export function updateOrganizationUser(id: string, data: { role?: IOrganizationUser['role']; objects?: string[] }) {
+export function updateOrganizationUser(
+  id: string,
+  data: { role?: IOrganizationUser['role']; objects?: string[] },
+) {
   return pb.collection('organization_users').update<IOrganizationUser>(id, data);
 }
 
@@ -384,22 +496,16 @@ export function deleteOrganizationUser(id: string) {
 // --- User Settings ---
 
 export function getUserSetting(userId: string, key: string) {
-  return pb.collection('user_settings').getFirstListItem<IUserSetting>(
-    `user_id = "${userId}" && key = "${key}"`,
-  );
+  return pb
+    .collection('user_settings')
+    .getFirstListItem<IUserSetting>(`user_id = "${userId}" && key = "${key}"`);
 }
 
-export function upsertUserSetting(
-  userId: string,
-  key: string,
-  value: unknown,
-) {
-  return pb.collection('user_settings').getFirstListItem<IUserSetting>(
-    `user_id = "${userId}" && key = "${key}"`,
-  )
-    .then((existing) =>
-      pb.collection('user_settings').update<IUserSetting>(existing.id, { value }),
-    )
+export function upsertUserSetting(userId: string, key: string, value: unknown) {
+  return pb
+    .collection('user_settings')
+    .getFirstListItem<IUserSetting>(`user_id = "${userId}" && key = "${key}"`)
+    .then((existing) => pb.collection('user_settings').update<IUserSetting>(existing.id, { value }))
     .catch(() =>
       pb.collection('user_settings').create<IUserSetting>({
         user_id: userId,

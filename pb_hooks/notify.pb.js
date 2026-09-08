@@ -34,7 +34,7 @@ onRecordCreate((e) => {
   // --- Seq auto-numbering ---
   try {
     var seqRecord = e.record;
-    if (!(seqRecord.get('seq') > 0) && !seqRecord.get('original_invoice_id')) {
+    if (!(seqRecord.get('seq') > 0)) {
       var seqOrgId = seqRecord.get('organization_id');
       var seqDate = seqRecord.get('date');
       if (seqOrgId && seqDate) {
@@ -71,7 +71,15 @@ onRecordCreate((e) => {
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
     var eventText = 'Создан счёт: ' + counterparty + ', ' + amtStr + ' \u20BD';
-    var objName = resolveObjectName($app, rec.get('accounting_object_id'));
+
+    var objName = '';
+    try {
+      var obj = $app.findRecordById('accounting_objects', rec.get('accounting_object_id'));
+      objName = obj ? (obj.get('name') || '') : '';
+    } catch (_) {
+      objName = '';
+    }
+
     var invPaid = rec.get('paid') || false;
     var invDate = rec.get('date') || '';
 
@@ -130,7 +138,15 @@ onRecordUpdate((e) => {
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
-    var objName = resolveObjectName($app, rec.get('accounting_object_id'));
+
+    var objName = '';
+    try {
+      var obj = $app.findRecordById('accounting_objects', rec.get('accounting_object_id'));
+      objName = obj ? (obj.get('name') || '') : '';
+    } catch (_) {
+      objName = '';
+    }
+
     var invPaid = rec.get('paid') || false;
     var invDate = rec.get('date') || '';
 
@@ -203,7 +219,15 @@ onRecordCreate((e) => {
     var counterparty = inv.get('counterparty');
     var pmAmount = pm.get('amount');
     var pmComment = pm.get('comment');
-    var objName = resolveObjectName($app, inv.get('accounting_object_id'));
+
+    var objName = '';
+    try {
+      var obj = $app.findRecordById('accounting_objects', inv.get('accounting_object_id'));
+      objName = obj ? (obj.get('name') || '') : '';
+    } catch (_) {
+      objName = '';
+    }
+
     var invAmount = inv.get('amount');
     var invPaid = inv.get('paid') || false;
     var invDate = inv.get('date') || '';

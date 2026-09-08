@@ -2,6 +2,7 @@ import { Anchor, Badge, Group, Paper, Table, Text, Title } from '@mantine/core';
 import { IconArrowLeft, IconSearchOff } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import type { IInvoice } from '@/shared/types';
 
 interface SearchResultsViewProps {
@@ -46,7 +47,7 @@ export function SearchResultsView({
                 </Table.Td>
                 <Table.Td>{inv.counterparty}</Table.Td>
                 <Table.Td>{inv.purpose}</Table.Td>
-                <Table.Td ta="right">{formatAmountRub(inv.amount)}</Table.Td>
+                <Table.Td ta="right">{formatAmountRub(getEffectiveAmount(inv))}</Table.Td>
                 <Table.Td>
                   {inv.paid ? (
                     <Badge color="green" variant="light">
