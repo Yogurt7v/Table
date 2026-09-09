@@ -1,5 +1,21 @@
-import { useEffect } from 'react';
-import { Modal, Text, Loader, Paper, Group, Badge, Divider } from '@mantine/core';
+import { useEffect, type ReactNode } from 'react';
+import {
+  Modal,
+  Text,
+  Loader,
+  Paper,
+  Group,
+  Badge,
+  Divider,
+  Box,
+} from '@mantine/core';
+import {
+  IconCircleCheckFilled,
+  IconX,
+  IconCopy,
+  IconPencil,
+  IconFlag,
+} from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { getInvoiceHistoryChain } from '@/api/collections';
@@ -24,7 +40,13 @@ const FIELD_COLORS: Record<string, string> = {
   comment: 'gray',
 };
 
-const HIDDEN_FIELDS = new Set(['payment_amounts', 'paid_amount']);
+const HIDDEN_FIELDS = new Set([
+  'payment_amounts',
+  'paid_amount',
+  'remaining',
+  'removed_amount',
+  'payment',
+]);
 
 interface HistoryDiff {
   key: string;
@@ -32,30 +54,17 @@ interface HistoryDiff {
   to: unknown;
 }
 
-type MarkEventKind = 'created' | 'deleted';
-
-interface MarkEvent {
-  kind: MarkEventKind;
-  status: PaymentMarkStatus | null;
-  amount: number | null;
-  comment: string;
-}
-
-interface CopyEvent {
-  amount: number | null;
-  sourcePaidAmount: number | null;
-  sourceId: string | null;
-}
+type ActionKind = 'payment' | 'payment_removed' | 'copy_created' | 'mark' | 'edit';
 
 interface HistoryEntryDiffs {
   entryId: string;
   changedAt: string;
   author: string;
   isCopy: boolean;
+  kind: ActionKind;
+  actionText: string;
+  actionColor: string;
   diffs: HistoryDiff[];
-  paymentDiff: { from: boolean; to: boolean; amount: number | null; date: string | null } | null;
-  markEvent: MarkEvent | null;
-  copyEvent: CopyEvent | null;
 }
 
 interface InvoiceHistoryModalProps {
@@ -64,6 +73,14 @@ interface InvoiceHistoryModalProps {
   opened: boolean;
   onClose: () => void;
 }
+
+const ACTION_ICONS: Record<ActionKind, ReactNode> = {
+  payment: <IconCircleCheckFilled size={16} />,
+  payment_removed: <IconX size={16} />,
+  copy_created: <IconCopy size={16} />,
+  mark: <IconFlag size={16} />,
+  edit: <IconPencil size={16} />,
+};
 
 export function InvoiceHistoryModal({
   invoiceId,
@@ -92,6 +109,8 @@ export function InvoiceHistoryModal({
     : [];
   entries.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
 
+  const hasDiff = entries.some((e) => e.kind === 'edit' && e.diffs.length > 0);
+
   return (
     <Modal opened={opened} onClose={onClose} title={`История: ${invoiceLabel}`} size="lg">
       {isLoading && <Loader size="sm" />}
@@ -108,49 +127,61 @@ export function InvoiceHistoryModal({
 
       {!isLoading && !isError && entries.length > 0 && (
         <>
-          <Text size="xs" c="dimmed" mb="sm">
-            Старые значения зачёркнуты
-          </Text>
+          {hasDiff && (
+            <Text size="xs" c="dimmed" mb="sm">
+              Старые значения зачёркнуты
+            </Text>
+          )}
           {entries.map((item) => (
             <Paper key={item.entryId} p="sm" mb="xs" withBorder radius="sm">
               <Group justify="space-between" mb={4}>
                 <Text size="xs" fw={600}>
-                  {dayjs(item.changedAt).format('DD.MM.YYYY HH:mm:ss')}
+                  {dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')}
                 </Text>
                 <Text size="xs" c="dimmed">
                   {item.author}
                 </Text>
               </Group>
               <Divider mb={6} />
-              <Group gap={4} wrap="wrap">
+              <Group gap={8} wrap="wrap" align="center">
+                <Box c={item.actionColor} style={{ display: 'flex' }}>
+                  {ACTION_ICONS[item.kind]}
+                </Box>
                 {item.isCopy && (
                   <Badge size="xs" variant="light" color="gray">
                     копия
                   </Badge>
                 )}
-                {item.copyEvent && <CopyEventBadge event={item.copyEvent} />}
-                {item.markEvent && <MarkEventBadge event={item.markEvent} />}
-                {item.paymentDiff && (
-                  <PaymentBadge diff={item.paymentDiff} />
-                )}
-                {item.diffs.map((diff) => (
-                  <Badge
-                    key={diff.key}
-                    variant="light"
-                    color={FIELD_COLORS[diff.key] ?? 'gray'}
-                    size="sm"
-                  >
-                    {FIELD_LABELS[diff.key] ?? diff.key}:{' '}
-                    <Text component="span" td="line-through" c="dimmed">
-                      {formatHistoryValue(diff.key, diff.from)}
-                    </Text>
-                    {' → '}
-                    <Text component="span">
-                      {formatHistoryValue(diff.key, diff.to)}
-                    </Text>
-                  </Badge>
-                ))}
+                <Badge
+                  variant="light"
+                  color={item.actionColor}
+                  size="md"
+                  styles={{ label: { whiteSpace: 'normal' } }}
+                >
+                  {item.actionText}
+                </Badge>
               </Group>
+              {item.diffs.length > 0 && (
+                <Group gap={6} wrap="wrap" mt={6} ml={24}>
+                  {item.diffs.map((diff) => (
+                    <Badge
+                      key={diff.key}
+                      variant="light"
+                      color={FIELD_COLORS[diff.key] ?? 'gray'}
+                      size="sm"
+                    >
+                      {FIELD_LABELS[diff.key] ?? diff.key}:{' '}
+                      <Text component="span" td="line-through" c="dimmed">
+                        {formatHistoryValue(diff.key, diff.from)}
+                      </Text>
+                      {' → '}
+                      <Text component="span">
+                        {formatHistoryValue(diff.key, diff.to)}
+                      </Text>
+                    </Badge>
+                  ))}
+                </Group>
+              )}
             </Paper>
           ))}
         </>
@@ -179,58 +210,15 @@ function computeHistoryDiffs(
         ? (JSON.parse(entry.previous_data) as Record<string, unknown>)
         : entry.previous_data;
 
-    const nextPrev =
-      i < sorted.length - 1
-        ? parsePreviousData(sorted[i + 1]!.previous_data)
-        : null;
-
-    const diffs: HistoryDiff[] = [];
-    let paymentDiff: HistoryEntryDiffs['paymentDiff'] = null;
-
     if (entry.type === 'mark_created' || entry.type === 'mark_deleted') {
-      const status = (prev['status'] as PaymentMarkStatus | undefined) ?? null;
-      const amount =
-        typeof prev['amount'] === 'number' ? prev['amount'] : Number(prev['amount'] ?? 0) || null;
-      const comment = typeof prev['comment'] === 'string' ? prev['comment'] : '';
-      const markEvent: HistoryEntryDiffs['markEvent'] = {
-        kind: entry.type === 'mark_created' ? 'created' : 'deleted',
-        status,
-        amount: typeof amount === 'number' && !Number.isNaN(amount) ? amount : null,
-        comment,
-      };
-      results.push({
-        entryId: entry.id,
-        changedAt: entry.changed_at,
-        author: entry.author,
-        isCopy,
-        diffs,
-        paymentDiff,
-        markEvent,
-        copyEvent: null,
-      });
+      results.push(buildMarkEntry(entry, prev, isCopy));
       continue;
     }
 
     if (entry.type === 'copy_created') {
-      const copyEvent: CopyEvent = {
-        amount: typeof prev['amount'] === 'number' ? prev['amount'] : Number(prev['amount'] ?? 0) || null,
-        sourcePaidAmount:
-          typeof prev['source_paid_amount'] === 'number' ? prev['source_paid_amount'] : null,
-        sourceId: typeof prev['original_invoice_id'] === 'string' ? prev['original_invoice_id'] : null,
-      };
-      results.push({
-        entryId: entry.id,
-        changedAt: entry.changed_at,
-        author: entry.author,
-        isCopy,
-        diffs,
-        paymentDiff: null,
-        markEvent: null,
-        copyEvent,
-      });
+      results.push(buildCopyEntry(entry, prev, isCopy));
       continue;
     }
-
 
     const paidFrom = prev['paid'];
     const paidDateFrom = prev['paid_date'];
@@ -240,29 +228,82 @@ function computeHistoryDiffs(
     const totalFrom = amountsFrom.reduce((s, n) => s + n, 0);
 
     let paidTo: unknown = null;
-
-    if (i < sorted.length - 1 && nextPrev) {
-      paidTo = nextPrev['paid'] ?? null;
+    if (i < sorted.length - 1) {
+      const nextPrev = parsePreviousData(sorted[i + 1]!.previous_data);
+      paidTo = nextPrev?.['paid'] ?? null;
     } else if (currentInvoice) {
       paidTo = currentInvoice.paid;
     }
 
-    if (paidFrom != null) {
-      paymentDiff = {
-        from: Boolean(paidFrom),
-        to: Boolean(paidTo),
-        amount: totalFrom || null,
-        date: paidDateFrom && typeof paidDateFrom === 'string' ? paidDateFrom : null,
-      };
+    const paidToBool = Boolean(paidTo);
+    const paidFromBool = Boolean(paidFrom);
+
+    if (paidFrom != null && paidFromBool !== paidToBool) {
+      // Оплата или снятие оплаты — одна цельная карточка.
+      const thisPayment =
+        typeof prev['payment'] === 'number'
+          ? prev['payment']
+          : typeof prev['paid_amount'] === 'number'
+            ? prev['paid_amount']
+            : null;
+      const remaining =
+        typeof prev['remaining'] === 'number'
+          ? prev['remaining']
+          : currentInvoice
+            ? (Number(currentInvoice.amount) || 0) - totalFrom - (thisPayment ?? 0)
+            : null;
+
+      if (!paidFromBool && paidToBool) {
+        results.push({
+          entryId: entry.id,
+          changedAt: entry.changed_at,
+          author: entry.author,
+          isCopy,
+          kind: 'payment',
+          actionText:
+            `Оплачено ${formatAmountRub(thisPayment ?? totalFrom)}` +
+            (paidDateFrom && typeof paidDateFrom === 'string'
+              ? ` · ${dayjs(paidDateFrom).format('DD.MM.YYYY')}`
+              : '') +
+            (remaining != null && remaining > 0 ? ` · остаток ${formatAmountRub(remaining)}` : ''),
+          actionColor: 'teal',
+          diffs: [],
+        });
+        continue;
+      }
+
+      if (paidFromBool && !paidToBool) {
+        const removed =
+          typeof prev['removed_amount'] === 'number'
+            ? prev['removed_amount']
+            : thisPayment ?? totalFrom;
+        results.push({
+          entryId: entry.id,
+          changedAt: entry.changed_at,
+          author: entry.author,
+          isCopy,
+          kind: 'payment_removed',
+          actionText:
+            `Снята оплата ${formatAmountRub(removed)}` +
+            (remaining != null && remaining > 0 ? ` · остаток ${formatAmountRub(remaining)}` : ''),
+          actionColor: 'red',
+          diffs: [],
+        });
+        continue;
+      }
     }
 
+    // Обычное изменение полей счёта.
+    const diffs: HistoryDiff[] = [];
     for (const [key, value] of Object.entries(prev)) {
       if (HIDDEN_FIELDS.has(key)) continue;
-      if (key === 'paid' || key === 'paid_date') continue;
 
       let toValue: unknown = null;
-      if (i < sorted.length - 1 && nextPrev && key in nextPrev) {
-        toValue = nextPrev[key];
+      if (i < sorted.length - 1) {
+        const nextPrev = parsePreviousData(sorted[i + 1]!.previous_data);
+        if (nextPrev && key in nextPrev) {
+          toValue = nextPrev[key];
+        }
       } else if (currentInvoice && key in currentInvoice) {
         toValue = (currentInvoice as Record<string, unknown>)[key];
       }
@@ -270,21 +311,78 @@ function computeHistoryDiffs(
       diffs.push({ key, from: value, to: toValue });
     }
 
-    if (paymentDiff || diffs.length > 0) {
+    if (diffs.length > 0) {
       results.push({
         entryId: entry.id,
         changedAt: entry.changed_at,
         author: entry.author,
         isCopy,
+        kind: 'edit',
+        actionText: 'Изменены поля счёта',
+        actionColor: 'gray',
         diffs,
-        paymentDiff,
-        markEvent: null,
-        copyEvent: null,
       });
     }
   }
 
   return results.reverse();
+}
+
+function buildMarkEntry(
+  entry: IInvoiceHistory,
+  prev: Record<string, unknown>,
+  isCopy: boolean,
+): HistoryEntryDiffs {
+  const status = (prev['status'] as PaymentMarkStatus | undefined) ?? null;
+  const rawAmount = typeof prev['amount'] === 'number' ? prev['amount'] : (Number(prev['amount'] ?? 0) || null);
+  const amount = typeof rawAmount === 'number' && !Number.isNaN(rawAmount) ? rawAmount : null;
+  const comment = typeof prev['comment'] === 'string' ? prev['comment'] : '';
+
+  const label = markStatusLabel(status);
+  const amountText = amount != null ? ` ${formatAmountRub(amount)}` : '';
+  const commentText = comment ? ` (${comment})` : '';
+
+  const deleted = entry.type === 'mark_deleted';
+  return {
+    entryId: entry.id,
+    changedAt: entry.changed_at,
+    author: entry.author,
+    isCopy,
+    kind: 'mark',
+    actionText: deleted
+      ? `Отменена отметка «${label}${amountText}»${commentText}`
+      : `Добавлена отметка «${label}${amountText}»${commentText}`,
+    actionColor: deleted ? 'red' : 'violet',
+    diffs: [],
+  };
+}
+
+function buildCopyEntry(
+  entry: IInvoiceHistory,
+  prev: Record<string, unknown>,
+  isCopy: boolean,
+): HistoryEntryDiffs {
+  const amount =
+    typeof prev['amount'] === 'number' ? prev['amount'] : (Number(prev['amount'] ?? 0) || null);
+  const sourcePaid =
+    typeof prev['source_paid_amount'] === 'number' ? prev['source_paid_amount'] : null;
+
+  const text =
+    `Создана копия-остаток${amount != null ? ` ${formatAmountRub(amount)}` : ''}` +
+    (sourcePaid != null && sourcePaid > 0
+      ? ` (из частичной оплаты ${formatAmountRub(sourcePaid)})`
+      : '');
+
+  return {
+    entryId: entry.id,
+    changedAt: entry.changed_at,
+    author: entry.author,
+    isCopy,
+    kind: 'copy_created',
+    actionText: text,
+    actionColor: 'gray',
+    diffs: [],
+  };
 }
 
 function parsePreviousData(data: unknown): Record<string, unknown> | null {
@@ -297,41 +395,6 @@ function parsePreviousData(data: unknown): Record<string, unknown> | null {
     }
   }
   return data as Record<string, unknown>;
-}
-
-function PaymentBadge({ diff }: { diff: HistoryEntryDiffs['paymentDiff'] & {} }) {
-  if (diff.from && !diff.to) {
-    return (
-      <Badge variant="light" color="red" size="sm">
-        <Text component="span" td="line-through">
-          Оплачено{diff.amount ? ` · ${formatAmountRub(diff.amount)}` : ''}
-          {diff.date ? ` · ${dayjs(diff.date).format('DD.MM.YYYY')}` : ''}
-        </Text>
-      </Badge>
-    );
-  }
-
-  if (!diff.from && diff.to) {
-    return (
-      <Badge variant="light" color="teal" size="sm">
-        <Text component="span" td="line-through" c="dimmed">
-          Не оплачено
-        </Text>
-        {' → '}
-        <Text component="span">Оплачено</Text>
-      </Badge>
-    );
-  }
-
-  if (diff.from && diff.to) {
-    return (
-      <Badge variant="light" color="teal" size="sm">
-        Оплачено
-      </Badge>
-    );
-  }
-
-  return null;
 }
 
 function formatHistoryValue(key: string, value: unknown): string {
@@ -348,39 +411,4 @@ const MARK_STATUS_LABELS: Record<PaymentMarkStatus, string> = {
 
 function markStatusLabel(status: PaymentMarkStatus | null): string {
   return status ? MARK_STATUS_LABELS[status] : 'Отметка';
-}
-
-function CopyEventBadge({ event }: { event: CopyEvent }) {
-  const amountText = event.amount ? ` · остаток ${formatAmountRub(event.amount)}` : '';
-  const paidText = event.sourcePaidAmount
-    ? ` · из частичной оплаты ${formatAmountRub(event.sourcePaidAmount)}`
-    : '';
-  return (
-    <Badge variant="light" color="gray" size="sm">
-      Создана копия{amountText}{paidText}
-    </Badge>
-  );
-}
-
-function MarkEventBadge({ event }: { event: MarkEvent }) {
-  const statusText = markStatusLabel(event.status);
-  const amountText = event.amount ? ` · ${formatAmountRub(event.amount)}` : '';
-  const commentText = event.comment ? ` · ${event.comment}` : '';
-
-  if (event.kind === 'deleted') {
-    return (
-      <Badge variant="light" color="red" size="sm">
-        <Text component="span" td="line-through" c="dimmed">
-          {statusText}:{amountText} - отменена
-        </Text>
-        {commentText && <Text component="span"> {commentText}</Text>}
-      </Badge>
-    );
-  }
-
-  return (
-    <Badge variant="light" color="violet" size="sm">
-      {statusText}{amountText}{commentText}
-    </Badge>
-  );
 }

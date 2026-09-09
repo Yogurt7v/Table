@@ -287,11 +287,14 @@ export function InvoiceTable({
     const invoice = invoices.find((i) => i.id === invoiceId);
     if (!invoice) return;
     const newAmounts = [...(invoice.payment_amounts ?? []), amount];
+    const remaining = (Number(invoice.amount) || 0) - newAmounts.reduce((s, a) => s + (Number(a) || 0), 0);
     const previousData: Record<string, unknown> = {
       paid: invoice.paid,
       payment_amounts: invoice.payment_amounts,
       paid_amount: invoice.paid_amount,
       paid_date: invoice.paid_date,
+      remaining,
+      payment: amount,
     };
     updateInvoice.mutate(
       {
@@ -338,6 +341,8 @@ export function InvoiceTable({
       payment_amounts: invoice.payment_amounts,
       paid_amount: invoice.paid_amount,
       paid_date: invoice.paid_date,
+      remaining: (Number(invoice.amount) || 0) - newAmounts.reduce((s, a) => s + (Number(a) || 0), 0),
+      removed_amount: invoice.paid_amount ?? null,
     };
     updateInvoice.mutate(
       {

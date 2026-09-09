@@ -50,6 +50,7 @@ const mockPaymentEntry: IInvoiceHistory = {
     paid_date: '2026-06-01',
     payment_amounts: [10000],
     paid_amount: 10000,
+    payment: 10000,
   },
 };
 
@@ -152,10 +153,12 @@ describe('InvoiceHistoryModal', () => {
         paid: false,
         paid_date: '2026-06-01',
         payment_amounts: [5000],
+        paid_amount: 5000,
+        payment: 5000,
       },
     };
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(
-      mockChain([paidEntry], { ...mockInvoice, paid: true, paid_date: '2026-06-01', payment_amounts: [5000] }),
+      mockChain([paidEntry], { ...mockInvoice, paid: true, paid_date: '2026-06-01', payment_amounts: [5000], paid_amount: 5000 }),
     );
 
     renderWithProviders(
@@ -168,11 +171,51 @@ describe('InvoiceHistoryModal', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Не оплачено/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Оплачено 5[\s\u00a0]000,00 ₽ · 01\.06\.2026 · остаток 40[\s\u00a0]000,00 ₽/),
+      ).toBeInTheDocument();
     });
+  });
+
+  it('shows the actual payment amount even when the invoice was not paid before', async () => {
+    const firstPayment: IInvoiceHistory = {
+      id: 'h7',
+      invoice_id: 'inv1',
+      author: 'Админ',
+      changed_at: '2026-09-09T15:18:00Z',
+      previous_data: {
+        paid: false,
+        paid_amount: null,
+        payment_amounts: [],
+        paid_date: '',
+        payment: 400,
+        remaining: 3000,
+      },
+    };
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(
+      mockChain([firstPayment], {
+        ...mockInvoice,
+        amount: 3400,
+        paid: true,
+        paid_date: '2026-09-09',
+        payment_amounts: [400],
+        paid_amount: 400,
+      }),
+    );
+
+    renderWithProviders(
+      <InvoiceHistoryModal
+        opened
+        invoiceId="inv1"
+        invoiceLabel="Счёт №1"
+        onClose={() => {}}
+      />,
+    );
 
     await waitFor(() => {
-      expect(screen.getByText(/Оплачено/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Оплачено 400,00 ₽ · остаток 3[\s\u00a0]000,00 ₽/),
+      ).toBeInTheDocument();
     });
   });
 
@@ -246,7 +289,7 @@ describe('InvoiceHistoryModal', () => {
     expect(screen.getByText(/Срочно/)).toBeInTheDocument();
   });
 
-  it('shows mark deleted event with line-through', async () => {
+  it('shows mark deleted event', async () => {
     const markEntry: IInvoiceHistory = {
       id: 'h5',
       invoice_id: 'inv1',
@@ -271,10 +314,7 @@ describe('InvoiceHistoryModal', () => {
     });
 
     await waitFor(() => {
-      const struck = screen.getByText(/отменена/);
-      expect(struck.closest('[class*="mantine-Text-root"]')).toHaveStyle({
-        textDecoration: 'line-through',
-      });
+      expect(screen.getByText(/Отменена отметка «Согласование 50[\s\u00a0]000,00 ₽»/)).toBeInTheDocument();
     });
   });
 
