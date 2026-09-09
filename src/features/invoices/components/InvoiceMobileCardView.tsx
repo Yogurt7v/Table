@@ -49,6 +49,7 @@ interface Permissions {
 interface InvoiceMobileCardViewProps {
   invoices: IInvoice[];
   allInvoices?: IInvoice[];
+  counterpartyOrder?: string[];
   marksByInvoice: Record<string, IPaymentMark>;
   filesByInvoice?: Record<string, IInvoiceFile[]>;
   highlightedIds: string[];
@@ -86,6 +87,7 @@ function shortenFileName(name: string): string {
 export function InvoiceMobileCardView({
   invoices,
   allInvoices,
+  counterpartyOrder,
   marksByInvoice,
   filesByInvoice,
   highlightedIds,
@@ -110,7 +112,7 @@ export function InvoiceMobileCardView({
   onOpenPartialModal,
 }: InvoiceMobileCardViewProps) {
   const userMap = useUserMap();
-  const groups = groupInvoicesByCounterparty(invoices, allInvoices);
+  const groups = groupInvoicesByCounterparty(invoices, allInvoices, counterpartyOrder);
   const [draftErrors, setDraftErrors] = useState<DraftFieldErrors>({});
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const draftCardRef = useAutoScrollIntoView<HTMLDivElement>({

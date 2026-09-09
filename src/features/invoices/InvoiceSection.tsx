@@ -124,7 +124,8 @@ function ObjectsList({
   return (
     <>
       <Group justify="space-between" mb="sm" wrap="wrap">
-        <Group gap={8}>
+        <Group gap={8} justify="space-around">
+
           <Title order={5}>Счета</Title>
           <Tooltip label="Настройка колонок">
             <ActionIcon
@@ -208,11 +209,7 @@ function ObjectsList({
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>
-          {paidTodayTotal > 0 && (
-            <Text size="sm" c="dimmed">
-              Оплачено: {formatAmountRub(paidTodayTotal)}
-            </Text>
-          )}
+
           {objects.length > 1 && (
             <Button
               size="compact-sm"
@@ -226,6 +223,11 @@ function ObjectsList({
             </Button>
           )}
         </Group>
+        {paidTodayTotal > 0 && (
+          <Text size="lg">
+            Оплачено: {formatAmountRub(paidTodayTotal)}
+          </Text>
+        )}
       </Group>
       {objects.map((obj) => (
         <InvoiceObjectBlock

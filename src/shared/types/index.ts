@@ -27,6 +27,7 @@ export interface IAccountingObject {
   organization_id: string;
   name: string;
   sort?: number;
+  counterparty_order?: string[];
 }
 
 export interface IInvoice {

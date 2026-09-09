@@ -156,12 +156,14 @@ interface GroupedInvoiceTableProps {
   onReorderGroups?: (counterpartyOrder: string[]) => void;
   onAddClick?: () => void;
   allInvoices?: IInvoice[];
+  counterpartyOrder?: string[];
 }
 
 export function GroupedInvoiceTable({
   orgId,
   invoices,
   allInvoices,
+  counterpartyOrder,
   isDraftOpen,
   draftForm,
   counterpartyResults,
@@ -190,8 +192,8 @@ export function GroupedInvoiceTable({
 }: GroupedInvoiceTableProps) {
   const userMap = useUserMap();
   const groups = useMemo(
-    () => groupInvoicesByCounterparty(invoices, allInvoices),
-    [invoices, allInvoices],
+    () => groupInvoicesByCounterparty(invoices, allInvoices, counterpartyOrder),
+    [invoices, allInvoices, counterpartyOrder],
   );
   const canDrag = permissions.canMove;
 
@@ -670,6 +672,7 @@ export function GroupedInvoiceTable({
       <InvoiceMobileCardView
         invoices={invoices}
         allInvoices={allInvoices}
+        counterpartyOrder={counterpartyOrder}
         marksByInvoice={marksByInvoice}
         filesByInvoice={filesByInvoice}
         highlightedIds={highlightedIds}

@@ -72,10 +72,15 @@ function compareInvoices(
  * появления контрагента). Если передан `allInvoices` (полный список счетов,
  * включая скрытые), порядок групп вычисляется по нему — это сохраняет
  * стабильный порядок контрагентов даже при скрытии части счетов.
+ *
+ * Если передан `counterpartyOrder` (сохранённый пользователем порядок групп),
+ * группы в этом списке идут в указанном порядке; контрагенты, которых в списке
+ * нет (новые), добавляются в конец по моменту первого появления.
  */
 export function groupInvoicesByCounterparty(
   invoices: IInvoice[],
   allInvoices?: IInvoice[],
+  counterpartyOrder?: string[],
 ): InvoiceGroup[] {
   const grouped = new Map<string, IInvoice[]>();
 
@@ -109,14 +114,26 @@ export function groupInvoicesByCounterparty(
     }
   });
 
-  result.sort((a, b) => {
+  const groupIndex = new Map(result.map((g) => [g.counterparty, g]));
+  const orderIndex = new Map(
+    (counterpartyOrder ?? []).map((cp, i) => [cp, i] as const).filter(([cp]) => groupIndex.has(cp)),
+  );
+
+  const known: InvoiceGroup[] = [];
+  const unknown: InvoiceGroup[] = [];
+  result.forEach((group) => {
+    (orderIndex.has(group.counterparty) ? known : unknown).push(group);
+  });
+
+  known.sort((a, b) => orderIndex.get(a.counterparty)! - orderIndex.get(b.counterparty)!);
+  unknown.sort((a, b) => {
     const createdA = orderMap.get(a.counterparty) ?? '';
     const createdB = orderMap.get(b.counterparty) ?? '';
     if (createdA !== createdB) return createdA < createdB ? -1 : 1;
     return 0;
   });
 
-  return result;
+  return [...known, ...unknown];
 }
 
 /**

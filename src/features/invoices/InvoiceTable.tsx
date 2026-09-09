@@ -23,8 +23,7 @@ import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
 import { useUpdateInvoice } from '@/shared/hooks/useUpdateInvoice';
 import { useDeleteInvoice } from '@/shared/hooks/useDeleteInvoice';
 import { useMoveInvoice } from '@/shared/hooks/useMoveInvoice';
-import { useReorderInvoices } from '@/shared/hooks/useReorderInvoices';
-import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
+import { useReorderCounterparties } from '@/shared/hooks/useReorderCounterparties';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { useCreatePaymentMark, useDeletePaymentMark } from '@/shared/hooks/usePaymentMarks';
@@ -82,39 +81,14 @@ export function InvoiceTable({
   const createPaymentMark = useCreatePaymentMark(orgId);
   const deletePaymentMark = useDeletePaymentMark(orgId);
   const createInvoiceFile = useCreateInvoiceFile(orgId);
-  const reorderInvoices = useReorderInvoices(orgId, date);
+  const reorderCounterparties = useReorderCounterparties(orgId);
 
-  const handleReorderGroups = (counterpartyOrder: string[]) => {
-    const groups = groupInvoicesByCounterparty(invoices);
-    const map = new Map(groups.map((g) => [g.counterparty, g.invoices]));
-    const visibleOrder = counterpartyOrder.flatMap((cp) => {
-      const g = map.get(cp);
-      return g ? g.map((inv) => inv.id) : [];
-    });
-    const visibleSet = new Set(visibleOrder);
+  const counterpartyOrder = accountingObjects.find((obj) => obj.id === objectId)?.counterparty_order;
 
-    const allSorted = [...(allInvoices ?? [])].sort((a, b) => {
-      const seqA = (a.seq ?? 0) || Infinity;
-      const seqB = (b.seq ?? 0) || Infinity;
-      return seqA - seqB;
-    });
-
-    const mergedIds: string[] = [];
-    let visIdx = 0;
-    for (const inv of allSorted) {
-      if (visibleSet.has(inv.id)) {
-        mergedIds.push(visibleOrder[visIdx]!);
-        visIdx++;
-      } else {
-        mergedIds.push(inv.id);
-      }
-    }
-    while (visIdx < visibleOrder.length) {
-      mergedIds.push(visibleOrder[visIdx]!);
-      visIdx++;
-    }
-
-    reorderInvoices.mutate(mergedIds);
+  const handleReorderGroups = (newOrder: string[]) => {
+    const stored = counterpartyOrder ?? [];
+    const merged = [...newOrder, ...stored.filter((cp) => !newOrder.includes(cp))];
+    reorderCounterparties.mutate({ objectId, counterpartyOrder: merged });
   };
 
   const [draftForm, setDraftForm] = useState<DraftInvoiceForm>(createEmptyDraft);
@@ -432,6 +406,7 @@ export function InvoiceTable({
         orgId={orgId}
         invoices={invoices}
         allInvoices={allInvoices}
+        counterpartyOrder={counterpartyOrder}
         isDraftOpen={isDraftOpen}
         draftForm={draftForm}
         counterpartyResults={counterpartySearch.results}

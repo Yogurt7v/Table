@@ -142,6 +142,15 @@ export async function updateAccountingObjectsOrder(orderedIds: string[]) {
   );
 }
 
+export function updateAccountingObjectCounterpartyOrder(
+  objectId: string,
+  counterpartyOrder: string[],
+) {
+  return pb
+    .collection('accounting_objects')
+    .update<IAccountingObject>(objectId, { counterparty_order: counterpartyOrder });
+}
+
 export function getInvoices(orgId: string, date: string) {
   const today = date.slice(0, 10);
 
