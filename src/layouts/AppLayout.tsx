@@ -18,6 +18,7 @@ import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
 import { DatePinnedProvider, useDatePinned } from '@/shared/context/DatePinnedContext';
+import { useSearch } from '@/shared/context/SearchContext';
 import { InvoiceSearch } from '@/features/invoices/InvoiceSearch';
 import { NotificationsBell } from '@/features/notifications/NotificationsBell';
 import { MainDatePicker } from '@/shared/components/MainDatePicker';
@@ -38,6 +39,7 @@ function AppLayoutContent() {
   const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const { pinned } = useDatePinned();
+  const { searchText } = useSearch();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 200);
@@ -274,7 +276,9 @@ function AppLayoutContent() {
         <Box
           visibleFrom="sm"
           className={
-            pinned ? 'date-pinned-overlay date-pinned-overlay--visible' : 'date-pinned-overlay'
+            pinned
+              ? `date-pinned-overlay date-pinned-overlay--visible${searchText ? ' date-pinned-overlay--shifted' : ''}`
+              : 'date-pinned-overlay'
           }
           style={{ pointerEvents: 'none' }}
         >

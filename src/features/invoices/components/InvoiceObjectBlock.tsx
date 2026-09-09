@@ -17,6 +17,7 @@ interface InvoiceObjectBlockProps {
   orgId: string;
   date: string;
   highlightedIds: string[];
+  hasSearch: boolean;
   draftObjectId: string | null;
   permissions: { canCreate: boolean };
   accountingObjects: IAccountingObject[];
@@ -36,6 +37,7 @@ export function InvoiceObjectBlock({
   orgId,
   date,
   highlightedIds,
+  hasSearch,
   draftObjectId,
   permissions,
   accountingObjects,
@@ -51,8 +53,9 @@ export function InvoiceObjectBlock({
     if (!invoices) return [];
     return invoices
       .filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id)
-      .filter((i) => matchesInvoiceFilter(i, paymentMarks, activeFilters));
-  }, [invoices, paymentMarks, activeFilters, obj.id]);
+      .filter((i) => matchesInvoiceFilter(i, paymentMarks, activeFilters))
+      .filter((i) => !hasSearch || highlightedIds.includes(i.id));
+  }, [invoices, paymentMarks, activeFilters, obj.id, hasSearch, highlightedIds]);
 
   const { isCollapsed, toggle } = useCollapsedObjects();
   const collapsed = isCollapsed(obj.id);

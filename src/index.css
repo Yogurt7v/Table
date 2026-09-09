@@ -123,6 +123,26 @@ body {
   background-color: var(--mantine-color-body);
   box-shadow: var(--mantine-shadow-md);
   padding: 2px;
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.date-pinned-overlay--shifted .date-pinned-overlay__pill {
+  transform: translateX(150px);
+}
+
+.invoice-search-btn {
+  animation: invoice-search-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes invoice-search-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .date-pinned-row {
@@ -133,7 +153,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   :root,
   .date-pinned-page-calendar,
-  .date-pinned-overlay {
+  .date-pinned-overlay,
+  .date-pinned-overlay__pill,
+  .invoice-search-btn {
     transition: none;
+    animation: none;
   }
 }

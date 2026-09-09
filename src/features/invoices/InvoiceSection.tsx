@@ -78,6 +78,7 @@ interface ObjectsListProps {
   invoices: IInvoice[] | undefined;
   activeFilters: InvoiceFilterType[];
   highlightedIds: string[];
+  hasSearch: boolean;
   draftObjectId: string | null;
   permissions: { canCreate: boolean; role: string };
   paymentMarks: IPaymentMark[] | undefined;
@@ -102,6 +103,7 @@ function ObjectsList({
   invoices,
   activeFilters,
   highlightedIds,
+  hasSearch,
   draftObjectId,
   permissions,
   paymentMarks,
@@ -120,6 +122,12 @@ function ObjectsList({
   const { collapsedIds, collapseAll, expandAll } = useCollapsedObjects();
   const allCollapsed = objects.length > 0 && objects.every((o) => collapsedIds.has(o.id));
   const isFullAccess = permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
+
+  const prevHasSearchRef = useRef(hasSearch);
+  useEffect(() => {
+    if (hasSearch && !prevHasSearchRef.current) expandAll();
+    prevHasSearchRef.current = hasSearch;
+  }, [hasSearch, expandAll]);
 
   return (
     <>
@@ -238,6 +246,7 @@ function ObjectsList({
           orgId={orgId}
           date={date}
           highlightedIds={highlightedIds}
+          hasSearch={hasSearch}
           draftObjectId={draftObjectId}
           permissions={{ canCreate: permissions.canCreate }}
           accountingObjects={objects}
@@ -524,6 +533,7 @@ export function InvoiceSection({
           invoices={invoices}
           activeFilters={activeFilters}
           highlightedIds={highlightedIds}
+          hasSearch={!!debouncedSearchText}
           draftObjectId={draftObjectId}
           permissions={{ canCreate: permissions.canCreate, role: permissions.role }}
           paymentMarks={paymentMarks}

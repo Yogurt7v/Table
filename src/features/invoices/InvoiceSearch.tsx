@@ -27,6 +27,7 @@ export function InvoiceSearch() {
       />
       {searchText && !searchAll && (
         <Button
+          className="invoice-search-btn"
           variant="light"
           size="compact-sm"
           leftSection={<IconArrowsHorizontal size={16} />}
