@@ -51,6 +51,7 @@ export interface IInvoice {
   original_invoice_id?: string;
   source_paid_amount: number;
   source_paid_date: string;
+  source_created?: string;
   created?: string;
 }
 

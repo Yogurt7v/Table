@@ -148,17 +148,10 @@ export function getInvoices(orgId: string, date: string) {
   return pb
     .collection('invoices')
     .getFullList<IInvoice>({
-      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || (paid = true && (paid_date ~ "${today}" || paid_date > "${today}")) || (original_invoice_id != "" && date = "${today}"))`,
+      filter: `organization_id = "${orgId}" && date <= "${today} 23:59:59" && (paid = false || paid_date >= "${today}")`,
       sort: '-created',
     })
-    .then((list) =>
-      list.map(normalizeInvoice).map((inv) => {
-        if (inv.paid && inv.paid_date > today) {
-          return { ...inv, paid: false, paid_date: '', paid_amount: null, payment_amounts: [] };
-        }
-        return inv;
-      }),
-    );
+    .then((list) => list.map(normalizeInvoice));
 }
 
 export function getInvoice(invoiceId: string) {
@@ -211,6 +204,7 @@ export type CreateInvoiceInput = {
   original_invoice_id?: string;
   source_paid_amount?: number;
   source_paid_date?: string;
+  source_created?: string;
 };
 
 export function createInvoice(data: CreateInvoiceInput) {
@@ -231,6 +225,7 @@ export function createInvoice(data: CreateInvoiceInput) {
       original_invoice_id: data.original_invoice_id ?? '',
       source_paid_amount: data.source_paid_amount ?? 0,
       source_paid_date: data.source_paid_date ?? '',
+      source_created: data.source_created || undefined,
     })
     .then(normalizeInvoice);
 }
@@ -254,6 +249,25 @@ async function deleteInvoiceTree(invoiceId: string) {
 }
 
 /**
+ * Поднимается по цепочке original_invoice_id от счёта до верхнего оригинала
+ * и возвращает его created (момент добавления корня). Если корня нет —
+ * created самого счёта.
+ */
+export async function getRootOriginalCreated(invoice: IInvoice): Promise<string> {
+  let current = invoice;
+  const seen = new Set<string>([invoice.id]);
+  while (current.original_invoice_id && !seen.has(current.original_invoice_id)) {
+    seen.add(current.original_invoice_id);
+    try {
+      current = await getInvoice(current.original_invoice_id);
+    } catch {
+      break;
+    }
+  }
+  return current.created || invoice.created || '';
+}
+
+/**
  * Синхронизирует копию счёта на остаток: удаляет старые копии (вместе с
  * вложенной цепочкой) и при положительном остатке создаёт новую со всеми
  * полями оригинала (дата — день оплаты payDate).
@@ -269,6 +283,7 @@ export async function syncInvoiceCopy(
 
   if (!paid) return null;
 
+  const sourceCreated = await getRootOriginalCreated(source);
   const totalPaid = amounts.reduce((s, a) => s + (Number(a) || 0), 0);
   const remaining = (Number(source.amount) || 0) - totalPaid;
   if (remaining <= 0) return null;
@@ -286,6 +301,7 @@ export async function syncInvoiceCopy(
     original_invoice_id: source.id,
     source_paid_amount: totalPaid,
     source_paid_date: payDate || source.date,
+    source_created: sourceCreated,
   }).then((copy) =>
     createInvoiceHistoryRecord(copy.id, {
       type: 'copy_created',
