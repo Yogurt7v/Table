@@ -25,6 +25,7 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
         input: {
           fontWeight: 700,
           fontSize: isHeader ? 'var(--mantine-font-size-md)' : 'var(--mantine-font-size-lg)',
+          ...(isHeader ? {} : { boxShadow: 'var(--mantine-shadow-sm)' }),
         }
       }}
       renderDay={(renderDate) => {

@@ -75,9 +75,23 @@ export function InvoiceObjectBlock({
       key={obj.id}
       withBorder
       p="sm"
-      style={{ borderLeft: '3px solid var(--org-color, #228be6)' }}
+      style={{
+        borderLeft: '3px solid var(--org-color, #228be6)',
+        boxShadow: 'var(--mantine-shadow-sm)',
+      }}
     >
-      <Group gap={4} mb="sm" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggle(obj.id)}>
+      <Group
+        gap={4}
+        mb="sm"
+        style={{
+          cursor: 'pointer',
+          userSelect: 'none',
+          border: '1px solid var(--mantine-color-gray-3)',
+          borderRadius: 'var(--mantine-radius-sm)',
+          padding: 'var(--mantine-spacing-xs)',
+        }}
+        onClick={() => toggle(obj.id)}
+      >
         {collapsed ? <IconChevronRight size={18} /> : <IconChevronDown size={18} />}
         <Title order={5}>{obj.name}</Title>
         {onPrint && (

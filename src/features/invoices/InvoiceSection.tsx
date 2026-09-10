@@ -133,7 +133,7 @@ function ObjectsList({
   return (
     <>
       <Group justify="space-between" mb="sm" wrap="wrap">
-        <Group gap={8} justify="space-around">
+        <Group gap={8} justify="flex-start" flex="1">
 
           <Title order={5}>Счета</Title>
           <Tooltip label="Настройка колонок">
@@ -224,7 +224,7 @@ function ObjectsList({
               size="compact-sm"
               variant="light"
               color="gray"
-              w={300}
+              flex="1"
               rightSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
               onClick={allCollapsed ? expandAll : collapseAll}
             >

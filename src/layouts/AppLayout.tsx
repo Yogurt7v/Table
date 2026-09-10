@@ -72,7 +72,7 @@ function AppLayoutContent() {
 
   return (
     <AppShell header={{ height: { base: pinned ? 132 : 88, sm: 56 } }} padding="md">
-      <AppShell.Header style={{ borderBottom: '3px solid var(--org-color, #228be6)' }}>
+      <AppShell.Header style={{ borderBottom: '3px solid var(--org-color, #228be6)', boxShadow: '0 3px 10px color-mix(in srgb, var(--org-color, #228be6) 35%, transparent)' }}>
         {/* Mobile layout */}
         <Box hiddenFrom="sm" h="100%" px="md">
           <Stack h="100%" gap={4} justify="center">

@@ -100,7 +100,7 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
   const canEditHere = canEdit; // && isToday
 
   return (
-    <Paper withBorder p="sm" w={{ base: '100%', md: '50%' }}>
+    <Paper withBorder p="sm" w={{ base: '100%', md: '50%' }} style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
       <Title order={6} mb="xs">
         Расчётные счета
       </Title>

@@ -159,7 +159,10 @@ export function InvoiceMobileCardView({
             key={group.counterparty}
             withBorder
             p="sm"
-            style={{ borderLeft: '3px solid var(--org-color, #228be6)' }}
+            style={{
+              borderLeft: '3px solid var(--org-color, #228be6)',
+              boxShadow: 'var(--mantine-shadow-sm)',
+            }}
           >
             <Text fw={700} size="md" mb="xs">
               {group.counterparty}
