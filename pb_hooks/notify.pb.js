@@ -198,6 +198,74 @@ onRecordUpdate((e) => {
   e.next();
 }, 'invoices');
 
+// ── Invoice Restored (notification) ──
+
+onRecordCreateRequest((e) => {
+  e.next();
+  try {
+    if (!e.auth) return;
+    if (e.record.get('type') !== 'invoice_restored') return;
+    var invId = e.record.get('invoice_id');
+    if (!invId) return;
+    var rec = $app.findRecordById('invoices', invId);
+    if (!rec) return;
+
+    var invOrgId = rec.get('organization_id');
+    var actorId = e.auth.id;
+    var actorName = 'Пользователь';
+    if (actorId) {
+      try {
+        var actorUser = $app.findRecordById('users', actorId);
+        if (actorUser) actorName = actorUser.get('name') || actorUser.get('email') || 'Пользователь';
+      } catch (_) {}
+    }
+    var counterparty = rec.get('counterparty');
+    var amount = rec.get('amount');
+    var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
+    var eventText = 'Счёт восстановлен из архива: ' + counterparty + ', ' + amtStr + ' \u20BD';
+
+    var objName = '';
+    try {
+      var obj = $app.findRecordById('accounting_objects', rec.get('accounting_object_id'));
+      objName = obj ? (obj.get('name') || '') : '';
+    } catch (_) {
+      objName = '';
+    }
+
+    var invPaid = rec.get('paid') || false;
+    var invDate = rec.get('date') || '';
+
+    var orgUsers = $app.findRecordsByFilter(
+      'organization_users',
+      '(role = "admin" || role = "moderator") && organization_id = "' + invOrgId + '"',
+      '',
+      0,
+      0,
+    );
+    for (var i = 0; i < orgUsers.length; i++) {
+      var userId = orgUsers[i].get('user_id');
+      if (userId === actorId) continue;
+      var notifCol = $app.findCollectionByNameOrId('notifications');
+      var notifRec = new Record(notifCol);
+      notifRec.set('organization_id', invOrgId);
+      notifRec.set('user_id', userId);
+      notifRec.set('invoice_id', invId);
+      notifRec.set('type', 'invoice_restored');
+      notifRec.set('event', eventText);
+      notifRec.set('message', eventText);
+      notifRec.set('actor_name', actorName);
+      notifRec.set('read', false);
+      notifRec.set('object_name', objName);
+      notifRec.set('amount', amount);
+      notifRec.set('paid', invPaid);
+      notifRec.set('invoice_date', invDate);
+      $app.save(notifRec);
+    }
+  } catch (err) {
+    console.error('[notify:restore]', String(err));
+  }
+}, 'invoice_history');
+
 // ── Payment Mark Created (notification) ──
 
 onRecordCreate((e) => {

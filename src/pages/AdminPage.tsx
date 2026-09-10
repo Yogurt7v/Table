@@ -8,7 +8,7 @@ import {
   Tabs,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useUsers, useDeleteUser } from '@/shared/hooks/useUsers';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
@@ -25,6 +25,7 @@ import { EditOrgModal } from '@/features/admin/EditOrgModal';
 import { DeleteOrgModal } from '@/features/admin/DeleteOrgModal';
 import { OrganizationAdminTable } from '@/features/admin/OrganizationAdminTable';
 import { UserAdminTable } from '@/features/admin/UserAdminTable';
+import { DeletedInvoicesSection } from '@/features/admin/DeletedInvoicesSection';
 import { buildUserDeleteConsequences } from '@/features/admin/user-delete-consequences';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import {
@@ -54,6 +55,7 @@ const COLOR_NAME: Record<string, string> = Object.fromEntries(
 
 export function AdminPage() {
   const { organizations, currentOrgId } = useOrg();
+  const queryClient = useQueryClient();
   const { data: users } = useUsers();
   const { data: orgUsers } = useOrganizationUsers();
   const deleteUser = useDeleteUser();
@@ -182,10 +184,18 @@ export function AdminPage() {
         <Title order={3}>Администрирование</Title>
       </Group>
 
-      <Tabs defaultValue="organizations">
+      <Tabs
+        defaultValue="organizations"
+        onChange={(value) => {
+          if (value === 'archive') {
+            queryClient.invalidateQueries({ queryKey: ['deleted_invoices'] });
+          }
+        }}
+      >
         <Tabs.List>
           <Tabs.Tab value="organizations">Организации</Tabs.Tab>
           <Tabs.Tab value="users">Пользователи</Tabs.Tab>
+          <Tabs.Tab value="archive">Архив счетов</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="organizations" pt="md">
@@ -208,6 +218,10 @@ export function AdminPage() {
             onAdd={() => setCreateOpened(true)}
             onDelete={(target) => setDeleteUserTarget(target)}
           />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="archive" pt="md">
+          {currentOrgId && <DeletedInvoicesSection orgId={currentOrgId} />}
         </Tabs.Panel>
       </Tabs>
 

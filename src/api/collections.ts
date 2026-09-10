@@ -9,12 +9,16 @@ import type {
   IInvoice,
   IInvoiceFile,
   IInvoiceHistory,
+  InvoiceHistoryType,
   INotification,
   IPaymentMark,
   PaymentMarkStatus,
   IUser,
   IUserSetting,
   IOrganizationUser,
+  IDeletedInvoice,
+  IDeletedInvoiceHistory,
+  IDeletedInvoiceFile,
 } from '@/shared/types';
 
 export function getOrganizations() {
@@ -341,9 +345,60 @@ export async function updateInvoiceWithHistory(
 }
 
 export async function deleteInvoice(id: string) {
+  const invoice = await pb.collection('invoices').getOne<IInvoice>(id);
+
   const historyRecords = await pb.collection('invoice_history').getFullList<IInvoiceHistory>({
     filter: `invoice_id = "${id}"`,
   });
+
+  const files = await pb.collection('invoice_files').getFullList<IInvoiceFile>({
+    filter: `invoice_id = "${id}" && is_deleted != true`,
+  });
+
+  // Create archive record first — we need its ID for history/files
+  const deletedInvoice = await pb.collection('deleted_invoices').create<IDeletedInvoice>({
+    original_id: invoice.id,
+    organization_id: invoice.organization_id,
+    accounting_object_id: invoice.accounting_object_id,
+    date: invoice.date,
+    seq: invoice.seq,
+    counterparty: invoice.counterparty,
+    purpose: invoice.purpose,
+    contract_no: invoice.contract_no,
+    invoice_no: invoice.invoice_no,
+    amount: invoice.amount,
+    paid: invoice.paid,
+    paid_date: invoice.paid_date,
+    paid_amount: invoice.paid_amount,
+    payment_amounts: invoice.payment_amounts,
+    comment: invoice.comment,
+    copy_comments: invoice.copy_comments,
+    created_by: invoice.created_by,
+    updated_by: invoice.updated_by,
+    original_invoice_id: invoice.original_invoice_id || '',
+    source_paid_amount: invoice.source_paid_amount,
+    source_paid_date: invoice.source_paid_date,
+    source_created: invoice.source_created,
+    deleted_by: pb.authStore.model?.id ?? '',
+    deleted_by_name: pb.authStore.model?.name || pb.authStore.model?.email || '',
+    deleted_at: new Date().toISOString(),
+  });
+
+  await archiveDeletedInvoiceHistory(deletedInvoice.id, historyRecords);
+  await archiveDeletedInvoiceFiles(deletedInvoice.id, files);
+
+  await pb.collection('deleted_invoice_history').create<IDeletedInvoiceHistory>({
+    deleted_invoice_id: deletedInvoice.id,
+    author: getCurrentAuthor(),
+    changed_at: new Date().toISOString(),
+    previous_data: {
+      deleted_by: deletedInvoice.deleted_by,
+      deleted_by_name: deletedInvoice.deleted_by_name,
+      deleted_at: deletedInvoice.deleted_at,
+    },
+    type: 'invoice_deleted',
+  });
+
   await Promise.all(
     historyRecords.map((record) => pb.collection('invoice_history').delete(record.id)),
   );
@@ -578,6 +633,173 @@ export function getInvoiceFileUrl(fileRecord: IInvoiceFile) {
 
 export function getInvoiceFileDownloadUrl(data: { file_id: string; file: string }) {
   return pb.files.getURL({ id: data.file_id, collectionName: 'invoice_files' }, data.file);
+}
+
+// --- Deleted Invoices (Archive) ---
+
+async function archiveDeletedInvoiceHistory(
+  deletedInvoiceId: string,
+  history: IInvoiceHistory[],
+) {
+  for (const h of history) {
+    try {
+      await pb.collection('deleted_invoice_history').create<IDeletedInvoiceHistory>({
+        deleted_invoice_id: deletedInvoiceId,
+        author: h.author,
+        changed_at: h.changed_at,
+        previous_data: h.previous_data,
+        type: h.type || '',
+      });
+    } catch {
+      // history archival is best-effort
+    }
+  }
+}
+
+async function archiveDeletedInvoiceFiles(invoiceId: string, files: IInvoiceFile[]) {
+  for (const f of files) {
+    const url = getInvoiceFileUrl(f);
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const fileObj = new File([blob], f.name);
+      const formData = new FormData();
+      formData.append('deleted_invoice_id', invoiceId);
+      formData.append('file', fileObj);
+      formData.append('name', f.name);
+      formData.append('original_file_id', f.id);
+      await pb.collection('deleted_invoice_files').create<IDeletedInvoiceFile>(formData);
+    } catch {
+      // file archival is best-effort
+    }
+  }
+}
+
+export function getDeletedInvoices(orgId: string) {
+  return pb.collection('deleted_invoices').getFullList<IDeletedInvoice>({
+    filter: `organization_id = "${orgId}"`,
+    sort: '-deleted_at',
+    expand: 'accounting_object_id',
+  });
+}
+
+export function searchDeletedInvoices(orgId: string, query: string) {
+  const clean = query.trim();
+  if (!clean) return getDeletedInvoices(orgId);
+  return pb.collection('deleted_invoices').getFullList<IDeletedInvoice>({
+    filter: `organization_id = "${orgId}" && (counterparty ~ "${clean}" || purpose ~ "${clean}" || invoice_no ~ "${clean}")`,
+    sort: '-deleted_at',
+    expand: 'accounting_object_id',
+  });
+}
+
+export function getDeletedInvoiceHistory(deletedInvoiceId: string) {
+  return pb.collection('deleted_invoice_history').getFullList<IDeletedInvoiceHistory>({
+    filter: `deleted_invoice_id = "${deletedInvoiceId}"`,
+    sort: 'changed_at',
+  });
+}
+
+export function getDeletedInvoiceFiles(deletedInvoiceId: string) {
+  return pb.collection('deleted_invoice_files').getFullList<IDeletedInvoiceFile>({
+    filter: `deleted_invoice_id = "${deletedInvoiceId}"`,
+  });
+}
+
+export function getDeletedInvoiceFileUrl(record: IDeletedInvoiceFile) {
+  return pb.files.getURL(record, record.file);
+}
+
+export async function restoreDeletedInvoice(
+  deletedInvoiceId: string,
+): Promise<IInvoice> {
+  const deleted = await pb
+    .collection('deleted_invoices')
+    .getOne<IDeletedInvoice>(deletedInvoiceId);
+
+  // 1. Create new invoice (seq will be auto-numbered)
+  const newInvoice = await pb
+    .collection('invoices')
+    .create<IInvoice>({
+      organization_id: deleted.organization_id,
+      accounting_object_id: deleted.accounting_object_id,
+      date: deleted.date,
+      counterparty: deleted.counterparty,
+      purpose: deleted.purpose,
+      contract_no: deleted.contract_no,
+      invoice_no: deleted.invoice_no,
+      amount: deleted.amount,
+      paid: deleted.paid,
+      paid_date: deleted.paid_date,
+      comment: deleted.comment,
+      original_invoice_id: deleted.original_invoice_id || '',
+      source_paid_amount: deleted.source_paid_amount,
+      source_paid_date: deleted.source_paid_date,
+      source_created: deleted.source_created || undefined,
+    })
+    .then(normalizeInvoice);
+
+  // 2. Restore history
+  const history = await pb
+    .collection('deleted_invoice_history')
+    .getFullList<IDeletedInvoiceHistory>({
+      filter: `deleted_invoice_id = "${deletedInvoiceId}"`,
+    });
+  for (const h of history) {
+    await pb.collection('invoice_history').create<IInvoiceHistory>({
+      invoice_id: newInvoice.id,
+      author: h.author,
+      changed_at: h.changed_at,
+      previous_data: h.previous_data,
+      type: h.type as InvoiceHistoryType,
+    });
+  }
+
+  // Record the restore event in the new invoice's history
+  await createInvoiceHistoryRecord(newInvoice.id, {
+    type: 'invoice_restored',
+    previous_data: {
+      deleted_by: deleted.deleted_by,
+      deleted_by_name: deleted.deleted_by_name,
+      deleted_at: deleted.deleted_at,
+    },
+  });
+
+  // 3. Restore files
+  const deletedFiles = await pb
+    .collection('deleted_invoice_files')
+    .getFullList<IDeletedInvoiceFile>({
+      filter: `deleted_invoice_id = "${deletedInvoiceId}"`,
+    });
+  for (const df of deletedFiles) {
+    try {
+      const url = getDeletedInvoiceFileUrl(df);
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const file = new File([blob], df.name);
+      await createInvoiceFile(newInvoice.id, deleted.organization_id, file, df.name);
+    } catch {
+      // file restore is best-effort
+    }
+  }
+
+  // 4. Delete from archive
+  await pb.collection('deleted_invoice_history').unsubscribe('*');
+  const archiveHistory = await pb
+    .collection('deleted_invoice_history')
+    .getFullList({ filter: `deleted_invoice_id = "${deletedInvoiceId}"` });
+  await Promise.all(
+    archiveHistory.map((r) => pb.collection('deleted_invoice_history').delete(r.id)),
+  );
+  const archiveFiles = await pb
+    .collection('deleted_invoice_files')
+    .getFullList({ filter: `deleted_invoice_id = "${deletedInvoiceId}"` });
+  await Promise.all(
+    archiveFiles.map((r) => pb.collection('deleted_invoice_files').delete(r.id)),
+  );
+  await pb.collection('deleted_invoices').delete(deletedInvoiceId);
+
+  return newInvoice;
 }
 
 function stripInvisible(s: string): string {

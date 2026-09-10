@@ -542,7 +542,7 @@ export function GroupedInvoiceTable({
                 setPayModalAmount(String(invoice.amount));
               }}
             >
-              Оплатить…
+              Оплатить
             </Button>
           );
         }

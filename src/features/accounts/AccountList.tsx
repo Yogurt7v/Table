@@ -212,7 +212,7 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
           <Table.Tfoot>
             <Table.Tr>
               <Table.Td colSpan={2}>
-                <Group justify="flex-end" gap="xs">
+                <Group justify="flex-end" gap="lg">
                   <Text fw={700}>ИТОГО</Text>
                   <Text fw={700}>{toFixed2(total)}</Text>
                 </Group>

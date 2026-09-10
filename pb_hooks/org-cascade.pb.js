@@ -37,6 +37,14 @@ onRecordDelete((e) => {
   // Счета
   deleteByFilter('invoices', 'organization_id = "' + orgId + '"');
 
+  // Архив удалённых счетов
+  deleteByFilter('deleted_invoice_files', 'deleted_invoice_id.organization_id = "' + orgId + '"');
+  var deletedInvoices = $app.findRecordsByFilter('deleted_invoices', 'organization_id = "' + orgId + '"', '', 0, 0);
+  for (var k = 0; k < deletedInvoices.length; k++) {
+    deleteByFilter('deleted_invoice_history', 'deleted_invoice_id = "' + deletedInvoices[k].getId() + '"');
+  }
+  deleteByFilter('deleted_invoices', 'organization_id = "' + orgId + '"');
+
   // Балансы и банковские счета
   var accounts = $app.findRecordsByFilter('bank_accounts', 'organization_id = "' + orgId + '"', '', 0, 0);
   for (var j = 0; j < accounts.length; j++) {

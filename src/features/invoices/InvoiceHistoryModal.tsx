@@ -7,6 +7,8 @@ import {
   IconPencil,
   IconFlag,
   IconPaperclip,
+  IconTrash,
+  IconRotate,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -44,7 +46,9 @@ type ActionKind =
   | 'mark'
   | 'edit'
   | 'file_added'
-  | 'file_removed';
+  | 'file_removed'
+  | 'invoice_deleted'
+  | 'invoice_restored';
 
 interface HistoryEntryDiffs {
   entryId: string;
@@ -72,6 +76,8 @@ const ACTION_ICONS: Record<ActionKind, ReactNode> = {
   edit: <IconPencil size={14} />,
   file_added: <IconPaperclip size={14} />,
   file_removed: <IconPaperclip size={14} />,
+  invoice_deleted: <IconTrash size={14} />,
+  invoice_restored: <IconRotate size={14} />,
 };
 
 export function InvoiceHistoryModal({
@@ -254,6 +260,11 @@ function computeHistoryDiffs(
       continue;
     }
 
+    if (entry.type === 'invoice_deleted' || entry.type === 'invoice_restored') {
+      results.push(buildArchiveEntry(entry, prev, isCopy));
+      continue;
+    }
+
     if (entry.type === 'copy_created') {
       results.push(buildCopyEntry(entry, prev, isCopy));
       continue;
@@ -367,6 +378,36 @@ function computeHistoryDiffs(
   }
 
   return results.reverse();
+}
+
+function buildArchiveEntry(
+  entry: IInvoiceHistory,
+  prev: Record<string, unknown>,
+  isCopy: boolean,
+): HistoryEntryDiffs {
+  const deletedBy =
+    typeof prev['deleted_by_name'] === 'string' && prev['deleted_by_name']
+      ? prev['deleted_by_name']
+      : '';
+  const deletedAt =
+    typeof prev['deleted_at'] === 'string' && prev['deleted_at']
+      ? dayjs(prev['deleted_at']).format('DD.MM.YYYY HH:mm')
+      : '';
+
+  const restored = entry.type === 'invoice_restored';
+  const actionText = restored
+    ? 'Счёт восстановлен из архива'
+    : `Счёт удалён${deletedBy ? ` · ${deletedBy}` : ''}${deletedAt ? ` · ${deletedAt}` : ''}`;
+
+  return {
+    entryId: entry.id,
+    changedAt: entry.changed_at,
+    author: entry.author,
+    isCopy,
+    kind: restored ? 'invoice_restored' : 'invoice_deleted',
+    actionText,
+    diffs: [],
+  };
 }
 
 function buildMarkEntry(

@@ -94,7 +94,9 @@ export type InvoiceHistoryType =
   | 'mark_deleted'
   | 'copy_created'
   | 'file_added'
-  | 'file_removed';
+  | 'file_removed'
+  | 'invoice_deleted'
+  | 'invoice_restored';
 
 export interface IInvoiceHistory {
   id: string;
@@ -138,7 +140,7 @@ export interface INotification {
   organization_id: string;
   user_id: string;
   invoice_id: string;
-  type: 'invoice_created' | 'invoice_updated' | 'payment_marked';
+  type: 'invoice_created' | 'invoice_updated' | 'payment_marked' | 'invoice_restored';
   event: string;
   message: string;
   actor_name: string;
@@ -148,6 +150,57 @@ export interface INotification {
   invoice_date?: string;
   read: boolean;
   created: string;
+}
+
+export interface IDeletedInvoice {
+  id: string;
+  original_id: string;
+  organization_id: string;
+  accounting_object_id: string;
+  date: string;
+  seq: number;
+  counterparty: string;
+  purpose: string;
+  contract_no: string;
+  invoice_no: string;
+  amount: number;
+  paid: boolean;
+  paid_date: string;
+  paid_amount: number | null;
+  payment_amounts: number[];
+  comment: string;
+  copy_comments: Record<string, string>;
+  created_by: string;
+  updated_by: string;
+  original_invoice_id: string;
+  source_paid_amount: number;
+  source_paid_date: string;
+  source_created: string;
+  deleted_by: string;
+  deleted_by_name: string;
+  deleted_at: string;
+  created: string;
+  expand?: {
+    accounting_object_id?: IAccountingObject;
+  };
+}
+
+export interface IDeletedInvoiceHistory {
+  id: string;
+  deleted_invoice_id: string;
+  author: string;
+  changed_at: string;
+  previous_data: Record<string, unknown>;
+  type: string;
+}
+
+export interface IDeletedInvoiceFile {
+  id: string;
+  deleted_invoice_id: string;
+  name: string;
+  file: string;
+  original_file_id: string;
+  created?: string;
 }
 
 export interface IUser {
