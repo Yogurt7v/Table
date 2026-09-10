@@ -28,6 +28,14 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
           ...(isHeader ? {} : { boxShadow: 'var(--mantine-shadow-sm)' }),
         }
       }}
+      popoverProps={{
+        styles: {
+          dropdown: {
+            border: '1px solid var(--org-color, #228be6)',
+            boxShadow: 'var(--mantine-shadow-md)',
+          },
+        },
+      }}
       renderDay={(renderDate) => {
         const isToday = dayjs(renderDate).isSame(dayjs(), 'day');
         return (
