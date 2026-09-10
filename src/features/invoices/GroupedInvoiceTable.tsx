@@ -73,6 +73,14 @@ const DRAFT_ROW_STYLE: CSSProperties = {
   animation: 'draft-pulse 1.4s ease-out 1',
 };
 
+const DRAFT_INPUT_STYLE: CSSProperties = {
+  fontWeight: 600,
+  fontSize: 13,
+  border: '1px solid color-mix(in srgb, var(--org-color, #228be6) 50%, transparent)',
+  borderRadius: 4,
+  backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 6%, transparent)',
+};
+
 function SortableGroupBody({
   id,
   children,
@@ -404,15 +412,17 @@ export function GroupedInvoiceTable({
       header: 'Контрагент',
       renderCell: () => null,
       renderDraft: () => (
-        <Autocomplete
-          size="xs"
-          value={draftForm?.counterparty ?? ''}
-          onChange={(v) => handleDraftChange('counterparty', v)}
-          onKeyDown={handleDraftKeyDown}
-          data={counterpartyResults || []}
-          placeholder="Контрагент"
-          error={draftErrors.counterparty}
-        />
+        <div style={DRAFT_INPUT_STYLE}>
+          <Autocomplete
+            size="xs"
+            value={draftForm?.counterparty ?? ''}
+            onChange={(v) => handleDraftChange('counterparty', v)}
+            onKeyDown={handleDraftKeyDown}
+            data={counterpartyResults || []}
+            placeholder="Контрагент"
+            error={draftErrors.counterparty}
+          />
+        </div>
       ),
     },
     purpose: {
@@ -420,14 +430,16 @@ export function GroupedInvoiceTable({
       header: 'Назначение платежа',
       renderCell: (invoice) => <>{invoice.purpose}</>,
       renderDraft: () => (
-        <TextInput
-          size="xs"
-          value={draftForm?.purpose ?? ''}
-          onChange={(e) => handleDraftChange('purpose', e.currentTarget.value)}
-          onKeyDown={handleDraftKeyDown}
-          placeholder="Назначение"
-          error={draftErrors.purpose}
-        />
+        <div style={DRAFT_INPUT_STYLE}>
+          <TextInput
+            size="xs"
+            value={draftForm?.purpose ?? ''}
+            onChange={(e) => handleDraftChange('purpose', e.currentTarget.value)}
+            onKeyDown={handleDraftKeyDown}
+            placeholder="Назначение"
+            error={draftErrors.purpose}
+          />
+        </div>
       ),
     },
     contract_no: {
@@ -435,13 +447,15 @@ export function GroupedInvoiceTable({
       header: 'Договор',
       renderCell: (invoice) => <>{invoice.contract_no || '—'}</>,
       renderDraft: () => (
-        <TextInput
-          size="xs"
-          value={draftForm?.contract_no ?? ''}
-          onChange={(e) => handleDraftChange('contract_no', e.currentTarget.value)}
-          onKeyDown={handleDraftKeyDown}
-          placeholder="Договор"
-        />
+        <div style={DRAFT_INPUT_STYLE}>
+          <TextInput
+            size="xs"
+            value={draftForm?.contract_no ?? ''}
+            onChange={(e) => handleDraftChange('contract_no', e.currentTarget.value)}
+            onKeyDown={handleDraftKeyDown}
+            placeholder="Договор"
+          />
+        </div>
       ),
     },
     invoice_no: {
@@ -449,14 +463,16 @@ export function GroupedInvoiceTable({
       header: 'Счет',
       renderCell: (invoice) => <>{invoice.invoice_no}</>,
       renderDraft: () => (
-        <TextInput
-          size="xs"
-          value={draftForm?.invoice_no ?? ''}
-          onChange={(e) => handleDraftChange('invoice_no', e.currentTarget.value)}
-          onKeyDown={handleDraftKeyDown}
-          placeholder="Счет"
-          error={draftErrors.invoice_no}
-        />
+        <div style={DRAFT_INPUT_STYLE}>
+          <TextInput
+            size="xs"
+            value={draftForm?.invoice_no ?? ''}
+            onChange={(e) => handleDraftChange('invoice_no', e.currentTarget.value)}
+            onKeyDown={handleDraftKeyDown}
+            placeholder="Счет"
+            error={draftErrors.invoice_no}
+          />
+        </div>
       ),
     },
     amount: {
@@ -464,16 +480,18 @@ export function GroupedInvoiceTable({
       header: 'Сумма',
       renderCell: (invoice) => <>{formatAmountRub(getEffectiveAmount(invoice))}</>,
       renderDraft: () => (
-        <NumberInput
-          size="xs"
-          value={draftForm?.amount ?? 0}
-          onChange={(v) => handleDraftChange('amount', v ?? 0)}
-          onKeyDown={handleDraftKeyDown}
-          thousandSeparator=" "
-          decimalSeparator=","
-          placeholder="Сумма"
-          error={draftErrors.amount}
-        />
+        <div style={DRAFT_INPUT_STYLE}>
+          <NumberInput
+            size="xs"
+            value={draftForm?.amount ?? 0}
+            onChange={(v) => handleDraftChange('amount', v ?? 0)}
+            onKeyDown={handleDraftKeyDown}
+            thousandSeparator=" "
+            decimalSeparator=","
+            placeholder="Сумма"
+            error={draftErrors.amount}
+          />
+        </div>
       ),
     },
     paid: {
@@ -563,13 +581,15 @@ export function GroupedInvoiceTable({
       header: 'Комментарий',
       renderCell: (invoice) => <>{invoice.comment || '—'}</>,
       renderDraft: () => (
-        <TextInput
-          size="xs"
-          value={draftForm?.comment ?? ''}
-          onChange={(e) => handleDraftChange('comment', e.currentTarget.value)}
-          onKeyDown={handleDraftKeyDown}
-          placeholder="Комментарий"
-        />
+        <div style={DRAFT_INPUT_STYLE}>
+          <TextInput
+            size="xs"
+            value={draftForm?.comment ?? ''}
+            onChange={(e) => handleDraftChange('comment', e.currentTarget.value)}
+            onKeyDown={handleDraftKeyDown}
+            placeholder="Комментарий"
+          />
+        </div>
       ),
     },
     files: {

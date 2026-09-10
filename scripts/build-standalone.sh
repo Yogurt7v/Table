@@ -9,7 +9,6 @@ rm -rf "$APP"
 mkdir -p "$APP"
 
 cp -R pb_public "$APP/pb_public"
-rm -f "$APP/pb_public/mockServiceWorker.js"
 
 mkdir -p "$APP/pb_hooks"
 for f in pb_hooks/*.pb.js; do
