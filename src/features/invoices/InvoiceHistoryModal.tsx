@@ -445,14 +445,8 @@ function buildCopyEntry(
 ): HistoryEntryDiffs {
   const amount =
     typeof prev['amount'] === 'number' ? prev['amount'] : (Number(prev['amount'] ?? 0) || null);
-  const sourcePaid =
-    typeof prev['source_paid_amount'] === 'number' ? prev['source_paid_amount'] : null;
 
-  const text =
-    `Создана копия-остаток${amount != null ? ` ${formatAmountRub(amount)}` : ''}` +
-    (sourcePaid != null && sourcePaid > 0
-      ? ` (из частичной оплаты ${formatAmountRub(sourcePaid)})`
-      : '');
+  const text = `Создана копия-остаток${amount != null ? ` ${formatAmountRub(amount)}` : ''}`;
 
   return {
     entryId: entry.id,

@@ -31,6 +31,7 @@ import {
 } from '@/features/invoices/utils/invoice-filter';
 import type { IInvoice, IInvoiceFile, IAccountingObject, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
+import { normalizeInvoiceForDate } from '@/shared/utils/invoice-utils';
 
 interface InvoiceSectionProps {
   orgId: string;
@@ -339,6 +340,10 @@ export function InvoiceSection({
   } = useInvoiceNavigation();
   const objects = useAccessibleObjects(orgId);
   const { data: invoices } = useInvoices(orgId, date);
+  const displayInvoices = useMemo(
+    () => (invoices ?? []).map((inv) => normalizeInvoiceForDate(inv, date)),
+    [invoices, date],
+  );
   const { data: searchResults } = useSearchInvoices(orgId);
   const { data: paymentMarks } = usePaymentMarks(orgId);
   const { data: orgFiles } = useOrgInvoiceFiles(orgId);
@@ -397,25 +402,25 @@ export function InvoiceSection({
   const highlightedIds = useMemo(
     () =>
       highlightedInvoiceId
-        ? Array.from(new Set([...computeHighlightedIds(debouncedSearchText, searchResults, invoices), highlightedInvoiceId]))
-        : computeHighlightedIds(debouncedSearchText, searchResults, invoices),
-    [debouncedSearchText, searchResults, invoices, highlightedInvoiceId],
+        ? Array.from(new Set([...computeHighlightedIds(debouncedSearchText, searchResults, displayInvoices), highlightedInvoiceId]))
+        : computeHighlightedIds(debouncedSearchText, searchResults, displayInvoices),
+    [debouncedSearchText, searchResults, displayInvoices, highlightedInvoiceId],
   );
 
   const markedTotal = useMemo(() => {
-    if (!invoices || !paymentMarks) return 0;
-    return invoices.reduce((sum, inv) => {
+    if (!displayInvoices || !paymentMarks) return 0;
+    return displayInvoices.reduce((sum, inv) => {
       const mark = paymentMarks.find((m) => m.invoice_id === inv.id);
       if (!mark) return sum;
       return sum + (mark.amount ?? inv.amount);
     }, 0);
-  }, [invoices, paymentMarks]);
+  }, [displayInvoices, paymentMarks]);
 
   const isOverBalance = markedTotal > bankTotal;
 
   const paidTodayTotal = useMemo(() => {
-    if (!invoices) return 0;
-    return invoices
+    if (!displayInvoices) return 0;
+    return displayInvoices
       .filter((inv) => inv.paid && inv.paid_date === date)
       .reduce((sum, inv) => {
         if (inv.payment_amounts?.length) {
@@ -423,11 +428,11 @@ export function InvoiceSection({
         }
         return sum + (inv.paid_amount ?? inv.amount);
       }, 0);
-  }, [invoices, date]);
+  }, [displayInvoices, date]);
 
   const printInvoices = useMemo(
-    () => filterInvoices(invoices, paymentMarks, activeFilters),
-    [invoices, paymentMarks, activeFilters],
+    () => filterInvoices(displayInvoices, paymentMarks, activeFilters),
+    [displayInvoices, paymentMarks, activeFilters],
   );
 
   const grandTotal = useMemo(() => {
@@ -438,7 +443,7 @@ export function InvoiceSection({
   }, [printInvoices]);
 
   const handleExportExcel = (objectId?: string) => {
-    if (!currentOrg || !invoices || !objects) return;
+    if (!currentOrg || !displayInvoices || !objects) return;
     const targetObjects = objectId
       ? objects.filter((obj) => obj.id === objectId)
       : objects;
@@ -524,13 +529,13 @@ export function InvoiceSection({
           highlightedInvoiceId={highlightedInvoiceId}
           highlightRequestId={highlightRequestId}
           objects={objects}
-          invoices={invoices}
+          invoices={displayInvoices}
         />
         <ObjectsList
           orgId={orgId}
           date={date}
           objects={objects}
-          invoices={invoices}
+          invoices={displayInvoices}
           activeFilters={activeFilters}
           highlightedIds={highlightedIds}
           hasSearch={!!debouncedSearchText}
@@ -546,7 +551,6 @@ export function InvoiceSection({
           onColumnSettingsClick={() => setColumnSettingsOpen(true)}
           onPrintAll={() => handlePrint()}
           onExportAll={() => handleExportExcel()}
-          activeFilters={activeFilters}
           onActiveFiltersChange={setActiveFilters}
           paidTodayTotal={paidTodayTotal}
         />

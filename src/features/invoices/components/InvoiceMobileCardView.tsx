@@ -194,24 +194,6 @@ export function InvoiceMobileCardView({
                       <Text size="xs" c="dimmed">
                         {invoiceNumber})
                       </Text>
-                      {invoice.original_invoice_id && invoice.source_paid_amount > 0 && (
-                        <Tooltip
-                          label={`Оплачено: ${formatAmountRub(invoice.source_paid_amount)}${
-                            invoice.source_paid_date
-                              ? ` · ${dayjs(invoice.source_paid_date).format('DD.MM.YYYY')}`
-                              : ''
-                          }`}
-                        >
-                          <Badge
-                            size="xs"
-                            variant="light"
-                            color="gray"
-                            style={{ flexShrink: 0 }}
-                          >
-                            из частичной оплаты
-                          </Badge>
-                        </Tooltip>
-                      )}
                       <Text size="sm" fw={700}>
                         {formatAmountRub(getEffectiveAmount(invoice))}
                       </Text>

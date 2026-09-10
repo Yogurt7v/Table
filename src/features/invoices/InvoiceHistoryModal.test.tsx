@@ -369,10 +369,6 @@ describe('InvoiceHistoryModal', () => {
     await waitFor(() => {
       expect(screen.getByText(/остаток 30[\s\u00a0]000,00 ₽/)).toBeInTheDocument();
     });
-
-    await waitFor(() => {
-      expect(screen.getByText(/из частичной оплаты 20[\s\u00a0]000,00 ₽/)).toBeInTheDocument();
-    });
   });
 
   it('renders a link for file_added event', async () => {

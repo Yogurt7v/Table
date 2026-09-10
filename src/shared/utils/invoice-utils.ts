@@ -7,3 +7,18 @@ export function getEffectiveAmount(invoice: IInvoice): number {
     ? invoice.payment_amounts.reduce((s, a) => s + a, 0)
     : invoice.amount;
 }
+
+/** Приводит счёт к состоянию на просматриваемую дату: если оплата произошла
+ *  позже этой даты, счёт отображается как неоплаченный (полная сумма,
+ *  без платёжных данных). Даты в формате YYYY-MM-DD. */
+export function normalizeInvoiceForDate(invoice: IInvoice, date: string): IInvoice {
+  if (!invoice.paid || !invoice.paid_date) return invoice;
+  if (date >= invoice.paid_date) return invoice;
+  return {
+    ...invoice,
+    paid: false,
+    paid_date: '',
+    paid_amount: null,
+    payment_amounts: [],
+  };
+}

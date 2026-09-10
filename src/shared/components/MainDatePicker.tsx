@@ -25,7 +25,7 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
         input: {
           fontWeight: 700,
           fontSize: isHeader ? 'var(--mantine-font-size-md)' : 'var(--mantine-font-size-lg)',
-        },
+        }
       }}
       renderDay={(renderDate) => {
         const isToday = dayjs(renderDate).isSame(dayjs(), 'day');
@@ -41,6 +41,7 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+
             }}
           >
             {dayjs(renderDate).date()}
