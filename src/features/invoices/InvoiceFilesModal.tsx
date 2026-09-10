@@ -3,8 +3,8 @@ import { IconTrash, IconUpload, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { useQuery } from '@tanstack/react-query';
-import { getInvoiceFiles, getInvoiceFileUrl, deleteInvoiceFile } from '@/api/collections';
-import { useCreateInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
+import { getInvoiceFiles, getInvoiceFileUrl } from '@/api/collections';
+import { useCreateInvoiceFile, useDeleteInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type { IInvoiceFile } from '@/shared/types';
 
@@ -35,6 +35,7 @@ export function InvoiceFilesModal({
   });
 
   const createFile = useCreateInvoiceFile(orgId);
+  const deleteFile = useDeleteInvoiceFile(orgId);
 
   const handleUpload = async () => {
     if (!fileToUpload || !invoiceId) return;
@@ -54,7 +55,7 @@ export function InvoiceFilesModal({
   const handleDelete = async (fileRecord: IInvoiceFile) => {
     setFileToDelete(null);
     try {
-      await deleteInvoiceFile(fileRecord.id);
+      await deleteFile.mutateAsync(fileRecord);
       notifications.show({ color: 'green', message: 'Файл удалён' });
     } catch {
       notifications.show({ color: 'red', message: 'Не удалось удалить файл' });

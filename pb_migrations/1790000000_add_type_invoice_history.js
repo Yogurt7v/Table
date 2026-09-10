@@ -19,7 +19,7 @@ migrate((app) => {
       'required': false,
       'system': false,
       'type': 'select',
-      'values': ['mark_created', 'mark_deleted'],
+      'values': ['mark_created', 'mark_deleted', 'file_added', 'file_removed'],
     }))
   }
 

@@ -19,6 +19,7 @@ import {
 import { IconPaperclip } from '@tabler/icons-react';
 import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { shortenFileName } from '@/shared/utils/shorten-file-name';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { getInvoiceFileUrl } from '@/api/collections';
@@ -72,16 +73,6 @@ interface InvoiceMobileCardViewProps {
   onOpenPayModal: (invoice: IInvoice) => void;
   onClearPaymentConfirm: (invoiceId: string) => void;
   onOpenPartialModal: (invoice: IInvoice) => void;
-}
-
-function shortenFileName(name: string): string {
-  const dotIndex = name.lastIndexOf('.');
-  if (dotIndex === -1) {
-    return name.length > 20 ? name.slice(0, 20) + '…' : name;
-  }
-  const base = name.slice(0, dotIndex);
-  const ext = name.slice(dotIndex);
-  return base.length > 16 ? base.slice(0, 16) + '…' + ext : name;
 }
 
 export function InvoiceMobileCardView({

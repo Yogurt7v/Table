@@ -42,6 +42,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { shortenFileName } from '@/shared/utils/shorten-file-name';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
@@ -587,8 +588,7 @@ export function GroupedInvoiceTable({
                   rel="noopener noreferrer"
                   size="xs"
                 >
-                  {/*{shortenFileName(f.name)}*/}
-                  Файл
+                  {shortenFileName(f.name)}
                 </Anchor>
               ))}
             </Stack>

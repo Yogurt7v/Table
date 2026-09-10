@@ -6,6 +6,7 @@ import type { IInvoiceHistory, IInvoice } from '@/shared/types';
 
 vi.mock('@/api/collections', () => ({
   getInvoiceHistoryChain: vi.fn(),
+  getInvoiceFileDownloadUrl: vi.fn(({ file_id }: { file_id: string }) => `/files/${file_id}`),
 }));
 
 import { getInvoiceHistoryChain } from '@/api/collections';
@@ -372,5 +373,65 @@ describe('InvoiceHistoryModal', () => {
     await waitFor(() => {
       expect(screen.getByText(/из частичной оплаты 20[\s\u00a0]000,00 ₽/)).toBeInTheDocument();
     });
+  });
+
+  it('renders a link for file_added event', async () => {
+    const fileEntry: IInvoiceHistory = {
+      id: 'h8',
+      invoice_id: 'inv1',
+      author: 'Админ',
+      changed_at: '2026-06-02T13:00:00Z',
+      type: 'file_added',
+      previous_data: { file_name: 'Акт.pdf', file: 'akt_file.txt', file_id: 'file1' },
+    };
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([fileEntry]));
+
+    renderWithProviders(
+      <InvoiceHistoryModal
+        opened
+        invoiceId="inv1"
+        invoiceLabel="Счёт №1"
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Прикреплён файл «Акт.pdf»/)).toBeInTheDocument();
+    });
+
+    const link = await screen.findByRole('link', { name: /Прикреплён файл «Акт.pdf»/ });
+    expect(link).toHaveAttribute('href', '/files/file1');
+  });
+
+  it('renders a link for file_removed event', async () => {
+    const fileRemovedEntry: IInvoiceHistory = {
+      id: 'h9',
+      invoice_id: 'inv1',
+      author: 'Админ',
+      changed_at: '2026-06-02T14:00:00Z',
+      type: 'file_removed',
+      previous_data: {
+        file_name: 'Акт.pdf',
+        file: 'akt_file.txt',
+        file_id: 'file1',
+      },
+    };
+    vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([fileRemovedEntry]));
+
+    renderWithProviders(
+      <InvoiceHistoryModal
+        opened
+        invoiceId="inv1"
+        invoiceLabel="Счёт №1"
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Удалён файл «Акт.pdf»/)).toBeInTheDocument();
+    });
+
+    const link = await screen.findByRole('link', { name: /Удалён файл «Акт.pdf»/ });
+    expect(link).toHaveAttribute('href', '/files/file1');
   });
 });

@@ -84,9 +84,17 @@ export interface IInvoiceFile {
   file: string;
   name: string;
   created?: string;
+  is_deleted?: boolean;
+  deleted_at?: string;
 }
 
-export type InvoiceHistoryType = '' | 'mark_created' | 'mark_deleted' | 'copy_created';
+export type InvoiceHistoryType =
+  | ''
+  | 'mark_created'
+  | 'mark_deleted'
+  | 'copy_created'
+  | 'file_added'
+  | 'file_removed';
 
 export interface IInvoiceHistory {
   id: string;

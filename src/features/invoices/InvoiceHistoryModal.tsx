@@ -1,24 +1,16 @@
 import { useEffect, type ReactNode } from 'react';
-import {
-  Modal,
-  Text,
-  Loader,
-  Paper,
-  Group,
-  Badge,
-  Divider,
-  Box,
-} from '@mantine/core';
+import { Modal, Text, Loader, Group, Box, Anchor, Stack } from '@mantine/core';
 import {
   IconCircleCheckFilled,
   IconX,
   IconCopy,
   IconPencil,
   IconFlag,
+  IconPaperclip,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { getInvoiceHistoryChain } from '@/api/collections';
+import { getInvoiceHistoryChain, getInvoiceFileDownloadUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import type { IInvoice, IInvoiceHistory, PaymentMarkStatus } from '@/shared/types';
 
@@ -29,15 +21,6 @@ const FIELD_LABELS: Record<string, string> = {
   invoice_no: 'Номер счёта',
   amount: 'Сумма',
   comment: 'Комментарий',
-};
-
-const FIELD_COLORS: Record<string, string> = {
-  amount: 'green',
-  counterparty: 'blue',
-  purpose: 'indigo',
-  contract_no: 'violet',
-  invoice_no: 'purple',
-  comment: 'gray',
 };
 
 const HIDDEN_FIELDS = new Set([
@@ -54,7 +37,14 @@ interface HistoryDiff {
   to: unknown;
 }
 
-type ActionKind = 'payment' | 'payment_removed' | 'copy_created' | 'mark' | 'edit';
+type ActionKind =
+  | 'payment'
+  | 'payment_removed'
+  | 'copy_created'
+  | 'mark'
+  | 'edit'
+  | 'file_added'
+  | 'file_removed';
 
 interface HistoryEntryDiffs {
   entryId: string;
@@ -63,8 +53,8 @@ interface HistoryEntryDiffs {
   isCopy: boolean;
   kind: ActionKind;
   actionText: string;
-  actionColor: string;
   diffs: HistoryDiff[];
+  fileLink?: string;
 }
 
 interface InvoiceHistoryModalProps {
@@ -75,11 +65,13 @@ interface InvoiceHistoryModalProps {
 }
 
 const ACTION_ICONS: Record<ActionKind, ReactNode> = {
-  payment: <IconCircleCheckFilled size={16} />,
-  payment_removed: <IconX size={16} />,
-  copy_created: <IconCopy size={16} />,
-  mark: <IconFlag size={16} />,
-  edit: <IconPencil size={16} />,
+  payment: <IconCircleCheckFilled size={14} />,
+  payment_removed: <IconX size={14} />,
+  copy_created: <IconCopy size={14} />,
+  mark: <IconFlag size={14} />,
+  edit: <IconPencil size={14} />,
+  file_added: <IconPaperclip size={14} />,
+  file_removed: <IconPaperclip size={14} />,
 };
 
 export function InvoiceHistoryModal({
@@ -132,58 +124,105 @@ export function InvoiceHistoryModal({
               Старые значения зачёркнуты
             </Text>
           )}
-          {entries.map((item) => (
-            <Paper key={item.entryId} p="sm" mb="xs" withBorder radius="sm">
-              <Group justify="space-between" mb={4}>
-                <Text size="xs" fw={600}>
-                  {dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {item.author}
-                </Text>
-              </Group>
-              <Divider mb={6} />
-              <Group gap={8} wrap="wrap" align="center">
-                <Box c={item.actionColor} style={{ display: 'flex' }}>
-                  {ACTION_ICONS[item.kind]}
-                </Box>
-                {item.isCopy && (
-                  <Badge size="xs" variant="light" color="gray">
-                    копия
-                  </Badge>
-                )}
-                <Badge
-                  variant="light"
-                  color={item.actionColor}
-                  size="md"
-                  styles={{ label: { whiteSpace: 'normal' } }}
-                >
-                  {item.actionText}
-                </Badge>
-              </Group>
-              {item.diffs.length > 0 && (
-                <Group gap={6} wrap="wrap" mt={6} ml={24}>
-                  {item.diffs.map((diff) => (
-                    <Badge
-                      key={diff.key}
-                      variant="light"
-                      color={FIELD_COLORS[diff.key] ?? 'gray'}
-                      size="sm"
+          <Box ml={6}>
+            {entries.map((item, index) => {
+              const isLast = index === entries.length - 1;
+              return (
+                <Group key={item.entryId} gap={12} align="flex-start" wrap="nowrap">
+                  <Stack align="center" gap={0} mt={2} style={{ width: 20, alignSelf: 'stretch' }}>
+                    <Box
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        border: '1px solid var(--mantine-color-gray-3)',
+                        background: 'var(--mantine-color-gray-0)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--mantine-color-gray-6)',
+                        flexShrink: 0,
+                      }}
                     >
-                      {FIELD_LABELS[diff.key] ?? diff.key}:{' '}
-                      <Text component="span" td="line-through" c="dimmed">
-                        {formatHistoryValue(diff.key, diff.from)}
+                      {ACTION_ICONS[item.kind]}
+                    </Box>
+                    {!isLast && (
+                      <Box
+                        style={{
+                          width: 1,
+                          flex: 1,
+                          background: 'var(--mantine-color-gray-2)',
+                          minHeight: 28,
+                        }}
+                      />
+                    )}
+                  </Stack>
+                  <Box pb={isLast ? 0 : 18} style={{ flex: 1, minWidth: 0 }}>
+                    <Group gap={6} wrap="nowrap" align="center">
+                      {item.isCopy && (
+                        <Text size="xs" c="dimmed" fw={500}>
+                          копия
+                        </Text>
+                      )}
+                      {item.fileLink ? (
+                        <Anchor
+                          href={item.fileLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="sm"
+                          c="dark.4"
+                        >
+                          {item.actionText}
+                        </Anchor>
+                      ) : (
+                        <Text size="sm" c="dark.5" inline>
+                          {item.actionText}
+                        </Text>
+                      )}
+                    </Group>
+
+                    {item.diffs.length > 0 && (
+                      <Group gap={6} wrap="wrap" mt={4}>
+                        {item.diffs.map((diff) => (
+                          <Box
+                            key={diff.key}
+                            px={8}
+                            py={3}
+                            style={{
+                              borderRadius: 6,
+                              background: 'var(--mantine-color-gray-0)',
+                              border: '1px solid var(--mantine-color-gray-2)',
+                            }}
+                          >
+                            <Text component="span" size="xs" c="dimmed">
+                              {FIELD_LABELS[diff.key] ?? diff.key}
+                              {': '}
+                            </Text>
+                            <Text component="span" size="xs" td="line-through" c="dimmed">
+                              {formatHistoryValue(diff.key, diff.from)}
+                            </Text>
+                            <Text component="span" size="xs" c="gray.5">
+                              {' → '}
+                            </Text>
+                            <Text component="span" size="xs">
+                              {formatHistoryValue(diff.key, diff.to)}
+                            </Text>
+                          </Box>
+                        ))}
+                      </Group>
+                    )}
+
+                    <Text size="xs" c="dimmed" mt={2}>
+                      {dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')} ·{' '}
+                      <Text component="span" c="dark.6">
+                        {item.author}
                       </Text>
-                      {' → '}
-                      <Text component="span">
-                        {formatHistoryValue(diff.key, diff.to)}
-                      </Text>
-                    </Badge>
-                  ))}
+                    </Text>
+                  </Box>
                 </Group>
-              )}
-            </Paper>
-          ))}
+              );
+            })}
+          </Box>
         </>
       )}
     </Modal>
@@ -217,6 +256,11 @@ function computeHistoryDiffs(
 
     if (entry.type === 'copy_created') {
       results.push(buildCopyEntry(entry, prev, isCopy));
+      continue;
+    }
+
+    if (entry.type === 'file_added' || entry.type === 'file_removed') {
+      results.push(buildFileEntry(entry, prev, isCopy));
       continue;
     }
 
@@ -266,7 +310,6 @@ function computeHistoryDiffs(
               ? ` · ${dayjs(paidDateFrom).format('DD.MM.YYYY')}`
               : '') +
             (remaining != null && remaining > 0 ? ` · остаток ${formatAmountRub(remaining)}` : ''),
-          actionColor: 'teal',
           diffs: [],
         });
         continue;
@@ -286,7 +329,6 @@ function computeHistoryDiffs(
           actionText:
             `Снята оплата ${formatAmountRub(removed)}` +
             (remaining != null && remaining > 0 ? ` · остаток ${formatAmountRub(remaining)}` : ''),
-          actionColor: 'red',
           diffs: [],
         });
         continue;
@@ -319,7 +361,6 @@ function computeHistoryDiffs(
         isCopy,
         kind: 'edit',
         actionText: 'Изменены поля счёта',
-        actionColor: 'gray',
         diffs,
       });
     }
@@ -352,7 +393,6 @@ function buildMarkEntry(
     actionText: deleted
       ? `Отменена отметка «${label}${amountText}»${commentText}`
       : `Добавлена отметка «${label}${amountText}»${commentText}`,
-    actionColor: deleted ? 'red' : 'violet',
     diffs: [],
   };
 }
@@ -380,8 +420,32 @@ function buildCopyEntry(
     isCopy,
     kind: 'copy_created',
     actionText: text,
-    actionColor: 'gray',
     diffs: [],
+  };
+}
+
+function buildFileEntry(
+  entry: IInvoiceHistory,
+  prev: Record<string, unknown>,
+  isCopy: boolean,
+): HistoryEntryDiffs {
+  const fileName = typeof prev['file_name'] === 'string' ? prev['file_name'] : 'файл';
+  const removed = entry.type === 'file_removed';
+
+  const fileId = typeof prev['file_id'] === 'string' ? prev['file_id'] : '';
+  const fileKey = typeof prev['file'] === 'string' ? prev['file'] : '';
+  const fileLink =
+    fileId && fileKey ? getInvoiceFileDownloadUrl({ file_id: fileId, file: fileKey }) : undefined;
+
+  return {
+    entryId: entry.id,
+    changedAt: entry.changed_at,
+    author: entry.author,
+    isCopy,
+    kind: entry.type === 'file_removed' ? 'file_removed' : 'file_added',
+    actionText: removed ? `Удалён файл «${fileName}»` : `Прикреплён файл «${fileName}»`,
+    diffs: [],
+    fileLink,
   };
 }
 

@@ -405,7 +405,7 @@ export function createInvoiceHistoryRecord(
     author: getCurrentAuthor(),
     changed_at: new Date().toISOString(),
     type: data.type ?? '',
-    previous_data: JSON.stringify(data.previous_data),
+    previous_data: data.previous_data,
   });
 }
 
@@ -544,14 +544,14 @@ export function upsertUserSetting(userId: string, key: string, value: unknown) {
 
 export function getInvoiceFilesByOrg(orgId: string) {
   return pb.collection('invoice_files').getFullList<IInvoiceFile>({
-    filter: `organization_id = "${orgId}"`,
+    filter: `organization_id = "${orgId}" && is_deleted != true`,
     sort: 'created',
   });
 }
 
 export function getInvoiceFiles(invoiceId: string) {
   return pb.collection('invoice_files').getFullList<IInvoiceFile>({
-    filter: `invoice_id = "${invoiceId}"`,
+    filter: `invoice_id = "${invoiceId}" && is_deleted != true`,
     sort: 'created',
   });
 }
@@ -565,12 +565,19 @@ export function createInvoiceFile(invoiceId: string, orgId: string, file: File, 
   return pb.collection('invoice_files').create<IInvoiceFile>(formData);
 }
 
-export function deleteInvoiceFile(id: string) {
-  return pb.collection('invoice_files').delete(id);
+export function softDeleteInvoiceFile(id: string) {
+  return pb.collection('invoice_files').update<IInvoiceFile>(id, {
+    is_deleted: true,
+    deleted_at: new Date().toISOString(),
+  });
 }
 
 export function getInvoiceFileUrl(fileRecord: IInvoiceFile) {
   return pb.files.getURL(fileRecord, fileRecord.file);
+}
+
+export function getInvoiceFileDownloadUrl(data: { file_id: string; file: string }) {
+  return pb.files.getURL({ id: data.file_id, collectionName: 'invoice_files' }, data.file);
 }
 
 function stripInvisible(s: string): string {
