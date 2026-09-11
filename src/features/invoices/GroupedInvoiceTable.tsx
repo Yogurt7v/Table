@@ -748,7 +748,7 @@ export function GroupedInvoiceTable({
                   style={{
                     width: 50,
                     position: 'sticky',
-                    top: 56,
+                    top: 104,
                     zIndex: 1,
                     backgroundColor: 'var(--mantine-color-body)',
                     overflow: 'hidden',
@@ -765,7 +765,7 @@ export function GroupedInvoiceTable({
                       style={{
                         width,
                         position: 'sticky',
-                        top: 56,
+                        top: 104,
                         zIndex: 1,
                         backgroundColor: 'var(--mantine-color-body)',
                         overflow: 'hidden',

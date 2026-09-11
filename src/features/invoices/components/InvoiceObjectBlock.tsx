@@ -82,8 +82,15 @@ export function InvoiceObjectBlock({
     >
       <Group
         gap={4}
-        mb="sm"
+        mb={0}
         style={{
+          position: 'sticky',
+          top: 56,
+          zIndex: 2,
+          height: 48,
+          display: 'flex',
+          alignItems: 'center',
+          backgroundColor: 'var(--mantine-color-body)',
           cursor: 'pointer',
           userSelect: 'none',
           border: '1px solid var(--mantine-color-gray-3)',

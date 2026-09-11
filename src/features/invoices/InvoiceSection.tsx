@@ -227,6 +227,7 @@ function ObjectsList({
               flex="1"
               rightSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
               onClick={allCollapsed ? expandAll : collapseAll}
+              leftSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
             >
               {allCollapsed ? 'Развернуть' : 'Свернуть'}
             </Button>
