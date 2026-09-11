@@ -56,6 +56,7 @@ import type {
 import { isDraftDirty, validateDraftFields } from './invoice-field-access';
 import { PaymentMarkCell } from './components/PaymentMarkCell';
 import { InvoiceActionsCell } from './components/InvoiceActionsCell';
+import { markRowColor } from './payment-mark-row-style';
 import { PayModal } from './components/PayModal';
 import { PartialPaymentModal } from './components/PartialPaymentModal';
 import { InvoiceMobileCardView } from './components/InvoiceMobileCardView';
@@ -64,6 +65,9 @@ import {
   saveColumnSizing,
   type ColumnSizingState,
 } from './invoice-table-column-sizing';
+
+const NUM_COLUMN_ID = 'num' as const;
+const NUM_COLUMN_DEFAULT_WIDTH = 68;
 
 const DRAFT_ROW_STYLE: CSSProperties = {
   backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)',
@@ -76,9 +80,6 @@ const DRAFT_ROW_STYLE: CSSProperties = {
 const DRAFT_INPUT_STYLE: CSSProperties = {
   fontWeight: 600,
   fontSize: 13,
-  border: '1px solid color-mix(in srgb, var(--org-color, #228be6) 50%, transparent)',
-  borderRadius: 4,
-  backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 6%, transparent)',
 };
 
 function SortableGroupBody({
@@ -128,6 +129,7 @@ interface GroupedInvoiceTableProps {
   orgId: string;
   invoices: IInvoice[];
   isDraftOpen: boolean;
+  hasDraftElsewhere?: boolean;
   draftForm?: DraftInvoiceForm;
   counterpartyResults?: string[];
   onDraftChange?: (field: keyof DraftInvoiceForm, value: unknown) => void;
@@ -174,6 +176,7 @@ export function GroupedInvoiceTable({
   allInvoices,
   counterpartyOrder,
   isDraftOpen,
+  hasDraftElsewhere = false,
   draftForm,
   counterpartyResults,
   onDraftChange,
@@ -309,12 +312,11 @@ export function GroupedInvoiceTable({
   const resizeFrameRef = useRef<number | null>(null);
   const resizePosRef = useRef<number>(0);
 
-  const handleResizeStart = (colId: InvoiceColumnId, e: React.MouseEvent) => {
+  const handleResizeStart = (colId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const col = columnRenderers[colId];
-    if (!col) return;
-    const startWidth = columnSizing[colId] ?? col.width;
+    const col = columnRenderers[colId as InvoiceColumnId];
+    const startWidth = columnSizing[colId] ?? (col ? col.width : NUM_COLUMN_DEFAULT_WIDTH);
     resizingRef.current = { colId, startX: e.clientX, startWidth };
 
     const applyResize = () => {
@@ -412,7 +414,7 @@ export function GroupedInvoiceTable({
       header: 'Контрагент',
       renderCell: () => null,
       renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE}>
+        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
           <Autocomplete
             size="xs"
             value={draftForm?.counterparty ?? ''}
@@ -430,7 +432,7 @@ export function GroupedInvoiceTable({
       header: 'Назначение платежа',
       renderCell: (invoice) => <>{invoice.purpose}</>,
       renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE}>
+        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
           <TextInput
             size="xs"
             value={draftForm?.purpose ?? ''}
@@ -447,7 +449,7 @@ export function GroupedInvoiceTable({
       header: 'Договор',
       renderCell: (invoice) => <>{invoice.contract_no || '—'}</>,
       renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE}>
+        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
           <TextInput
             size="xs"
             value={draftForm?.contract_no ?? ''}
@@ -463,7 +465,7 @@ export function GroupedInvoiceTable({
       header: 'Счет',
       renderCell: (invoice) => <>{invoice.invoice_no}</>,
       renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE}>
+        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
           <TextInput
             size="xs"
             value={draftForm?.invoice_no ?? ''}
@@ -480,7 +482,7 @@ export function GroupedInvoiceTable({
       header: 'Сумма',
       renderCell: (invoice) => <>{formatAmountRub(getEffectiveAmount(invoice))}</>,
       renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE}>
+        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
           <NumberInput
             size="xs"
             value={draftForm?.amount ?? 0}
@@ -581,7 +583,7 @@ export function GroupedInvoiceTable({
       header: 'Комментарий',
       renderCell: (invoice) => <>{invoice.comment || '—'}</>,
       renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE}>
+        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
           <TextInput
             size="xs"
             value={draftForm?.comment ?? ''}
@@ -729,7 +731,7 @@ export function GroupedInvoiceTable({
               size="md"
               variant="light"
               leftSection={<IconPlus size={18} />}
-              disabled={isDraftOpen}
+              disabled={isDraftOpen || hasDraftElsewhere}
               onClick={onAddClick}
             >
               Добавить счёт
@@ -746,7 +748,7 @@ export function GroupedInvoiceTable({
               <Table.Tr>
                 <Table.Th
                   style={{
-                    width: 50,
+                    width: columnSizing[NUM_COLUMN_ID] ?? NUM_COLUMN_DEFAULT_WIDTH,
                     position: 'sticky',
                     top: 104,
                     zIndex: 1,
@@ -755,6 +757,20 @@ export function GroupedInvoiceTable({
                   }}
                 >
                   №
+                  <div
+                    onMouseDown={(e) => handleResizeStart(NUM_COLUMN_ID, e)}
+                    className="col-resize-handle"
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 10,
+                      cursor: 'col-resize',
+                      userSelect: 'none',
+                      borderRight: '1px solid var(--mantine-color-gray-3)',
+                    }}
+                  />
                 </Table.Th>
                 {filteredColumns.map((colId) => {
                   const col = columnRenderers[colId];
@@ -826,7 +842,10 @@ export function GroupedInvoiceTable({
                           const showCounterparty = idx === counterpartyRowIndex - 1;
                           const paid = invoice.paid;
                           const isHighlighted = highlightedIds.includes(invoice.id);
-                          const hasMark = !!marksByInvoice[invoice.id];
+                          const markLookupId = invoice.id.endsWith('__r')
+                            ? invoice.id.slice(0, -3)
+                            : invoice.id;
+                          const mark = marksByInvoice[markLookupId];
 
                           const isNumHandle = true;
                           const isCpHandle = showCounterparty;
@@ -847,9 +866,9 @@ export function GroupedInvoiceTable({
                             ...(isGroupFirst ? { borderTop: BORDER } : {}),
                             ...(isLastRow ? { borderBottom: BORDER } : {}),
                             ...(paid
-                              ? { backgroundColor: 'var(--mantine-color-yellow-1)' }
-                              : hasMark
-                                ? { backgroundColor: 'var(--mantine-color-green-0)' }
+                              ? { backgroundColor: 'var(--mantine-color-green-1)' }
+                              : mark
+                                ? { backgroundColor: markRowColor(mark, invoice.amount) }
                                 : isHighlighted
                                   ? {
                                       backgroundColor:
@@ -893,7 +912,7 @@ export function GroupedInvoiceTable({
                                     style={{ flexShrink: 0, color: 'var(--mantine-color-gray-5)' }}
                                   />
                                   {invoiceNumber})
-                                  
+
                                 </div>
                               </Table.Td>
                               {filteredColumns.map((colId) => {
@@ -938,7 +957,7 @@ export function GroupedInvoiceTable({
                                     ...(isGroupLast && !hasRemainder && i === amounts.length - 1
                                       ? { borderBottom: BORDER }
                                       : {}),
-                                    backgroundColor: 'var(--mantine-color-yellow-1)',
+                                    backgroundColor: 'var(--mantine-color-green-1)',
                                     fontSize: '0.9em',
                                   }}
                                 >
@@ -958,23 +977,24 @@ export function GroupedInvoiceTable({
                                       <Table.Td key={colId} style={{ width }}>
                                         <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
                                           {colId === 'counterparty' ? null : colId === 'paid' ? (
-                                            <Tooltip label="Снять оплату">
-                                              <Badge
-                                                color="green"
-                                                variant="light"
-                                                aria-label="Снять оплату"
-                                                style={{
-                                                  cursor: isLastCopy ? 'pointer' : 'default',
-                                                }}
-                                                onClick={
-                                                  isLastCopy
-                                                    ? () => setClearConfirmInvoiceId(copyId)
-                                                    : undefined
-                                                }
-                                              >
+                                            <Group gap={2} wrap="nowrap">
+                                              <Badge color="green" variant="light">
                                                 {formatAmountRub(copyAmt)}
                                               </Badge>
-                                            </Tooltip>
+                                              {isLastCopy && (
+                                                <Tooltip label="Снять оплату">
+                                                  <ActionIcon
+                                                    size="sm"
+                                                    color="red"
+                                                    variant="subtle"
+                                                    aria-label="Снять оплату"
+                                                    onClick={() => setClearConfirmInvoiceId(copyId)}
+                                                  >
+                                                    <IconX size={14} />
+                                                  </ActionIcon>
+                                                </Tooltip>
+                                              )}
+                                            </Group>
                                           ) : colId === 'purpose' ? (
                                             <Text size="xs" c="dimmed" fs="italic">
                                               {invoice.purpose}
@@ -1187,7 +1207,10 @@ export function GroupedInvoiceTable({
                           const showCounterparty = idx === counterpartyRowIndex - 1;
                           const paid = invoice.paid;
                           const isHighlighted = highlightedIds.includes(invoice.id);
-                          const hasMark = !!marksByInvoice[invoice.id];
+                          const markLookupId = invoice.id.endsWith('__r')
+                            ? invoice.id.slice(0, -3)
+                            : invoice.id;
+                          const mark = marksByInvoice[markLookupId];
 
                           const amounts = invoice.payment_amounts ?? [];
                           const totalPaid = amounts.reduce((s, a) => s + a, 0);
@@ -1205,9 +1228,9 @@ export function GroupedInvoiceTable({
                             ...(isGroupFirst ? { borderTop: BORDER } : {}),
                             ...(isLastRow ? { borderBottom: BORDER } : {}),
                             ...(paid
-                              ? { backgroundColor: 'var(--mantine-color-yellow-1)' }
-                              : hasMark
-                                ? { backgroundColor: 'var(--mantine-color-green-0)' }
+                              ? { backgroundColor: 'var(--mantine-color-green-1)' }
+                              : mark
+                                ? { backgroundColor: markRowColor(mark, invoice.amount) }
                                 : isHighlighted
                                   ? {
                                       backgroundColor:
@@ -1237,7 +1260,7 @@ export function GroupedInvoiceTable({
                                   }}
                                 >
                                   {invoiceNumber})
-                                  
+
                                 </div>
                               </Table.Td>
                               {filteredColumns.map((colId) => {
@@ -1278,7 +1301,7 @@ export function GroupedInvoiceTable({
                                     ...(isGroupLast && !hasRemainder && i === amounts.length - 1
                                       ? { borderBottom: BORDER }
                                       : {}),
-                                    backgroundColor: 'var(--mantine-color-yellow-1)',
+                                    backgroundColor: 'var(--mantine-color-green-1)',
                                     fontSize: '0.9em',
                                   }}
                                 >
@@ -1423,7 +1446,7 @@ export function GroupedInvoiceTable({
                           align="center"
                           style={{ overflow: 'hidden', maxWidth: '100%' }}
                         >
-                          <Badge
+                          {/*<Badge
                             size="xs"
                             variant="light"
                             style={{
@@ -1436,7 +1459,7 @@ export function GroupedInvoiceTable({
                           </Badge>
                           <Text size={10} c="dimmed">
                             черновик
-                          </Text>
+                          </Text>*/}
                         </Stack>
                       </Table.Td>
                       {filteredColumns.map((colId) => {

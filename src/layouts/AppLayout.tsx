@@ -159,11 +159,12 @@ function AppLayoutContent() {
                     </ActionIcon>
                   </Tooltip>
                 )}
-                <Tooltip label={user?.name || user?.login || 'Пользователь'}>
-                  <ActionIcon variant="subtle" color="gray" aria-hidden tabIndex={-1}>
-                    <IconUser size={22} />
-                  </ActionIcon>
-                </Tooltip>
+                <Group gap={5} wrap="nowrap" style={{ maxWidth: 100 }}>
+                  <IconUser size={18} color="var(--mantine-color-dimmed)" aria-hidden />
+                  <Text size="sm" c="dimmed" truncate>
+                    {user?.name || user?.login || 'Пользователь'}
+                  </Text>
+                </Group>
                 <Tooltip label="Выйти">
                   <ActionIcon
                     variant="subtle"

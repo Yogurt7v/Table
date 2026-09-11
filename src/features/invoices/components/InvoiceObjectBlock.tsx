@@ -151,6 +151,7 @@ export function InvoiceObjectBlock({
               allInvoices={invoices}
               highlightedIds={highlightedIds}
               isDraftOpen={isDraftOpen}
+              hasDraftElsewhere={hasDraftElsewhere}
               onOpenDraft={onOpenDraft}
               onCancelDraft={onCancelDraft}
               accountingObjects={accountingObjects}

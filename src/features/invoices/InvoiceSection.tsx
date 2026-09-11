@@ -176,7 +176,8 @@ function ObjectsList({
               <Menu.Target>
                 <Button
                   size="compact-sm"
-                  variant="light"
+                variant="light"
+                style={{padding: '0 20px'}}
                   color={activeFilters.length > 0 ? 'blue' : 'gray'}
                   leftSection={<IconFilter size={16} />}
                 >
