@@ -37,21 +37,7 @@ import {
   countInvoicesByOrg,
 } from '@/api/collections';
 import type { IBankAccount, IAccountingObject } from '@/shared/types';
-
-const COLORS = [
-  { value: '#228be6', label: 'Синий' },
-  { value: '#40c057', label: 'Зелёный' },
-  { value: '#fa5252', label: 'Красный' },
-  { value: '#fab005', label: 'Жёлтый' },
-  { value: '#7950f2', label: 'Фиолетовый' },
-  { value: '#fd7e14', label: 'Оранжевый' },
-  { value: '#15aabf', label: 'Голубой' },
-  { value: '#e64980', label: 'Розовый' },
-];
-
-const COLOR_NAME: Record<string, string> = Object.fromEntries(
-  COLORS.map((c) => [c.value, c.label]),
-);
+import { ORG_COLOR_NAME } from '@/shared/utils/org-colors';
 
 export function AdminPage() {
   const { organizations, currentOrgId } = useOrg();
@@ -203,7 +189,7 @@ export function AdminPage() {
             organizations={organizations}
             accountsByOrg={accountsByOrg}
             objectsByOrg={objectsByOrg}
-            colorName={COLOR_NAME}
+            colorName={ORG_COLOR_NAME}
             onAdd={() => setShowOrgForm(true)}
             onEdit={openEditOrg}
             onDelete={(org) => setDeleteOrgTarget({ id: org.id, name: org.name })}

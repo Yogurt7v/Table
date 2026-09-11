@@ -1,18 +1,8 @@
 import { Modal, Stack, TextInput, Select, Button } from '@mantine/core';
 import type { IBankAccount, IAccountingObject } from '@/shared/types';
+import { ORG_COLORS } from '@/shared/utils/org-colors';
 import { BankAccountManager } from './BankAccountManager';
 import { AccountingObjectManager } from './AccountingObjectManager';
-
-const COLORS = [
-  { value: '#228be6', label: 'Синий' },
-  { value: '#40c057', label: 'Зелёный' },
-  { value: '#fa5252', label: 'Красный' },
-  { value: '#fab005', label: 'Жёлтый' },
-  { value: '#7950f2', label: 'Фиолетовый' },
-  { value: '#fd7e14', label: 'Оранжевый' },
-  { value: '#15aabf', label: 'Голубой' },
-  { value: '#e64980', label: 'Розовый' },
-];
 
 interface EditOrgModalProps {
   opened: boolean;
@@ -66,7 +56,7 @@ export function EditOrgModal({
           />
           <Select
             label="Цвет"
-            data={COLORS}
+            data={ORG_COLORS}
             value={editColor}
             onChange={(v) => v && onColorChange(v)}
           />

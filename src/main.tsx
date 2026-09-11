@@ -12,8 +12,11 @@ import { OrgProvider } from '@/shared/context/OrgContext';
 import { SearchProvider } from '@/shared/context/SearchContext';
 import { InvoiceNavigationProvider } from '@/shared/context/InvoiceNavigationContext';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
+import { OrgPrimaryProvider } from '@/shared/components/OrgPrimaryProvider';
+import { theme } from './theme.ts';
 import App from './App.tsx';
 
+import '@fontsource-variable/inter';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
@@ -41,12 +44,13 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <MantineProvider defaultColorScheme="light">
+      <MantineProvider theme={theme} defaultColorScheme="light">
         <Notifications />
         <DatesProvider settings={{ locale: 'ru' }}>
           <BrowserRouter>
             <AuthProvider>
               <OrgProvider>
+              <OrgPrimaryProvider>
                 <SearchProvider>
                   <InvoiceNavigationProvider>
                     <ErrorBoundary>
@@ -54,7 +58,8 @@ createRoot(document.getElementById('root')!).render(
                     </ErrorBoundary>
                   </InvoiceNavigationProvider>
                 </SearchProvider>
-              </OrgProvider>
+              </OrgPrimaryProvider>
+            </OrgProvider>
             </AuthProvider>
           </BrowserRouter>
         </DatesProvider>

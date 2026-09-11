@@ -4,6 +4,30 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* WCAG AA: вторичный (dimmed) текст должен иметь контраст >= 4.5:1.
+   Mantine по умолчанию использует gray-6 (~3.3:1) — переопределяем на gray-7. */
+:root {
+  --mantine-color-dimmed: var(--mantine-color-gray-7);
+  /* Фирменный hover строк: Mantine резолвит --tr-hover-bg через
+     var(--table-highlight-on-hover-color, var(--table-hover-color)) и сам эту
+     переменную не задаёт — наследование из :root работает без конфликтов
+     специфичности (в отличие от --tr-hover-bg: Mantine CSS не в @layer). */
+  --table-highlight-on-hover-color: color-mix(
+    in srgb,
+    var(--org-color, #228be6) 8%,
+    var(--mantine-color-body)
+  );
+}
+
+/* Черновик счёта: одинарная org-рамка на самом инпуте (у обёртки рамки нет).
+   radius 4px (sm), фон и бордер org. data-error исключён, чтобы сохранить
+   красную рамку ошибки; фокус оставляет primary (org) через --input-bd-focus. */
+.draft-input-cell .mantine-Input-wrapper[data-variant='default']:not([data-error]) {
+  --input-bd: color-mix(in srgb, var(--org-color, #228be6) 50%, transparent);
+  --input-bg: var(--mantine-color-white);
+  --input-radius: 4px;
+}
+
 .invoices-table .col-resize-handle {
   opacity: 0;
   transition: opacity 150ms ease;

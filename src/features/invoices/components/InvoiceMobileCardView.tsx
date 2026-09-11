@@ -26,6 +26,7 @@ import { getInvoiceFileUrl } from '@/api/collections';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
 import { PaymentMarkCell } from './PaymentMarkCell';
+import { markRowColor } from '../payment-mark-row-style';
 import { InvoiceActionsCell } from './InvoiceActionsCell';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type {
@@ -184,9 +185,9 @@ export function InvoiceMobileCardView({
                   mb="sm"
                   style={{
                     backgroundColor: invoice.paid
-                      ? 'var(--mantine-color-yellow-1)'
+                      ? 'var(--mantine-color-green-1)'
                       : marksByInvoice[invoice.id]
-                        ? 'var(--mantine-color-green-0)'
+                        ? markRowColor(marksByInvoice[invoice.id]!, invoice.amount)
                         : highlightedIds.includes(invoice.id)
                           ? 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)'
                           : undefined,
@@ -206,35 +207,33 @@ export function InvoiceMobileCardView({
                         {formatAmountRub(invoice.paid_amount ?? invoice.amount)}
                       </Badge>
                     ) : amounts.length > 0 ? (
-                      <Tooltip label="Снять оплату">
-                        <Badge
-                          color="green"
-                          variant="light"
-                          size="sm"
-                          aria-label="Снять оплату"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => {
-                            if (amounts.length === 1) {
-                              onClearPaymentConfirm(invoice.id);
-                            }
-                          }}
-                        >
+                      <Group gap={4} wrap="nowrap">
+                        <Badge color="green" variant="light" size="sm">
                           {formatAmountRub(amounts[0]!)}
                         </Badge>
-                      </Tooltip>
+                        {amounts.length === 1 && (
+                          <Tooltip label="Снять оплату">
+                            <ActionIcon
+                              size="sm"
+                              color="red"
+                              variant="subtle"
+                              aria-label="Снять оплату"
+                              onClick={() => onClearPaymentConfirm(invoice.id)}
+                            >
+                              <IconX size={14} />
+                            </ActionIcon>
+                          </Tooltip>
+                        )}
+                      </Group>
                     ) : (
-                      <Tooltip label="Отметить оплату">
-                        <Badge
-                          color="orange"
-                          variant="light"
-                          size="sm"
-                          aria-label="Отметить оплату"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => onOpenPayModal(invoice)}
-                        >
-                          Не оплачен
-                        </Badge>
-                      </Tooltip>
+                      <Button
+                        size="compact-xs"
+                        variant="light"
+                        color="orange"
+                        onClick={() => onOpenPayModal(invoice)}
+                      >
+                        Оплатить
+                      </Button>
                     )}
                   </Group>
 

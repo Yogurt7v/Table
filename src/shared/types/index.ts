@@ -30,6 +30,8 @@ export interface IAccountingObject {
   counterparty_order?: string[];
 }
 
+export type PaymentMarkStatus = 'proposed' | 'approved' | 'partial';
+
 export interface IInvoice {
   id: string;
   organization_id: string;
@@ -53,6 +55,11 @@ export interface IInvoice {
   source_paid_amount: number;
   source_paid_date: string;
   source_created?: string;
+  last_deleted_mark?: {
+    amount: number | null;
+    comment: string;
+    status: PaymentMarkStatus;
+  } | null;
   created?: string;
 }
 
@@ -118,8 +125,6 @@ export interface IOrganizationUser {
     organization_id?: IOrganization;
   };
 }
-
-export type PaymentMarkStatus = 'proposed' | 'approved' | 'partial';
 
 export interface IPaymentMark {
   id: string;

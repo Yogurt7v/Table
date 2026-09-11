@@ -10,17 +10,7 @@ import {
   Text,
 } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
-
-const COLORS = [
-  { value: '#228be6', label: 'Синий' },
-  { value: '#40c057', label: 'Зелёный' },
-  { value: '#fa5252', label: 'Красный' },
-  { value: '#fab005', label: 'Жёлтый' },
-  { value: '#7950f2', label: 'Фиолетовый' },
-  { value: '#fd7e14', label: 'Оранжевый' },
-  { value: '#15aabf', label: 'Голубой' },
-  { value: '#e64980', label: 'Розовый' },
-];
+import { ORG_COLORS } from '@/shared/utils/org-colors';
 
 interface CreateOrgModalProps {
   opened: boolean;
@@ -30,13 +20,13 @@ interface CreateOrgModalProps {
 
 export function CreateOrgModal({ opened, onClose, onSave }: CreateOrgModalProps) {
   const [orgName, setOrgName] = useState('');
-  const [orgColor, setOrgColor] = useState<string>(COLORS[0]!.value);
+  const [orgColor, setOrgColor] = useState<string>(ORG_COLORS[0]!.value);
   const [accountNames, setAccountNames] = useState<string[]>([]);
   const [newAccountName, setNewAccountName] = useState('');
 
   const handleClose = () => {
     setOrgName('');
-    setOrgColor(COLORS[0]!.value);
+    setOrgColor(ORG_COLORS[0]!.value);
     setAccountNames([]);
     setNewAccountName('');
     onClose();
@@ -60,7 +50,7 @@ export function CreateOrgModal({ opened, onClose, onSave }: CreateOrgModalProps)
         />
         <Select
           label="Цвет"
-          data={COLORS}
+          data={ORG_COLORS}
           value={orgColor}
           onChange={(v) => v && setOrgColor(v)}
         />

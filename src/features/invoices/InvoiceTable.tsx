@@ -46,6 +46,7 @@ interface InvoiceTableProps {
   invoices: IInvoice[];
   highlightedIds: string[];
   isDraftOpen: boolean;
+  hasDraftElsewhere?: boolean;
   onOpenDraft?: (objectId: string) => void;
   onCancelDraft: () => void;
   accountingObjects: IAccountingObject[];
@@ -63,6 +64,7 @@ export function InvoiceTable({
   invoices,
   highlightedIds,
   isDraftOpen,
+  hasDraftElsewhere = false,
   onOpenDraft,
   onCancelDraft,
   accountingObjects,
@@ -262,6 +264,7 @@ export function InvoiceTable({
     if (!invoice) return;
     const newAmounts = [...(invoice.payment_amounts ?? []), amount];
     const remaining = (Number(invoice.amount) || 0) - newAmounts.reduce((s, a) => s + (Number(a) || 0), 0);
+    const existingMark = paymentMarks?.find((m) => m.invoice_id === invoiceId);
     const previousData: Record<string, unknown> = {
       paid: invoice.paid,
       payment_amounts: invoice.payment_amounts,
@@ -278,10 +281,12 @@ export function InvoiceTable({
         payment_amounts: newAmounts,
         paid_amount: amount,
         paid_date: date.slice(0, 10),
+        last_deleted_mark: existingMark
+          ? { amount: existingMark.amount ?? null, comment: existingMark.comment ?? '', status: existingMark.status }
+          : undefined,
       },
       {
         onSuccess: () => {
-          const existingMark = paymentMarks?.find((m) => m.invoice_id === invoiceId);
           if (existingMark) {
             deletePaymentMark.mutate(existingMark.id, {
               onError: () => {
@@ -310,6 +315,7 @@ export function InvoiceTable({
     const amounts = invoice.payment_amounts ?? [];
     if (amounts.length === 0) return;
     const newAmounts = amounts.slice(0, -1);
+    const savedMark = invoice.last_deleted_mark;
     const previousData: Record<string, unknown> = {
       paid: invoice.paid,
       payment_amounts: invoice.payment_amounts,
@@ -326,9 +332,18 @@ export function InvoiceTable({
         payment_amounts: newAmounts,
         paid_amount: newAmounts.length > 0 ? newAmounts[newAmounts.length - 1]! : null,
         paid_date: newAmounts.length > 0 ? invoice.paid_date : null,
+        last_deleted_mark: null,
       },
       {
         onSuccess: () => {
+          if (savedMark) {
+            createPaymentMark.mutate({
+              invoice_id: originalId,
+              amount: savedMark.amount,
+              comment: savedMark.comment,
+              status: savedMark.status,
+            });
+          }
           void syncInvoiceCopy(invoice, newAmounts, newAmounts.length > 0, invoice.paid_date || date.slice(0, 10)).then(() => {
             queryClient.invalidateQueries({ queryKey: ['invoices', orgId] });
             queryClient.invalidateQueries({ queryKey: ['invoice_files', orgId] });
@@ -446,6 +461,7 @@ export function InvoiceTable({
         visibleColumns={visibleColumns}
         onReorderGroups={handleReorderGroups}
         onAddClick={onAddClick}
+        hasDraftElsewhere={hasDraftElsewhere}
       />
       <ConfirmModal
         opened={!!deleteTarget}
