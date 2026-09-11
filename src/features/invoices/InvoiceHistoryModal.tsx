@@ -31,6 +31,8 @@ const HIDDEN_FIELDS = new Set([
   'remaining',
   'removed_amount',
   'payment',
+  'paid',
+  'paid_date',
 ]);
 
 interface HistoryDiff {
@@ -108,9 +110,15 @@ export function InvoiceHistoryModal({
   entries.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
 
   const hasDiff = entries.some((e) => e.kind === 'edit' && e.diffs.length > 0);
+  const isCopyInvoice = saga?.[0]?.invoice?.original_invoice_id ? true : false;
 
   return (
-    <Modal opened={opened} onClose={onClose} title={`История: ${invoiceLabel}`} size="lg">
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={`История: ${invoiceLabel}${isCopyInvoice ? ' · остаток' : ''}`}
+      size="lg"
+    >
       {isLoading && <Loader size="sm" />}
 
       {!isLoading && isError && (
@@ -165,11 +173,6 @@ export function InvoiceHistoryModal({
                   </Stack>
                   <Box pb={isLast ? 0 : 18} style={{ flex: 1, minWidth: 0 }}>
                     <Group gap={6} wrap="nowrap" align="center">
-                      {item.isCopy && (
-                        <Text size="xs" c="dimmed" fw={500}>
-                          копия
-                        </Text>
-                      )}
                       {item.fileLink ? (
                         <Anchor
                           href={item.fileLink}
@@ -219,7 +222,7 @@ export function InvoiceHistoryModal({
                     )}
 
                     <Text size="xs" c="dimmed" mt={2}>
-                      {dayjs(item.changedAt).format('DD.MM.YYYY HH:mm')} ·{' '}
+                      {dayjs(item.changedAt).format('DD.MM.YYYY HH:mm:ss')} ·{' '}
                       <Text component="span" c="dark.6">
                         {item.author}
                       </Text>
@@ -391,7 +394,7 @@ function buildArchiveEntry(
       : '';
   const deletedAt =
     typeof prev['deleted_at'] === 'string' && prev['deleted_at']
-      ? dayjs(prev['deleted_at']).format('DD.MM.YYYY HH:mm')
+      ? dayjs(prev['deleted_at']).format('DD.MM.YYYY HH:mm:ss')
       : '';
 
   const restored = entry.type === 'invoice_restored';
@@ -419,21 +422,31 @@ function buildMarkEntry(
   const rawAmount = typeof prev['amount'] === 'number' ? prev['amount'] : (Number(prev['amount'] ?? 0) || null);
   const amount = typeof rawAmount === 'number' && !Number.isNaN(rawAmount) ? rawAmount : null;
   const comment = typeof prev['comment'] === 'string' ? prev['comment'] : '';
-
-  const label = markStatusLabel(status);
   const amountText = amount != null ? ` ${formatAmountRub(amount)}` : '';
   const commentText = comment ? ` (${comment})` : '';
 
   const deleted = entry.type === 'mark_deleted';
+
+  let actionText: string;
+  if (status === 'approved') {
+    actionText = deleted ? 'Утверждение оплаты отменено' : `Утверждена оплата${amountText}`;
+  } else if (status === 'proposed') {
+    actionText = deleted
+      ? 'Запрос на согласование отменён'
+      : `Запрос на согласование${amountText}`;
+  } else {
+    actionText = deleted
+      ? 'Отметка частичной оплаты снята'
+      : `Отмечена частичная оплата${amountText}`;
+  }
+
   return {
     entryId: entry.id,
     changedAt: entry.changed_at,
     author: entry.author,
     isCopy,
     kind: 'mark',
-    actionText: deleted
-      ? `Отменена отметка «${label}${amountText}»${commentText}`
-      : `Добавлена отметка «${label}${amountText}»${commentText}`,
+    actionText: actionText + commentText,
     diffs: [],
   };
 }
@@ -500,14 +513,4 @@ function formatHistoryValue(key: string, value: unknown): string {
   if (value == null || value === '') return '—';
   if (key === 'amount') return formatAmountRub(Number(value));
   return String(value);
-}
-
-const MARK_STATUS_LABELS: Record<PaymentMarkStatus, string> = {
-  proposed: 'Согласование',
-  approved: 'Оплатить',
-  partial: 'Частично',
-};
-
-function markStatusLabel(status: PaymentMarkStatus | null): string {
-  return status ? MARK_STATUS_LABELS[status] : 'Отметка';
 }

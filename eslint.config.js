@@ -6,7 +6,20 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'pb_data', 'pb_data_test', 'pb_migrations']),
+  globalIgnores(['dist', 'pb_data', 'pb_data_test']),
+  {
+    files: ['pb_migrations/**/*.js'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      globals: {
+        app: 'readonly',
+        Field: 'readonly',
+        migrate: 'readonly',
+        Collection: 'readonly',
+        unmarshal: 'readonly',
+      },
+    },
+  },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

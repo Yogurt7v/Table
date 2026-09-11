@@ -47,6 +47,7 @@ const mockPaymentEntry: IInvoiceHistory = {
   author: 'Админ',
   changed_at: '2026-06-02T10:00:00Z',
   previous_data: {
+    amount: 40000,
     paid: false,
     paid_date: '2026-06-01',
     payment_amounts: [10000],
@@ -142,6 +143,8 @@ describe('InvoiceHistoryModal', () => {
 
     expect(screen.queryByText(/payment_amounts/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/paid_amount/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/paid:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/paid_date/i)).not.toBeInTheDocument();
   });
 
   it('shows payment from → to when paid changes', async () => {
@@ -280,7 +283,7 @@ describe('InvoiceHistoryModal', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Оплатить/)).toBeInTheDocument();
+      expect(screen.getByText(/Утверждена оплата/)).toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -311,11 +314,7 @@ describe('InvoiceHistoryModal', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Согласование/)).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/Отменена отметка «Согласование 50[\s\u00a0]000,00 ₽»/)).toBeInTheDocument();
+      expect(screen.getByText(/Запрос на согласование отменён/)).toBeInTheDocument();
     });
   });
 
