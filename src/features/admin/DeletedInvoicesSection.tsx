@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDebouncedValue } from '@mantine/hooks';
 import {
   Table,
   Text,
@@ -9,14 +10,16 @@ import {
   Stack,
   Button,
   Loader,
+  Pagination,
+  ActionIcon,
 } from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
+import { IconSearch, IconX } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import {
   useDeletedInvoices,
-  useSearchDeletedInvoices,
   useRestoreInvoice,
 } from '@/shared/hooks/useDeletedInvoices';
+import { ARCHIVE_PAGE_SIZE } from '@/api/collections';
 import { DeletedInvoiceDetailModal } from './DeletedInvoiceDetailModal';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
@@ -32,16 +35,24 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
   const canRestore = role === 'admin' || role === 'moderator';
 
   const [search, setSearch] = useState('');
-  const query = search.trim();
+  const [debouncedSearch] = useDebouncedValue(search, 500);
+  const query = debouncedSearch.trim();
 
-  const { data: allDeleted, isLoading: allLoading } = useDeletedInvoices(orgId);
-  const { data: searchResults, isLoading: searchLoading } = useSearchDeletedInvoices(
-    orgId,
-    query,
-  );
+  const [page, setPage] = useState(1);
+  const [lastQuery, setLastQuery] = useState(query);
+  if (lastQuery !== query) {
+    setLastQuery(query);
+    setPage(1);
+  }
 
-  const invoices = query ? searchResults : allDeleted;
-  const isLoading = query ? searchLoading : allLoading;
+  const { data, isLoading } = useDeletedInvoices(orgId, query, page, ARCHIVE_PAGE_SIZE);
+
+  const invoices = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 0;
+
+  if (totalPages > 0 && page > totalPages) {
+    setPage(totalPages);
+  }
 
   const [detailInvoice, setDetailInvoice] = useState<IDeletedInvoice | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<IDeletedInvoice | null>(null);
@@ -54,13 +65,27 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
           <Title order={4}>Архив счетов</Title>
         </Group>
         <TextInput
-          w={280}
-          size="xs"
+          w={480}
+          size="sm"
           leftSection={<IconSearch size={14} />}
           placeholder="Поиск по контрагенту, назначению, номеру"
           value={search}
           onChange={(e) => setSearch(e.currentTarget.value)}
           aria-label="Поиск в архиве"
+          rightSection={
+            search ? (
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                aria-label="Очистить поиск"
+                onClick={() => setSearch('')}
+              >
+                <IconX size={14} />
+              </ActionIcon>
+            ) : null
+          }
+          rightSectionPointerEvents="all"
         />
       </Group>
 
@@ -70,13 +95,13 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
         </Group>
       )}
 
-      {!isLoading && (!invoices || invoices.length === 0) && (
+      {!isLoading && invoices.length === 0 && (
         <Text c="dimmed" size="sm">
           {query ? 'Ничего не найдено' : 'Архив пуст'}
         </Text>
       )}
 
-      {!isLoading && invoices && invoices.length > 0 && (
+      {!isLoading && invoices.length > 0 && (
         <Box style={{ overflowX: 'auto' }}>
           <Table striped highlightOnHover withTableBorder>
             <Table.Thead>
@@ -152,6 +177,12 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
             </Table.Tbody>
           </Table>
         </Box>
+      )}
+
+      {totalPages > 1 && (
+        <Group justify="center" mt="md">
+          <Pagination value={page} onChange={setPage} total={totalPages} size="sm" />
+        </Group>
       )}
 
       <DeletedInvoiceDetailModal

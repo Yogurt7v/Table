@@ -637,6 +637,8 @@ export function getInvoiceFileDownloadUrl(data: { file_id: string; file: string 
 
 // --- Deleted Invoices (Archive) ---
 
+export const ARCHIVE_PAGE_SIZE = 15;
+
 async function archiveDeletedInvoiceHistory(
   deletedInvoiceId: string,
   history: IInvoiceHistory[],
@@ -675,18 +677,23 @@ async function archiveDeletedInvoiceFiles(invoiceId: string, files: IInvoiceFile
   }
 }
 
-export function getDeletedInvoices(orgId: string) {
-  return pb.collection('deleted_invoices').getFullList<IDeletedInvoice>({
+export function getDeletedInvoices(orgId: string, page: number, perPage: number) {
+  return pb.collection('deleted_invoices').getList<IDeletedInvoice>(page, perPage, {
     filter: `organization_id = "${orgId}"`,
     sort: '-deleted_at',
     expand: 'accounting_object_id',
   });
 }
 
-export function searchDeletedInvoices(orgId: string, query: string) {
+export function searchDeletedInvoices(
+  orgId: string,
+  query: string,
+  page: number,
+  perPage: number,
+) {
   const clean = query.trim();
-  if (!clean) return getDeletedInvoices(orgId);
-  return pb.collection('deleted_invoices').getFullList<IDeletedInvoice>({
+  if (!clean) return getDeletedInvoices(orgId, page, perPage);
+  return pb.collection('deleted_invoices').getList<IDeletedInvoice>(page, perPage, {
     filter: `organization_id = "${orgId}" && (counterparty ~ "${clean}" || purpose ~ "${clean}" || invoice_no ~ "${clean}")`,
     sort: '-deleted_at',
     expand: 'accounting_object_id',

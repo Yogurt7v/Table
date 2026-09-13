@@ -21,6 +21,7 @@ import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { shortenFileName } from '@/shared/utils/shorten-file-name';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
+import { getUserDisplayName } from '@/shared/utils/user-display-name';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { getInvoiceFileUrl } from '@/api/collections';
 import { useUserMap } from '@/shared/hooks/useUserMap';
@@ -256,7 +257,7 @@ export function InvoiceMobileCardView({
                     )}
                     {invoice.created_by && (
                       <Text size="xs" c="dimmed">
-                        Инициатор: {userMap.get(invoice.created_by)?.name ?? '—'}
+                        Инициатор: {getUserDisplayName(userMap.get(invoice.created_by))}
                       </Text>
                     )}
                   </Group>

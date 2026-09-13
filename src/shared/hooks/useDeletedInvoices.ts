@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
 import { pb } from '@/api/client';
 import {
@@ -10,8 +10,9 @@ import {
   restoreDeletedInvoice,
 } from '@/api/collections';
 
-export function useDeletedInvoices(orgId: string) {
+export function useDeletedInvoices(orgId: string, query: string, page: number, perPage: number) {
   const queryClient = useQueryClient();
+  const clean = query.trim();
 
   useEffect(() => {
     if (!orgId) return;
@@ -24,17 +25,13 @@ export function useDeletedInvoices(orgId: string) {
   }, [orgId, queryClient]);
 
   return useQuery({
-    queryKey: ['deleted_invoices', orgId],
-    queryFn: () => getDeletedInvoices(orgId),
+    queryKey: ['deleted_invoices', orgId, clean, page, perPage],
+    queryFn: () =>
+      clean
+        ? searchDeletedInvoices(orgId, clean, page, perPage)
+        : getDeletedInvoices(orgId, page, perPage),
     enabled: !!orgId,
-  });
-}
-
-export function useSearchDeletedInvoices(orgId: string, query: string) {
-  return useQuery({
-    queryKey: ['deleted_invoices', orgId, query],
-    queryFn: () => searchDeletedInvoices(orgId, query),
-    enabled: !!orgId,
+    placeholderData: keepPreviousData,
   });
 }
 
