@@ -11,7 +11,13 @@ import {
   Alert,
   TextInput,
 } from '@mantine/core';
-import { IconUserPlus, IconTrash, IconInfoCircle, IconSearch } from '@tabler/icons-react';
+import {
+  IconUserPlus,
+  IconTrash,
+  IconInfoCircle,
+  IconSearch,
+  IconPencil,
+} from '@tabler/icons-react';
 import { InlineRoleCell } from './InlineRoleCell';
 import type { IUser, IOrganizationUser } from '@/shared/types';
 
@@ -19,7 +25,9 @@ interface UserAdminTableProps {
   users: IUser[] | undefined;
   orgUsers: IOrganizationUser[] | undefined;
   currentUserId: string | undefined;
+  canEdit: boolean;
   onAdd: () => void;
+  onEdit: (user: IUser) => void;
   onDelete: (user: { id: string; name: string }) => void;
 }
 
@@ -27,7 +35,9 @@ export function UserAdminTable({
   users,
   orgUsers,
   currentUserId,
+  canEdit,
   onAdd,
+  onEdit,
   onDelete,
 }: UserAdminTableProps) {
   const [search, setSearch] = useState('');
@@ -116,7 +126,7 @@ export function UserAdminTable({
               <Table.Th>Логин</Table.Th>
               <Table.Th>Роли в организациях</Table.Th>
               <Table.Th>Дата регистрации</Table.Th>
-              <Table.Th w={60} />
+              <Table.Th w={100} />
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -143,18 +153,27 @@ export function UserAdminTable({
                   </Table.Td>
                   <Table.Td>{new Date(user.created).toLocaleString('ru-RU')}</Table.Td>
                   <Table.Td>
-                    {currentUserId !== user.id && (
+                    <Group gap={2} wrap="nowrap">
                       <ActionIcon
-                        color="red"
                         variant="subtle"
-                        aria-label={`Удалить пользователя ${user.name || user.login}`}
-                        onClick={() =>
-                          onDelete({ id: user.id, name: user.name || user.login })
-                        }
+                        color="blue"
+                        aria-label={`Редактировать пользователя ${user.name || user.login}`}
+                        onClick={() => onEdit(user)}
+                        hidden={!canEdit}
                       >
-                        <IconTrash size={16} />
+                        <IconPencil size={16} />
                       </ActionIcon>
-                    )}
+                      {currentUserId !== user.id && (
+                        <ActionIcon
+                          color="red"
+                          variant="subtle"
+                          aria-label={`Удалить пользователя ${user.name || user.login}`}
+                          onClick={() => onDelete({ id: user.id, name: user.name || user.login })}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      )}
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
               );

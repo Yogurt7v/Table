@@ -20,6 +20,7 @@ import {
 } from '@/shared/hooks/useOrganizations';
 import { useAuth } from '@/shared/context/AuthContext';
 import { CreateUserModal } from '@/features/admin/CreateUserModal';
+import { EditUserModal } from '@/features/admin/EditUserModal';
 import { CreateOrgModal } from '@/features/admin/CreateOrgModal';
 import { EditOrgModal } from '@/features/admin/EditOrgModal';
 import { DeleteOrgModal } from '@/features/admin/DeleteOrgModal';
@@ -36,7 +37,7 @@ import {
   createBankAccount,
   countInvoicesByOrg,
 } from '@/api/collections';
-import type { IBankAccount, IAccountingObject } from '@/shared/types';
+import type { IBankAccount, IAccountingObject, IUser } from '@/shared/types';
 import { ORG_COLOR_NAME } from '@/shared/utils/org-colors';
 
 export function AdminPage() {
@@ -59,6 +60,8 @@ export function AdminPage() {
   const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: string; name: string } | null>(
     null,
   );
+  const [editUserTarget, setEditUserTarget] = useState<IUser | null>(null);
+  const canEditUsers = currentRole === 'admin' || currentRole === 'moderator';
   const [deleteOrgTarget, setDeleteOrgTarget] = useState<{ id: string; name: string } | null>(null);
   const [editOrgId, setEditOrgId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -201,7 +204,9 @@ export function AdminPage() {
             users={users}
             orgUsers={orgUsers}
             currentUserId={currentUser?.id}
+            canEdit={canEditUsers}
             onAdd={() => setCreateOpened(true)}
+            onEdit={(user) => setEditUserTarget(user)}
             onDelete={(target) => setDeleteUserTarget(target)}
           />
         </Tabs.Panel>
@@ -212,6 +217,11 @@ export function AdminPage() {
       </Tabs>
 
       <CreateUserModal opened={createOpened} onClose={() => setCreateOpened(false)} />
+      <EditUserModal
+        opened={!!editUserTarget}
+        user={editUserTarget}
+        onClose={() => setEditUserTarget(null)}
+      />
 
       <ConfirmModal
         opened={!!deleteUserTarget}

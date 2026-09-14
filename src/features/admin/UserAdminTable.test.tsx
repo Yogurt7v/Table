@@ -14,6 +14,16 @@ vi.mock('@/shared/context/OrgContext', () => ({
   useOrg: mockUseOrg,
 }));
 
+const baseProps = {
+  users: [adminUser, userUser],
+  orgUsers: [orgUserAdmin, orgUserUser] as IOrganizationUser[],
+  currentUserId: 'admin1',
+  canEdit: true,
+  onAdd: () => {},
+  onEdit: vi.fn(),
+  onDelete: vi.fn(),
+};
+
 describe('UserAdminTable', () => {
   beforeEach(() => {
     mockUseOrg.mockReturnValue({
@@ -25,15 +35,7 @@ describe('UserAdminTable', () => {
   });
 
   it('renders user list', () => {
-    renderWithProviders(
-      <UserAdminTable
-        users={[adminUser, userUser]}
-        orgUsers={[orgUserAdmin, orgUserUser] as IOrganizationUser[]}
-        currentUserId="admin1"
-        onAdd={() => {}}
-        onDelete={() => {}}
-      />,
-    );
+    renderWithProviders(<UserAdminTable {...baseProps} />);
 
     expect(screen.getByText('Пользователи')).toBeInTheDocument();
     expect(screen.getByText('Админ')).toBeInTheDocument();
@@ -41,32 +43,40 @@ describe('UserAdminTable', () => {
   });
 
   it('shows delete button only for non-current users', () => {
-    renderWithProviders(
-      <UserAdminTable
-        users={[adminUser, userUser]}
-        orgUsers={[orgUserAdmin, orgUserUser] as IOrganizationUser[]}
-        currentUserId="admin1"
-        onAdd={() => {}}
-        onDelete={() => {}}
-      />,
-    );
+    renderWithProviders(<UserAdminTable {...baseProps} />);
 
-    expect(screen.getByRole('button', { name: 'Удалить пользователя Пользователь' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Удалить пользователь Админ' })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Удалить пользователя Пользователь' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Удалить пользователь Админ' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('calls onEdit when edit button clicked', async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+
+    renderWithProviders(<UserAdminTable {...baseProps} onEdit={onEdit} />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Редактировать пользователя Пользователь' }),
+    );
+    expect(onEdit).toHaveBeenCalledWith(userUser);
+  });
+
+  it('hides edit buttons when canEdit is false', () => {
+    renderWithProviders(<UserAdminTable {...baseProps} canEdit={false} />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Редактировать пользователя Пользователь' }),
+    ).not.toBeInTheDocument();
   });
 
   it('filters users by search query', async () => {
     const user = userEvent.setup();
 
-    renderWithProviders(
-      <UserAdminTable
-        users={[adminUser, userUser, guestUser]}
-        orgUsers={[orgUserAdmin, orgUserUser] as IOrganizationUser[]}
-        currentUserId="admin1"
-        onAdd={() => {}}
-        onDelete={() => {}}
-      />,
-    );
+    renderWithProviders(<UserAdminTable {...baseProps} users={[adminUser, userUser, guestUser]} />);
 
     await user.type(screen.getByLabelText('Поиск пользователей'), 'гост');
 
@@ -78,15 +88,7 @@ describe('UserAdminTable', () => {
   it('shows empty state when nothing matches', async () => {
     const user = userEvent.setup();
 
-    renderWithProviders(
-      <UserAdminTable
-        users={[adminUser]}
-        orgUsers={[]}
-        currentUserId="admin1"
-        onAdd={() => {}}
-        onDelete={() => {}}
-      />,
-    );
+    renderWithProviders(<UserAdminTable {...baseProps} users={[adminUser]} orgUsers={[]} />);
 
     await user.type(screen.getByLabelText('Поиск пользователей'), 'несуществующий');
 
@@ -97,15 +99,7 @@ describe('UserAdminTable', () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
 
-    renderWithProviders(
-      <UserAdminTable
-        users={[adminUser]}
-        orgUsers={[]}
-        currentUserId="admin1"
-        onAdd={onAdd}
-        onDelete={() => {}}
-      />,
-    );
+    renderWithProviders(<UserAdminTable {...baseProps} onAdd={onAdd} />);
 
     await user.click(screen.getByText('Добавить пользователя'));
     expect(onAdd).toHaveBeenCalledOnce();

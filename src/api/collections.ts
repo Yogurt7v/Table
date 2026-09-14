@@ -540,6 +540,26 @@ export function deleteUser(id: string) {
   return pb.collection('users').delete(id);
 }
 
+export interface UpdateUserData {
+  name?: string;
+  login?: string;
+  password?: string;
+}
+
+export function updateUser(id: string, data: UpdateUserData) {
+  const payload: Record<string, string> = {};
+  if (data.name !== undefined) payload.name = data.name;
+  if (data.login !== undefined) {
+    payload.login = data.login;
+    payload.email = `${data.login}@local.host`;
+  }
+  if (data.password) {
+    payload.password = data.password;
+    payload.passwordConfirm = data.password;
+  }
+  return pb.collection('users').update<IUser>(id, payload);
+}
+
 // --- Organization Users ---
 export function getOrganizationUsers() {
   return pb.collection('organization_users').getFullList<IOrganizationUser>({
