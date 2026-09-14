@@ -606,13 +606,16 @@ export function upsertUserSetting(userId: string, key: string, value: unknown) {
     .collection('user_settings')
     .getFirstListItem<IUserSetting>(`user_id = "${userId}" && key = "${key}"`)
     .then((existing) => pb.collection('user_settings').update<IUserSetting>(existing.id, { value }))
-    .catch(() =>
-      pb.collection('user_settings').create<IUserSetting>({
-        user_id: userId,
-        key,
-        value,
-      }),
-    );
+    .catch((err) => {
+      if (err?.status === 404) {
+        return pb.collection('user_settings').create<IUserSetting>({
+          user_id: userId,
+          key,
+          value,
+        });
+      }
+      throw err;
+    });
 }
 
 // --- Invoice Files ---
