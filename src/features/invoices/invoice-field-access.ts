@@ -24,6 +24,7 @@ export function getInvoicePermissions(role: OrgRole) {
     canManageFiles: role === 'admin' || role === 'moderator' || role === 'user',
     canPay: role === 'admin' || role === 'moderator',
     canMarkPayment: role === 'boss',
+    canRemoveApprovalMark: role === 'admin' || role === 'moderator',
     canViewPaymentMarks: role === 'boss' || role === 'moderator' || role === 'admin',
     canViewPaidDate: role !== 'boss',
   };

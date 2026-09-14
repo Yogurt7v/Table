@@ -521,7 +521,7 @@ export function InvoiceTable({
           setClearMarkTarget(null);
         }}
         title="Снятие отметки"
-        message="Убрать отметку к оплате с этого счёта?"
+        message="Убрать отметку с этого счёта?"
       />
       <InvoiceHistoryModal
         opened={!!historyInvoice}

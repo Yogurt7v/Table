@@ -152,6 +152,7 @@ interface GroupedInvoiceTableProps {
     canMove: boolean;
     canPay: boolean;
     canMarkPayment: boolean;
+    canRemoveApprovalMark: boolean;
     canViewPaymentMarks: boolean;
     canViewPaidDate: boolean;
     canManageFiles: boolean;
@@ -673,6 +674,7 @@ export function GroupedInvoiceTable({
             mark={mark}
             canMarkPayment={permissions.canMarkPayment}
             canViewPaymentMarks={permissions.canViewPaymentMarks}
+            canRemoveApprovalMark={permissions.canRemoveApprovalMark}
             onMarkForPayment={onMarkForPayment}
             onMarkForApproval={onMarkForApproval}
             onOpenPartialModal={(inv) => setPartialModal({ invoice: inv, amount: '', comment: '' })}

@@ -26,6 +26,7 @@ const permissions = {
   canMove: true,
   canPay: true,
   canMarkPayment: true,
+  canRemoveApprovalMark: true,
   canViewPaymentMarks: true,
   canViewPaidDate: true,
   canManageFiles: true,

@@ -18,6 +18,7 @@ describe('getInvoicePermissions', () => {
       canManageFiles: false,
       canPay: false,
       canMarkPayment: false,
+      canRemoveApprovalMark: false,
       canViewPaymentMarks: false,
       canViewPaidDate: true,
     });
@@ -48,6 +49,7 @@ describe('getInvoicePermissions', () => {
       canManageFiles: true,
       canPay: true,
       canMarkPayment: false,
+      canRemoveApprovalMark: true,
       canViewPaymentMarks: true,
       canViewPaidDate: true,
     });
@@ -63,6 +65,7 @@ describe('getInvoicePermissions', () => {
       canManageFiles: false,
       canPay: false,
       canMarkPayment: true,
+      canRemoveApprovalMark: false,
       canViewPaymentMarks: true,
       canViewPaidDate: false,
     });
@@ -78,6 +81,7 @@ describe('getInvoicePermissions', () => {
       canManageFiles: true,
       canPay: true,
       canMarkPayment: false,
+      canRemoveApprovalMark: true,
       canViewPaymentMarks: true,
       canViewPaidDate: true,
     });
