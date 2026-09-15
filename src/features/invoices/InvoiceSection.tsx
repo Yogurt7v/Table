@@ -130,116 +130,173 @@ function ObjectsList({
     prevHasSearchRef.current = hasSearch;
   }, [hasSearch, expandAll]);
 
+  const filterMenu = (
+    <Menu shadow="md" width={240} closeOnItemClick={false}>
+      <Menu.Target>
+        <Button
+          size="compact-sm"
+          variant="light"
+          style={{ padding: '0 20px' }}
+          color={activeFilters.length > 0 ? 'blue' : 'gray'}
+          leftSection={<IconFilter size={16} />}
+        >
+          {activeFilters.length > 0 ? `Фильтр (${activeFilters.length})` : 'Фильтр'}
+        </Button>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Label>Статус счёта</Menu.Label>
+        {(isFullAccess ? ALL_INVOICE_FILTERS : REDUCED_INVOICE_FILTERS).map((filter) => {
+          const isActive = activeFilters.includes(filter);
+          return (
+            <Menu.Item
+              key={filter}
+              leftSection={
+                isActive ? <IconCheck size={16} color="var(--mantine-color-blue-filled)" /> : <Box w={16} />
+              }
+              color={isActive ? 'blue' : undefined}
+              onClick={() =>
+                onActiveFiltersChange(
+                  isActive
+                    ? activeFilters.filter((f) => f !== filter)
+                    : [...activeFilters, filter],
+                )
+              }
+            >
+              {INVOICE_FILTER_LABELS[filter]}
+            </Menu.Item>
+          );
+        })}
+        <Menu.Divider />
+        <Menu.Item
+          color="red"
+          disabled={activeFilters.length === 0}
+          leftSection={<IconX size={16} />}
+          closeMenuOnClick
+          onClick={() => onActiveFiltersChange([])}
+        >
+          Сбросить
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  );
+
+  const collapseButton =
+    objects.length > 1 ? (
+      <Button
+        size="compact-sm"
+        variant="light"
+        color="gray"
+        flex="1"
+        rightSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
+        onClick={allCollapsed ? expandAll : collapseAll}
+        leftSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
+      >
+        {allCollapsed ? 'Развернуть' : 'Свернуть'}
+      </Button>
+    ) : null;
+
   return (
     <>
-      <Group justify="space-between" mb="sm" wrap="wrap">
-        <Group gap={8} justify="flex-start" flex="1">
-
-          <Title order={5}>Счета</Title>
-          <Tooltip label="Настройка колонок">
-            <ActionIcon
-              size="md"
-              variant="subtle"
-              color="gray"
-              aria-label="Настройка колонок"
-              onClick={onColumnSettingsClick}
-            >
-              <IconSettings size={20} />
-            </ActionIcon>
-          </Tooltip>
-
-          <Tooltip label="Печать">
-            <ActionIcon
-              size="md"
-              variant="subtle"
-              color="gray"
-              aria-label="Печать"
-              onClick={onPrintAll}
-            >
-              <IconPrinter size={20} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Экспорт в Excel">
-            <ActionIcon
-              size="md"
-              variant="subtle"
-              color="gray"
-              aria-label="Экспорт в Excel"
-              onClick={onExportAll}
-            >
-              <IconFileExport size={20} />
-            </ActionIcon>
-          </Tooltip>
-
-
-          <Menu shadow="md" width={240} closeOnItemClick={false}>
-              <Menu.Target>
-                <Button
-                  size="compact-sm"
-                variant="light"
-                style={{padding: '0 20px'}}
-                  color={activeFilters.length > 0 ? 'blue' : 'gray'}
-                  leftSection={<IconFilter size={16} />}
-                >
-                  {activeFilters.length > 0 ? `Фильтр (${activeFilters.length})` : 'Фильтр'}
-                </Button>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Label>Статус счёта</Menu.Label>
-                {(isFullAccess ? ALL_INVOICE_FILTERS : REDUCED_INVOICE_FILTERS).map((filter) => {
-                  const isActive = activeFilters.includes(filter);
-                  return (
-                    <Menu.Item
-                      key={filter}
-                      leftSection={
-                        isActive ? <IconCheck size={16} color="var(--mantine-color-blue-filled)" /> : <Box w={16} />
-                      }
-                      color={isActive ? 'blue' : undefined}
-                      onClick={() =>
-                        onActiveFiltersChange(
-                          isActive
-                            ? activeFilters.filter((f) => f !== filter)
-                            : [...activeFilters, filter],
-                        )
-                      }
-                    >
-                      {INVOICE_FILTER_LABELS[filter]}
-                    </Menu.Item>
-                  );
-                })}
-                <Menu.Divider />
-                <Menu.Item
-                  color="red"
-                  disabled={activeFilters.length === 0}
-                  leftSection={<IconX size={16} />}
-                  closeMenuOnClick
-                  onClick={() => onActiveFiltersChange([])}
-                >
-                  Сбросить
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-
-          {objects.length > 1 && (
-            <Button
-              size="compact-sm"
-              variant="light"
-              color="gray"
-              flex="1"
-              rightSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
-              onClick={allCollapsed ? expandAll : collapseAll}
-              leftSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
-            >
-              {allCollapsed ? 'Развернуть' : 'Свернуть'}
-            </Button>
+      <Box hiddenFrom="sm">
+        <Group justify="space-between" mb="xs" wrap="wrap" gap="xs">
+          <Group gap={8} justify="flex-start">
+            <Title order={5}>Счета</Title>
+            <Tooltip label="Настройка колонок">
+              <ActionIcon
+                size="md"
+                variant="subtle"
+                color="gray"
+                aria-label="Настройка колонок"
+                onClick={onColumnSettingsClick}
+              >
+                <IconSettings size={20} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Печать">
+              <ActionIcon
+                size="md"
+                variant="subtle"
+                color="gray"
+                aria-label="Печать"
+                onClick={onPrintAll}
+              >
+                <IconPrinter size={20} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Экспорт в Excel">
+              <ActionIcon
+                size="md"
+                variant="subtle"
+                color="gray"
+                aria-label="Экспорт в Excel"
+                onClick={onExportAll}
+              >
+                <IconFileExport size={20} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+          {paidTodayTotal > 0 && (
+            <Text size="sm" fw={700}>
+              Оплачено: {formatAmountRub(paidTodayTotal)}
+            </Text>
           )}
         </Group>
-        {paidTodayTotal > 0 && (
-          <Text size="lg">
-            Оплачено: {formatAmountRub(paidTodayTotal)}
-          </Text>
-        )}
-      </Group>
+        <Group gap="xs" mb="sm" wrap="wrap">
+          {filterMenu}
+          {collapseButton}
+        </Group>
+      </Box>
+      <Box visibleFrom="sm">
+        <Group justify="space-between" mb="sm" wrap="wrap">
+          <Group gap={8} justify="flex-start" flex="1">
+
+            <Title order={5}>Счета</Title>
+            <Tooltip label="Настройка колонок">
+              <ActionIcon
+                size="md"
+                variant="subtle"
+                color="gray"
+                aria-label="Настройка колонок"
+                onClick={onColumnSettingsClick}
+              >
+                <IconSettings size={20} />
+              </ActionIcon>
+            </Tooltip>
+
+            <Tooltip label="Печать">
+              <ActionIcon
+                size="md"
+                variant="subtle"
+                color="gray"
+                aria-label="Печать"
+                onClick={onPrintAll}
+              >
+                <IconPrinter size={20} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Экспорт в Excel">
+              <ActionIcon
+                size="md"
+                variant="subtle"
+                color="gray"
+                aria-label="Экспорт в Excel"
+                onClick={onExportAll}
+              >
+                <IconFileExport size={20} />
+              </ActionIcon>
+            </Tooltip>
+
+            {filterMenu}
+
+            {collapseButton}
+          </Group>
+          {paidTodayTotal > 0 && (
+            <Text size="lg">
+              Оплачено: {formatAmountRub(paidTodayTotal)}
+            </Text>
+          )}
+        </Group>
+      </Box>
       {objects.map((obj) => (
         <InvoiceObjectBlock
           key={obj.id}
@@ -573,20 +630,18 @@ export function InvoiceSection({
         role={permissions.role}
       />
       {permissions.canViewPaymentMarks && markedTotal > 0 && (
-        <Box visibleFrom="sm">
-          <Affix position={{ top: 90, right: 20 }} zIndex={100}>
-            <Paper withBorder p="sm" shadow="lg">
-              <Text
-                ta="right"
-                fw={700}
-                size="md"
-                c={isOverBalance ? 'red' : undefined}
-              >
-                Итого к оплате: {formatAmountRub(markedTotal)}
-              </Text>
-            </Paper>
-          </Affix>
-        </Box>
+        <Affix position={{ bottom: 20, right: 20 }} zIndex={100}>
+          <Paper withBorder p="sm" shadow="lg">
+            <Text
+              ta="right"
+              fw={700}
+              size="md"
+              c={isOverBalance ? 'red' : undefined}
+            >
+              Итого к оплате: {formatAmountRub(markedTotal)}
+            </Text>
+          </Paper>
+        </Affix>
       )}
     </>
   );

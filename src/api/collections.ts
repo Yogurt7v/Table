@@ -518,6 +518,35 @@ export async function deletePaymentMark(id: string) {
   return pb.collection('payment_marks').delete(id);
 }
 
+export async function approvePaymentMark(id: string) {
+  const mark = await pb.collection('payment_marks').getOne<IPaymentMark>(id);
+
+  await createPaymentMarkHistory(mark.invoice_id, 'mark_deleted', {
+    status: mark.status ?? null,
+    amount: mark.amount,
+    comment: mark.comment,
+  });
+
+  await pb.collection('payment_marks').delete(id);
+
+  const created = await pb.collection('payment_marks').create<IPaymentMark>({
+    invoice_id: mark.invoice_id,
+    organization_id: mark.organization_id,
+    amount: mark.amount,
+    comment: mark.comment,
+    status: 'approved',
+    created_by: pb.authStore.model?.id,
+  });
+
+  await createPaymentMarkHistory(mark.invoice_id, 'mark_created', {
+    status: created.status ?? null,
+    amount: created.amount,
+    comment: created.comment,
+  });
+
+  return created;
+}
+
 // --- Users ---
 export function getUsers() {
   return pb.collection('users').getFullList<IUser>({

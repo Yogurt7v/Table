@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { PaymentMarkCell } from './PaymentMarkCell';
@@ -119,5 +119,86 @@ describe('PaymentMarkCell', () => {
     );
 
     expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('shows approve button for approval mark in view-only mode', () => {
+    const onApproveMark = vi.fn();
+    renderWithProviders(
+      <table><tbody><tr><td>
+        <PaymentMarkCell
+          invoice={invoice}
+          mark={approvalMark}
+          canMarkPayment={false}
+          canViewPaymentMarks
+          onApproveMark={onApproveMark}
+        />
+      </td></tr></tbody></table>,
+    );
+
+    const approveButton = screen.getByLabelText('Отметить к оплате');
+    expect(approveButton).toBeInTheDocument();
+    approveButton.click();
+    expect(onApproveMark).toHaveBeenCalledWith('pm2');
+  });
+
+  it('shows approve button for approval mark in boss mode', () => {
+    renderWithProviders(
+      <table><tbody><tr><td>
+        <PaymentMarkCell
+          invoice={invoice}
+          mark={approvalMark}
+          canMarkPayment
+          canViewPaymentMarks
+          onApproveMark={() => {}}
+        />
+      </td></tr></tbody></table>,
+    );
+
+    expect(screen.getByLabelText('Отметить к оплате')).toBeInTheDocument();
+  });
+
+  it('hides approve button for paid and partial marks', () => {
+    const { rerender } = renderWithProviders(
+      <table><tbody><tr><td>
+        <PaymentMarkCell
+          invoice={invoice}
+          mark={paidMark}
+          canMarkPayment
+          canViewPaymentMarks
+          onApproveMark={() => {}}
+        />
+      </td></tr></tbody></table>,
+    );
+
+    expect(screen.queryByLabelText('Отметить к оплате')).not.toBeInTheDocument();
+
+    rerender(
+      <table><tbody><tr><td>
+        <PaymentMarkCell
+          invoice={invoice}
+          mark={partialMark}
+          canMarkPayment
+          canViewPaymentMarks
+          onApproveMark={() => {}}
+        />
+      </td></tr></tbody></table>,
+    );
+
+    expect(screen.queryByLabelText('Отметить к оплате')).not.toBeInTheDocument();
+  });
+
+  it('hides approve button when handler is not provided', () => {
+    renderWithProviders(
+      <table><tbody><tr><td>
+        <PaymentMarkCell
+          invoice={invoice}
+          mark={approvalMark}
+          canMarkPayment={false}
+          canViewPaymentMarks
+        />
+      </td></tr></tbody></table>,
+    );
+
+    expect(screen.queryByLabelText('Отметить к оплате')).not.toBeInTheDocument();
   });
 });

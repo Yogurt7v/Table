@@ -1,5 +1,5 @@
 import { Group, Box, Text, Tooltip, ActionIcon, Checkbox, Button } from '@mantine/core';
-import { IconX } from '@tabler/icons-react';
+import { IconX, IconCheck } from '@tabler/icons-react';
 import type { IInvoice, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { paymentMarkLabel, APPROVAL_MARK_STATUS } from '../payment-mark-status';
@@ -14,6 +14,7 @@ interface PaymentMarkCellProps {
   onMarkForApproval?: (invoice: IInvoice) => void;
   onOpenPartialModal?: (invoice: IInvoice) => void;
   onClearPaymentMark?: (markId: string) => void;
+  onApproveMark?: (markId: string) => void;
 }
 
 export function PaymentMarkCell({
@@ -26,7 +27,39 @@ export function PaymentMarkCell({
   onMarkForApproval,
   onOpenPartialModal,
   onClearPaymentMark,
+  onApproveMark,
 }: PaymentMarkCellProps) {
+  const renderClearMarkButton = (markId: string) => (
+    <Tooltip label="Убрать отметку">
+      <ActionIcon
+        size="md"
+        color="red"
+        variant="filled"
+        aria-label="Убрать отметку"
+        onClick={() => onClearPaymentMark?.(markId)}
+      >
+        <IconX size={14} />
+      </ActionIcon>
+    </Tooltip>
+  );
+
+  const renderApproveMarkButton = (markId: string) => (
+    <Tooltip label="Отметить к оплате">
+      <ActionIcon
+        size="md"
+        color="green"
+        variant="filled"
+        aria-label="Отметить к оплате"
+        onClick={() => onApproveMark?.(markId)}
+      >
+        <IconCheck size={14} />
+      </ActionIcon>
+    </Tooltip>
+  );
+
+  const canApprove = mark?.status === APPROVAL_MARK_STATUS;
+  const approveIcon = canApprove && onApproveMark ? renderApproveMarkButton(mark.id) : null;
+
   if (canMarkPayment) {
     if (mark) {
       if (mark.amount == null || mark.amount === 0) {
@@ -38,27 +71,21 @@ export function PaymentMarkCell({
                   {paymentMarkLabel(mark, invoice.amount)}: {mark.comment}
                 </Text>
               </Box>
-              <Tooltip label="Убрать отметку">
-                <ActionIcon
-                  size="sm"
-                  color="red"
-                  variant="subtle"
-                  aria-label="Убрать отметку"
-                  onClick={() => onClearPaymentMark?.(mark.id)}
-                >
-                  <IconX size={12} />
-                </ActionIcon>
-              </Tooltip>
+              {approveIcon}
+              {renderClearMarkButton(mark.id)}
             </Group>
           );
         }
         return (
-          <Checkbox
-            size="xs"
-            label={formatAmountRub(invoice.amount)}
-            checked
-            onChange={() => onClearPaymentMark?.(mark.id)}
-          />
+          <Group gap={4} wrap="nowrap">
+            <Checkbox
+              size="xs"
+              label={formatAmountRub(invoice.amount)}
+              checked
+              onChange={() => onClearPaymentMark?.(mark.id)}
+            />
+            {approveIcon}
+          </Group>
         );
       }
       return (
@@ -75,17 +102,8 @@ export function PaymentMarkCell({
               </Tooltip>
             )}
           </Box>
-          <Tooltip label="Убрать отметку">
-            <ActionIcon
-              size="sm"
-              color="red"
-              variant="subtle"
-              aria-label="Убрать отметку"
-              onClick={() => onClearPaymentMark?.(mark.id)}
-            >
-              <IconX size={12} />
-            </ActionIcon>
-          </Tooltip>
+          {approveIcon}
+          {renderClearMarkButton(mark.id)}
         </Group>
       );
     }
@@ -97,7 +115,7 @@ export function PaymentMarkCell({
     }
 
     return (
-      <Group gap={4} wrap="nowrap">
+      <Group gap={4} wrap="nowrap" justify="space-evenly" top="20px">
         <Button size="xs" onClick={() => onMarkForPayment?.(invoice)}>
           Оплатить
         </Button>
@@ -108,7 +126,7 @@ export function PaymentMarkCell({
         >
           Частично
         </Button>
-        <Button size="xs" variant="subtle" onClick={() => onMarkForApproval?.(invoice)}>
+        <Button size="xs" style={{border: "1px solid var(--mantine-color-blue-light-color)"}} variant="subtle" onClick={() => onMarkForApproval?.(invoice)}>
           Согласование
         </Button>
       </Group>
@@ -117,19 +135,7 @@ export function PaymentMarkCell({
 
   if (canViewPaymentMarks && mark) {
     const canRemove = canRemoveApprovalMark && mark.status === APPROVAL_MARK_STATUS;
-    const removeIcon = canRemove && (
-      <Tooltip label="Убрать отметку">
-        <ActionIcon
-          size="sm"
-          color="red"
-          variant="subtle"
-          aria-label="Убрать отметку"
-          onClick={() => onClearPaymentMark?.(mark.id)}
-        >
-          <IconX size={12} />
-        </ActionIcon>
-      </Tooltip>
-    );
+    const removeIcon = canRemove && renderClearMarkButton(mark.id);
 
     if (mark.amount == null || mark.amount === 0) {
       if (mark.comment) {
@@ -138,6 +144,7 @@ export function PaymentMarkCell({
             <Text size="xs" fw={600}>
               {paymentMarkLabel(mark, invoice.amount)}: {mark.comment}
             </Text>
+            {approveIcon}
             {removeIcon}
           </Group>
         );
@@ -147,6 +154,7 @@ export function PaymentMarkCell({
           <Text size="xs" fw={600}>
             {formatAmountRub(invoice.amount)}
           </Text>
+          {approveIcon}
           {removeIcon}
         </Group>
       );
@@ -163,6 +171,7 @@ export function PaymentMarkCell({
             </Text>
           )}
         </Box>
+        {approveIcon}
         {removeIcon}
       </Group>
     );

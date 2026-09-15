@@ -2,11 +2,15 @@ import { ActionIcon, Button, Group, TextInput } from '@mantine/core';
 import { IconArrowsHorizontal, IconSearch, IconX } from '@tabler/icons-react';
 import { useSearch } from '@/shared/context/SearchContext';
 
-export function InvoiceSearch() {
+interface InvoiceSearchProps {
+  stretch?: boolean;
+}
+
+export function InvoiceSearch({ stretch = false }: InvoiceSearchProps) {
   const { searchText, setSearchText, searchAll, setSearchAll } = useSearch();
 
   return (
-    <Group gap="xs">
+    <Group gap="xs" wrap="nowrap" w={stretch ? '100%' : undefined}>
       <TextInput
         leftSection={<IconSearch size={16} />}
         rightSection={
@@ -22,7 +26,8 @@ export function InvoiceSearch() {
           setSearchText(e.currentTarget.value);
           setSearchAll(false);
         }}
-        w={{ base: '100%', sm: 260 }}
+        w={stretch ? undefined : { base: '100%', sm: 260 }}
+        style={stretch ? { flex: 1, minWidth: 0 } : undefined}
         size="sm"
       />
       {searchText && !searchAll && (

@@ -26,7 +26,7 @@ import { useMoveInvoice } from '@/shared/hooks/useMoveInvoice';
 import { useReorderCounterparties } from '@/shared/hooks/useReorderCounterparties';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
-import { useCreatePaymentMark, useDeletePaymentMark } from '@/shared/hooks/usePaymentMarks';
+import { useCreatePaymentMark, useDeletePaymentMark, useApprovePaymentMark } from '@/shared/hooks/usePaymentMarks';
 import { APPROVAL_MARK_STATUS, PARTIAL_MARK_STATUS, PAID_MARK_STATUS } from './payment-mark-status';
 import { useCreateInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
 import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
@@ -82,6 +82,7 @@ export function InvoiceTable({
   const moveInvoice = useMoveInvoice(orgId, date);
   const createPaymentMark = useCreatePaymentMark(orgId);
   const deletePaymentMark = useDeletePaymentMark(orgId);
+  const approvePaymentMark = useApprovePaymentMark(orgId);
   const createInvoiceFile = useCreateInvoiceFile(orgId);
   const reorderCounterparties = useReorderCounterparties(orgId);
 
@@ -411,6 +412,17 @@ export function InvoiceTable({
     setClearMarkTarget(markId);
   };
 
+  const handleApproveMark = (markId: string) => {
+    approvePaymentMark.mutate(markId, {
+      onSuccess: () => {
+        notifications.show({ color: 'green', message: 'Счёт отмечен к оплате' });
+      },
+      onError: () => {
+        notifications.show({ color: 'red', message: 'Не удалось утвердить оплату' });
+      },
+    });
+  };
+
   const patchDraft = (patch: Partial<DraftInvoiceForm>) => {
     setDraftForm((prev) => ({ ...prev, ...patch }));
   };
@@ -456,6 +468,7 @@ export function InvoiceTable({
         onMarkForApproval={handleMarkForApproval}
         onMarkPartialPayment={handleMarkPartialPayment}
         onClearPaymentMark={handleClearPaymentMark}
+        onApproveMark={handleApproveMark}
         filesByInvoice={filesByInvoice}
         onFiles={(inv) => setFilesInvoice(inv)}
         visibleColumns={visibleColumns}

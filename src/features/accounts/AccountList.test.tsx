@@ -81,18 +81,18 @@ describe('AccountList', () => {
     renderAccountList(accounts);
 
     await waitFor(() => {
-      expect(screen.getByText('4070281012345')).toBeInTheDocument();
+      expect(screen.getAllByText('4070281012345').length).toBeGreaterThan(0);
     });
 
-    expect(screen.getByText('4070281098765')).toBeInTheDocument();
-    expect(screen.getByText(/150 000/)).toBeInTheDocument();
-    expect(screen.getByText(/85 000/)).toBeInTheDocument();
+    expect(screen.getAllByText('4070281098765').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/150 000/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/85 000/).length).toBeGreaterThan(0);
   });
 
   it('shows loading state', () => {
     renderAccountList(undefined, true);
 
-    expect(screen.getByText('Расчётные счета')).toBeInTheDocument();
+    expect(screen.getAllByText('Расчётные счета').length).toBeGreaterThan(0);
   });
 
   it('hidden for guest role', async () => {

@@ -12,7 +12,7 @@ import {
   Tooltip,
   Collapse,
 } from '@mantine/core';
-import { IconHome, IconChevronUp, IconSettings, IconUser, IconLogout } from '@tabler/icons-react';
+import { IconHome, IconChevronUp, IconSettings, IconLogout } from '@tabler/icons-react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
@@ -159,12 +159,6 @@ function AppLayoutContent() {
                     </ActionIcon>
                   </Tooltip>
                 )}
-                <Group gap={5} wrap="nowrap" style={{ maxWidth: 100 }}>
-                  <IconUser size={18} color="var(--mantine-color-dimmed)" aria-hidden />
-                  <Text size="sm" c="dimmed" truncate>
-                    {user?.name || user?.login || 'Пользователь'}
-                  </Text>
-                </Group>
                 <Tooltip label="Выйти">
                   <ActionIcon
                     variant="subtle"
@@ -177,7 +171,7 @@ function AppLayoutContent() {
                 </Tooltip>
               </Group>
             </Group>
-            <InvoiceSearch />
+            <InvoiceSearch stretch />
             <Collapse in={pinned} transitionDuration={200}>
               <Box className="date-pinned-row" py={2}>
                 <MainDatePicker variant="header" />
