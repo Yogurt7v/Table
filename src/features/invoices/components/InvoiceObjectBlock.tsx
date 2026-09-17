@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
-import { Paper, Title, Group, Button, Skeleton, Stack, Text, ActionIcon, Tooltip, Collapse } from '@mantine/core';
+import { Paper, Title, Group, Button, Skeleton, Stack, Text, ActionIcon, Tooltip, Collapse, useMantineTheme } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconPlus, IconPrinter, IconFileExport, IconChevronRight, IconChevronDown } from '@tabler/icons-react';
 import { useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
+import { useDatePinned } from '@/shared/context/DatePinnedContext';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -60,6 +62,11 @@ export function InvoiceObjectBlock({
   const { isCollapsed, toggle } = useCollapsedObjects();
   const collapsed = isCollapsed(obj.id);
 
+  const theme = useMantineTheme();
+  const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+  const { pinned } = useDatePinned();
+  const stickyTop = isMobile ? (pinned ? 132 : 88) : 56;
+
   const isDraftOpen = draftObjectId === obj.id;
   const hasDraftElsewhere = draftObjectId !== null && draftObjectId !== obj.id;
 
@@ -85,7 +92,7 @@ export function InvoiceObjectBlock({
         mb={0}
         style={{
           position: 'sticky',
-          top: 56,
+          top: stickyTop,
           zIndex: 2,
           height: 48,
           display: 'flex',

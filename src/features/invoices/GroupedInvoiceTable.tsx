@@ -41,7 +41,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { getInvoiceFileUrl } from '@/api/collections';
-import { formatAmountRub } from '@/shared/utils/format-currency';
+import { formatAmountNumber, formatAmountRub } from '@/shared/utils/format-currency';
 import { shortenFileName } from '@/shared/utils/shorten-file-name';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { getUserDisplayName } from '@/shared/utils/user-display-name';
@@ -163,6 +163,7 @@ interface GroupedInvoiceTableProps {
   onMarkForApproval?: (invoice: IInvoice) => void;
   onMarkPartialPayment?: (invoiceId: string, amount: number | undefined, comment: string) => void;
   onClearPaymentMark?: (markId: string) => void;
+  onApproveMark?: (markId: string) => void;
   filesByInvoice?: Record<string, IInvoiceFile[]>;
   onFiles?: (invoice: IInvoice) => void;
   visibleColumns: InvoiceColumnId[];
@@ -198,6 +199,7 @@ export function GroupedInvoiceTable({
   onMarkForApproval,
   onMarkPartialPayment,
   onClearPaymentMark,
+  onApproveMark,
   filesByInvoice,
   onFiles,
   visibleColumns,
@@ -482,7 +484,9 @@ export function GroupedInvoiceTable({
     amount: {
       width: 100,
       header: 'Сумма',
-      renderCell: (invoice) => <>{formatAmountRub(getEffectiveAmount(invoice))}</>,
+      renderCell: (invoice) => (
+        <Text fw={400}>{formatAmountNumber(getEffectiveAmount(invoice))}</Text>
+      ),
       renderDraft: () => (
         <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
           <NumberInput
@@ -514,9 +518,9 @@ export function GroupedInvoiceTable({
                 {isLast && (
                   <Tooltip label="Снять оплату">
                     <ActionIcon
-                      size="sm"
+                      size="md"
                       color="red"
-                      variant="subtle"
+                      variant="filled"
                       aria-label="Снять оплату"
                       onClick={() => setClearConfirmInvoiceId(invoice.id)}
                     >
@@ -679,6 +683,7 @@ export function GroupedInvoiceTable({
             onMarkForApproval={onMarkForApproval}
             onOpenPartialModal={(inv) => setPartialModal({ invoice: inv, amount: '', comment: '' })}
             onClearPaymentMark={onClearPaymentMark}
+            onApproveMark={onApproveMark}
           />
         );
       },
@@ -708,20 +713,11 @@ export function GroupedInvoiceTable({
         onDraftChange={onDraftChange}
         onDraftSave={onDraftSave}
         onDraftCancel={onDraftCancel}
-        onEdit={onEdit}
-        onHistory={onHistory}
-        onMove={onMove}
-        onFiles={onFiles}
-        onCopy={onCopy}
-        onDelete={onDelete}
         onMarkForPayment={onMarkForPayment}
         onMarkForApproval={onMarkForApproval}
         onMarkPartialPayment={onMarkPartialPayment}
         onClearPaymentMark={onClearPaymentMark}
-        onOpenPayModal={(invoice) => {
-          setPayModalInvoice(invoice);
-          setPayModalAmount(String(invoice.amount));
-        }}
+        onApproveMark={onApproveMark}
         onClearPaymentConfirm={(id) => setClearConfirmInvoiceId(id)}
         onOpenPartialModal={(inv) => setPartialModal({ invoice: inv, amount: '', comment: '' })}
       />
@@ -933,7 +929,19 @@ export function GroupedInvoiceTable({
                                   >
                                     <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
                                       {colId === 'counterparty' && showCounterparty ? (
-                                        <Text fw={600}>{group.counterparty}</Text>
+                                        <>
+                                          <Text fw={600}>{group.counterparty}</Text>
+                                          {group.invoices.length > 1 && (
+                                            <Text size="xs" c="dimmed">
+                                              Итого:{' '}
+                                              {formatAmountRub(
+                                                group.invoices
+                                                  .filter((inv) => !inv.paid)
+                                                  .reduce((sum, inv) => sum + inv.amount, 0),
+                                              )}
+                                            </Text>
+                                          )}
+                                        </>
                                       ) : colId === 'counterparty' ? null : (
                                         col.renderCell(invoice)
                                       )}
@@ -987,7 +995,7 @@ export function GroupedInvoiceTable({
                                               {isLastCopy && (
                                                 <Tooltip label="Снять оплату">
                                                   <ActionIcon
-                                                    size="sm"
+                                                    size="md"
                                                     color="red"
                                                     variant="subtle"
                                                     aria-label="Снять оплату"
@@ -1278,7 +1286,19 @@ export function GroupedInvoiceTable({
                                   >
                                     <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
                                       {colId === 'counterparty' && showCounterparty ? (
-                                        <Text fw={600}>{group.counterparty}</Text>
+                                        <>
+                                          <Text fw={600}>{group.counterparty}</Text>
+                                          {group.invoices.length > 1 && (
+                                            <Text size="xs" c="dimmed">
+                                              Итого:{' '}
+                                              {formatAmountRub(
+                                                group.invoices
+                                                  .filter((inv) => !inv.paid)
+                                                  .reduce((sum, inv) => sum + inv.amount, 0),
+                                              )}
+                                            </Text>
+                                          )}
+                                        </>
                                       ) : colId === 'counterparty' ? null : (
                                         col.renderCell(invoice)
                                       )}

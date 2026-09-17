@@ -7,6 +7,8 @@ import {
 } from '@/shared/hooks/useDeletedInvoices';
 import { getDeletedInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { getUserDisplayName } from '@/shared/utils/user-display-name';
+import { useUserMap } from '@/shared/hooks/useUserMap';
 import type { IDeletedInvoice } from '@/shared/types';
 
 interface DeletedInvoiceDetailModalProps {
@@ -50,13 +52,14 @@ export function DeletedInvoiceDetailModal({
 }
 
 function DetailsTab({ invoice }: { invoice: IDeletedInvoice }) {
+  const userMap = useUserMap();
   const objectName = invoice.expand?.accounting_object_id?.name ?? '—';
 
   return (
     <Stack gap="xs">
       <Row label="Номер" value={invoice.seq ? String(invoice.seq) : '—'} />
       <Row label="Дата" value={invoice.date ? dayjs(invoice.date).format('DD.MM.YYYY') : '—'} />
-      <Row label="Контрагент" value={invoice.counterparty || '—'} />
+      <Row label="Контрагент"    value={invoice.counterparty || '—'} />
       <Row label="Назначение" value={invoice.purpose || '—'} />
       <Row label="Договор" value={invoice.contract_no || '—'} />
       <Row label="Номер счёта" value={invoice.invoice_no || '—'} />
@@ -65,12 +68,13 @@ function DetailsTab({ invoice }: { invoice: IDeletedInvoice }) {
         label="Оплачен"
         value={invoice.paid ? 'Да' : 'Нет'}
       />
+      <Row label="Объект" value={objectName} />
       {invoice.paid && invoice.paid_date && (
         <Row label="Дата оплаты" value={dayjs(invoice.paid_date).format('DD.MM.YYYY')} />
       )}
-      <Row label="Объект" value={objectName} />
       {invoice.comment && <Row label="Комментарий" value={invoice.comment} />}
 
+      <Row label="Инициатор" value={getUserDisplayName(userMap.get(invoice.created_by))} />
       <Box
         mt="sm"
         p="sm"
@@ -107,10 +111,10 @@ function DetailsTab({ invoice }: { invoice: IDeletedInvoice }) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <Group gap="sm" wrap="nowrap">
-      <Text size="xs" c="dimmed" w={130} flexShrink={0}>
+      <Text size="sm" c="dimmed" w={130}>
         {label}
       </Text>
-      <Text size="xs">{value}</Text>
+      <Text size="md">{value}</Text>
     </Group>
   );
 }
@@ -186,7 +190,7 @@ function formatHistoryType(type: string): string {
     case 'mark_deleted':
       return 'Отметка удалена';
     case 'copy_created':
-      return 'Копия создана';
+      return 'Частично оплачен';
     case 'file_added':
       return 'Файл добавлен';
     case 'file_removed':

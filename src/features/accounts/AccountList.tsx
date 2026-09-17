@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Paper, Title, Table, Loader, Text, Group, TextInput, ActionIcon } from '@mantine/core';
+import { Box, Paper, Title, Table, Loader, Text, Group, TextInput, ActionIcon } from '@mantine/core';
 import { IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import sumBy from 'lodash/sumBy';
 // import dayjs from 'dayjs';
@@ -8,54 +8,13 @@ import { useOrg } from '@/shared/context/OrgContext';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useUpdateBalance } from '@/shared/hooks/useBankAccounts';
 import type { IAccountWithBalance } from '@/shared/types';
+import { toFixed2, cleanInput, formatForDisplay, parseToNumber } from './account-balance-input';
+import { AccountListMobile } from './AccountListMobile';
 
 interface AccountListProps {
   accounts: IAccountWithBalance[] | undefined;
   loading: boolean;
   date: string;
-}
-
-function toFixed2(n: number) {
-  const parts = n.toFixed(2).split('.');
-  const spaced = parts[0]!.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return `${spaced}.${parts[1]} ₽`;
-}
-
-function cleanInput(raw: string): string {
-  let result = '';
-  let hasDecimal = false;
-  let decimalDigits = 0;
-  for (let i = 0; i < raw.length; i++) {
-    const ch = raw[i]!;
-    if (ch === ' ') continue;
-    if (ch === '-' && result === '') {
-      result += '-';
-    } else if (ch >= '0' && ch <= '9') {
-      if (hasDecimal && decimalDigits >= 2) continue;
-      result += ch;
-      if (hasDecimal) decimalDigits++;
-    } else if ((ch === '.' || ch === ',') && !hasDecimal) {
-      hasDecimal = true;
-      result += ',';
-    }
-  }
-  return result;
-}
-
-function formatForDisplay(value: string): string {
-  const commaIdx = value.indexOf(',');
-  if (commaIdx === -1) {
-    return value.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  }
-  const intPart = value.slice(0, commaIdx);
-  const decPart = value.slice(commaIdx + 1);
-  const spaced = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return `${spaced},${decPart}`;
-}
-
-function parseToNumber(value: string): number {
-  const num = parseFloat(value.replace(/\s/g, '').replace(',', '.'));
-  return isNaN(num) ? 0 : num;
 }
 
 export function AccountList({ accounts, loading, date }: AccountListProps) {
@@ -100,128 +59,135 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
   const canEditHere = canEdit; // && isToday
 
   return (
-    <Paper withBorder p="sm" w={{ base: '100%', md: '50%' }} style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
-      <Title order={6} mb="xs">
-        Расчётные счета
-      </Title>
-      {loading ? (
-        <Loader size="sm" />
-      ) : (
-        <Table highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Счёт</Table.Th>
-              <Table.Th ta="right">Остаток</Table.Th>
-              {canEditHere && <Table.Th w={60} />}
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {accounts?.map((item) => (
-              <Table.Tr key={item.account.id}>
-                <Table.Td>{item.account.account_number}</Table.Td>
-                <Table.Td ta="right">
-                  {editingId === item.account.id ? (
-                    <div style={{ width: '50%', marginLeft: 'auto' }}>
-                      <TextInput
-                        ref={inputRef}
-                        size="xs"
-                        value={formatForDisplay(editInput)}
-                        onChange={(e) => {
-                          const pos = e.target.selectionStart ?? editInput.length;
-                          const raw = e.currentTarget.value;
-                          const oldRaw = editInput;
-                          const cleaned = cleanInput(raw);
-                          if (cleaned === oldRaw) {
-                            requestAnimationFrame(() => {
-                              inputRef.current?.setSelectionRange(pos, pos);
-                            });
-                            return;
-                          }
+    <>
+      <Box hiddenFrom="sm">
+        <AccountListMobile accounts={accounts} loading={loading} date={date} canEdit={canEdit} />
+      </Box>
+      <Box visibleFrom="sm">
+        <Paper withBorder p="sm" w={{ base: '100%', md: '50%' }} style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
+          <Title order={6} mb="xs">
+            Расчётные счета
+          </Title>
+          {loading ? (
+            <Loader size="sm" />
+          ) : (
+            <Table highlightOnHover>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Счёт</Table.Th>
+                  <Table.Th ta="right">Остаток</Table.Th>
+                  {canEditHere && <Table.Th w={60} />}
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {accounts?.map((item) => (
+                  <Table.Tr key={item.account.id}>
+                    <Table.Td>{item.account.account_number}</Table.Td>
+                    <Table.Td ta="right">
+                      {editingId === item.account.id ? (
+                        <div style={{ width: '50%', marginLeft: 'auto' }}>
+                          <TextInput
+                            ref={inputRef}
+                            size="xs"
+                            value={formatForDisplay(editInput)}
+                            onChange={(e) => {
+                              const pos = e.target.selectionStart ?? editInput.length;
+                              const raw = e.currentTarget.value;
+                              const oldRaw = editInput;
+                              const cleaned = cleanInput(raw);
+                              if (cleaned === oldRaw) {
+                                requestAnimationFrame(() => {
+                                  inputRef.current?.setSelectionRange(pos, pos);
+                                });
+                                return;
+                              }
 
-                          const oldFormatted = formatForDisplay(oldRaw);
-                          const newFormatted = formatForDisplay(cleaned);
-                          let nonSpace = 0;
-                          for (let i = 0; i < oldFormatted.length && i < pos; i++) {
-                            if (oldFormatted[i] !== ' ') nonSpace++;
-                          }
+                              const oldFormatted = formatForDisplay(oldRaw);
+                              const newFormatted = formatForDisplay(cleaned);
+                              let nonSpace = 0;
+                              for (let i = 0; i < oldFormatted.length && i < pos; i++) {
+                                if (oldFormatted[i] !== ' ') nonSpace++;
+                              }
 
-                          setEditInput(cleaned);
+                              setEditInput(cleaned);
 
-                          requestAnimationFrame(() => {
-                            if (!inputRef.current) return;
-                            let count = 0;
-                            let newPos = newFormatted.length;
-                            for (let i = 0; i < newFormatted.length; i++) {
-                              if (newFormatted[i] !== ' ') count++;
-                              if (count > nonSpace) { newPos = i; break; }
-                            }
-                            inputRef.current.setSelectionRange(newPos, newPos);
-                          });
-                        }}
-                        styles={{ input: { textAlign: 'right' } }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveEdit();
-                          if (e.key === 'Escape') cancelEdit();
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <Text>{toFixed2(item.balance)}</Text>
-                  )}
-                </Table.Td>
-                {canEditHere && (
-                  <Table.Td>
-                    {editingId === item.account.id ? (
-                      <Group gap={4} wrap="nowrap">
-                        <ActionIcon
-                          size="sm"
-                          color="green"
-                          variant="light"
-                          aria-label="Сохранить остаток"
-                          onClick={saveEdit}
-                          loading={updateBalance.isPending}
-                        >
-                          <IconCheck size={14} />
-                        </ActionIcon>
-                        <ActionIcon
-                          size="sm"
-                          color="gray"
-                          variant="subtle"
-                          aria-label="Отмена"
-                          onClick={cancelEdit}
-                        >
-                          <IconX size={14} />
-                        </ActionIcon>
-                      </Group>
-                    ) : (
-                      <ActionIcon
-                        size="sm"
-                        color="blue"
-                        variant="subtle"
-                        aria-label="Редактировать остаток"
-                        onClick={() => startEdit(item)}
-                      >
-                        <IconPencil size={14} />
-                      </ActionIcon>
+                              requestAnimationFrame(() => {
+                                if (!inputRef.current) return;
+                                let count = 0;
+                                let newPos = newFormatted.length;
+                                for (let i = 0; i < newFormatted.length; i++) {
+                                  if (newFormatted[i] !== ' ') count++;
+                                  if (count > nonSpace) { newPos = i; break; }
+                                }
+                                inputRef.current.setSelectionRange(newPos, newPos);
+                              });
+                            }}
+                            styles={{ input: { textAlign: 'right' } }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveEdit();
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <Text>{toFixed2(item.balance)}</Text>
+                      )}
+                    </Table.Td>
+                    {canEditHere && (
+                      <Table.Td>
+                        {editingId === item.account.id ? (
+                          <Group gap={4} wrap="nowrap">
+                            <ActionIcon
+                              size="sm"
+                              color="green"
+                              variant="light"
+                              aria-label="Сохранить остаток"
+                              onClick={saveEdit}
+                              loading={updateBalance.isPending}
+                            >
+                              <IconCheck size={14} />
+                            </ActionIcon>
+                            <ActionIcon
+                              size="sm"
+                              color="gray"
+                              variant="subtle"
+                              aria-label="Отмена"
+                              onClick={cancelEdit}
+                            >
+                              <IconX size={14} />
+                            </ActionIcon>
+                          </Group>
+                        ) : (
+                          <ActionIcon
+                            size="sm"
+                            color="blue"
+                            variant="subtle"
+                            aria-label="Редактировать остаток"
+                            onClick={() => startEdit(item)}
+                          >
+                            <IconPencil size={14} />
+                          </ActionIcon>
+                        )}
+                      </Table.Td>
                     )}
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+              <Table.Tfoot>
+                <Table.Tr>
+                  <Table.Td colSpan={2}>
+                    <Group justify="flex-end" gap="lg">
+                      <Text fw={400}>ИТОГО</Text>
+                      <Text fw={400}>{toFixed2(total)}</Text>
+                    </Group>
                   </Table.Td>
-                )}
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-          <Table.Tfoot>
-            <Table.Tr>
-              <Table.Td colSpan={2}>
-                <Group justify="flex-end" gap="lg">
-                  <Text fw={700}>ИТОГО</Text>
-                  <Text fw={700}>{toFixed2(total)}</Text>
-                </Group>
-              </Table.Td>
-              {canEditHere && <Table.Td />}
-            </Table.Tr>
-          </Table.Tfoot>
-        </Table>
-      )}
-    </Paper>
+                  {canEditHere && <Table.Td />}
+                </Table.Tr>
+              </Table.Tfoot>
+            </Table>
+          )}
+        </Paper>
+      </Box>
+    </>
   );
 }

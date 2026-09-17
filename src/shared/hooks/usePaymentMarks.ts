@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPaymentMarks, createPaymentMark, deletePaymentMark } from '@/api/collections';
+import {
+  getPaymentMarks,
+  createPaymentMark,
+  deletePaymentMark,
+  approvePaymentMark,
+} from '@/api/collections';
 import { pb } from '@/api/client';
 import type { PaymentMarkStatus } from '@/shared/types';
 
@@ -41,6 +46,14 @@ export function useDeletePaymentMark(orgId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deletePaymentMark(id),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['payment_marks', orgId] }),
+  });
+}
+
+export function useApprovePaymentMark(orgId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => approvePaymentMark(id),
     onSettled: () => qc.invalidateQueries({ queryKey: ['payment_marks', orgId] }),
   });
 }

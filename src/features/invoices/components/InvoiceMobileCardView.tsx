@@ -21,14 +21,11 @@ import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { shortenFileName } from '@/shared/utils/shorten-file-name';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
-import { getUserDisplayName } from '@/shared/utils/user-display-name';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
 import { getInvoiceFileUrl } from '@/api/collections';
-import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
 import { PaymentMarkCell } from './PaymentMarkCell';
 import { markRowColor } from '../payment-mark-row-style';
-import { InvoiceActionsCell } from './InvoiceActionsCell';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type {
   DraftFieldErrorKey,
@@ -45,6 +42,7 @@ interface Permissions {
   canMove: boolean;
   canMarkPayment: boolean;
   canViewPaymentMarks: boolean;
+  canRemoveApprovalMark?: boolean;
   canViewPaidDate: boolean;
   canManageFiles: boolean;
 }
@@ -63,18 +61,12 @@ interface InvoiceMobileCardViewProps {
   onDraftChange?: (field: keyof DraftInvoiceForm, value: unknown) => void;
   onDraftSave?: () => void;
   onDraftCancel?: () => void;
-  onEdit: (invoice: IInvoice) => void;
-  onHistory: (invoice: IInvoice) => void;
-  onMove: (invoice: IInvoice) => void;
-  onFiles?: (invoice: IInvoice) => void;
-  onCopy?: (invoice: IInvoice) => void;
-  onDelete: (invoice: IInvoice) => void;
   onMarkForPayment?: (invoice: IInvoice) => void;
   onMarkForApproval?: (invoice: IInvoice) => void;
   onClearPaymentMark?: (markId: string) => void;
-  onOpenPayModal: (invoice: IInvoice) => void;
   onClearPaymentConfirm: (invoiceId: string) => void;
   onOpenPartialModal: (invoice: IInvoice) => void;
+  onApproveMark?: (markId: string) => void;
 }
 
 export function InvoiceMobileCardView({
@@ -91,20 +83,13 @@ export function InvoiceMobileCardView({
   onDraftChange,
   onDraftSave,
   onDraftCancel,
-  onEdit,
-  onHistory,
-  onMove,
-  onFiles,
-  onCopy,
-  onDelete,
   onClearPaymentMark,
   onMarkForPayment,
   onMarkForApproval,
-  onOpenPayModal,
   onClearPaymentConfirm,
   onOpenPartialModal,
+  onApproveMark,
 }: InvoiceMobileCardViewProps) {
-  const userMap = useUserMap();
   const groups = groupInvoicesByCounterparty(invoices, allInvoices, counterpartyOrder);
   const [draftErrors, setDraftErrors] = useState<DraftFieldErrors>({});
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
@@ -155,7 +140,9 @@ export function InvoiceMobileCardView({
   return (
     <Stack hiddenFrom="sm" gap="md">
       {groups.map((group) => {
-        const groupTotal = group.invoices.reduce((sum, inv) => sum + getEffectiveAmount(inv), 0);
+        const unpaidTotal = group.invoices
+          .filter((inv) => !inv.paid)
+          .reduce((sum, inv) => sum + inv.amount, 0);
         return (
           <Paper
             key={group.counterparty}
@@ -166,8 +153,23 @@ export function InvoiceMobileCardView({
               boxShadow: 'var(--mantine-shadow-sm)',
             }}
           >
-            <Text fw={700} size="md" mb="xs">
+            <Text
+              fw={700}
+              size="lg"
+              mb="xs"
+              px="xs"
+              py={4}
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 10%, transparent)',
+                borderRadius: 8,
+              }}
+            >
               {group.counterparty}
+              {group.invoices.length > 1 && (
+                <Text size="sm" fw={400} c="dimmed">
+                  Итого: {formatAmountRub(unpaidTotal)}
+                </Text>
+              )}
             </Text>
 
             {group.invoices.map((invoice) => {
@@ -199,7 +201,7 @@ export function InvoiceMobileCardView({
                       <Text size="xs" c="dimmed">
                         {invoiceNumber})
                       </Text>
-                      <Text size="sm" fw={700}>
+                      <Text size="md" fw={800}>
                         {formatAmountRub(getEffectiveAmount(invoice))}
                       </Text>
                     </Group>
@@ -215,9 +217,9 @@ export function InvoiceMobileCardView({
                         {amounts.length === 1 && (
                           <Tooltip label="Снять оплату">
                             <ActionIcon
-                              size="sm"
+                              size="md"
                               color="red"
-                              variant="subtle"
+                              variant="filled"
                               aria-label="Снять оплату"
                               onClick={() => onClearPaymentConfirm(invoice.id)}
                             >
@@ -227,19 +229,14 @@ export function InvoiceMobileCardView({
                         )}
                       </Group>
                     ) : (
-                      <Button
-                        size="compact-xs"
-                        variant="light"
-                        color="orange"
-                        onClick={() => onOpenPayModal(invoice)}
-                      >
-                        Оплатить
-                      </Button>
+                      <Badge color="gray" variant="light" size="sm">
+                        Не оплачен
+                      </Badge>
                     )}
                   </Group>
 
                   {invoice.purpose && (
-                    <Text size="md" lineClamp={2} mt={2}>
+                    <Text size="md" fw={600} lineClamp={3} mt={2}>
                       {invoice.purpose}
                     </Text>
                   )}
@@ -253,11 +250,6 @@ export function InvoiceMobileCardView({
                     {invoice.invoice_no && (
                       <Text size="xs" c="dimmed">
                         Счёт: {invoice.invoice_no}
-                      </Text>
-                    )}
-                    {invoice.created_by && (
-                      <Text size="xs" c="dimmed">
-                        Инициатор: {getUserDisplayName(userMap.get(invoice.created_by))}
                       </Text>
                     )}
                   </Group>
@@ -299,62 +291,23 @@ export function InvoiceMobileCardView({
                     </Text>
                   )}
 
-                  <Group justify="space-between" mt={4} wrap="nowrap">
-                    <Box style={{ flex: 1, minWidth: 0 }}>
-                      <PaymentMarkCell
-                        invoice={invoice}
-                        mark={marksByInvoice[invoice.id]}
-                        canMarkPayment={permissions.canMarkPayment}
-                        canViewPaymentMarks={permissions.canViewPaymentMarks}
-                        onMarkForPayment={onMarkForPayment}
-                        onMarkForApproval={onMarkForApproval}
-                        onOpenPartialModal={onOpenPartialModal}
-                        onClearPaymentMark={onClearPaymentMark}
-                      />
-                    </Box>
-                    <Group gap={2} wrap="nowrap">
-                      {onFiles && (
-                        <Tooltip
-                          label={
-                            invoiceFiles?.length
-                              ? `Файлы счёта (${invoiceFiles.length})`
-                              : 'Прикрепить файл'
-                          }
-                        >
-                          <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            aria-label={`Файлы счёта${invoiceFiles?.length ? ` (${invoiceFiles.length})` : ''}`}
-                            onClick={() => onFiles(invoice)}
-                          >
-                            <IconPaperclip size={18} />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                      <InvoiceActionsCell
-                        invoice={invoice}
-                        canUpdate={permissions.canUpdate}
-                        canDelete={permissions.canDelete}
-                        canViewHistory={permissions.canViewHistory}
-                        canMove={permissions.canMove}
-                        canCreate={permissions.canCreate}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
-                        onHistory={onHistory}
-                        onMove={onMove}
-                        onFiles={onFiles}
-                        onCopy={onCopy}
-                        compact
-                      />
-                    </Group>
-                  </Group>
+                  <Box mt={4}>
+                    <PaymentMarkCell
+                      invoice={invoice}
+                      mark={marksByInvoice[invoice.id]}
+                      canMarkPayment={permissions.canMarkPayment}
+                      canViewPaymentMarks={permissions.canViewPaymentMarks}
+                      canRemoveApprovalMark={permissions.canRemoveApprovalMark}
+                      onMarkForPayment={onMarkForPayment}
+                      onMarkForApproval={onMarkForApproval}
+                      onOpenPartialModal={onOpenPartialModal}
+                      onClearPaymentMark={onClearPaymentMark}
+                      onApproveMark={onApproveMark}
+                    />
+                  </Box>
                 </Paper>
               );
             })}
-
-            <Text ta="right" fw={700} size="sm" mt="xs">
-              Итого: {formatAmountRub(groupTotal)}
-            </Text>
           </Paper>
         );
       })}

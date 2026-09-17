@@ -10,6 +10,7 @@ interface MainDatePickerProps {
 export function MainDatePicker({ variant }: MainDatePickerProps) {
   const { selectedDate: date, setSelectedDate: setDate } = useInvoiceNavigation();
   const isHeader = variant === 'header';
+  const isPage = variant === 'page';
 
   return (
     <DatePickerInput
@@ -19,13 +20,18 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
       onChange={(v) => v && setDate(v)}
       valueFormat="D MMMM YYYY, dddd"
       size={isHeader ? 'sm' : undefined}
-      maw={isHeader ? 320 : 400}
-      w={isHeader ? '100%' : undefined}
+      maw={isPage ? { base: '100%', sm: 400 } : 320}
+      w={isPage ? { base: '100%', sm: 'auto' } : '100%'}
       styles={{
         input: {
           fontWeight: 700,
-          fontSize: isHeader ? 'var(--mantine-font-size-md)' : 'var(--mantine-font-size-lg)',
-          ...(isHeader ? {} : { boxShadow: 'var(--mantine-shadow-sm)' }),
+          fontSize: isHeader
+            ? 'var(--mantine-font-size-md)'
+            : { base: 'var(--mantine-font-size-md)', sm: 'var(--mantine-font-size-lg)' },
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+          overflow: 'hidden',
+          ...(isPage ? { boxShadow: 'var(--mantine-shadow-sm)' } : {}),
         }
       }}
       popoverProps={{
