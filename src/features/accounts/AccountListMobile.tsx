@@ -179,8 +179,8 @@ export function AccountListMobile({ accounts, loading, date, canEdit }: AccountL
           <Divider my={4} />
           <Box ta="right" py="xs" px="xs">
             <Group justify="space-between" gap="xs" wrap="nowrap">
-              <Text fw={700}>ИТОГО</Text>
-              <Text fw={700} style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+              <Text fw={400}>ИТОГО</Text>
+              <Text fw={400} style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                 {toFixed2(total)}
               </Text>
             </Group>

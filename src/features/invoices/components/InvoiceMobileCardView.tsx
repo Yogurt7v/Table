@@ -140,7 +140,9 @@ export function InvoiceMobileCardView({
   return (
     <Stack hiddenFrom="sm" gap="md">
       {groups.map((group) => {
-        const groupTotal = group.invoices.reduce((sum, inv) => sum + getEffectiveAmount(inv), 0);
+        const unpaidTotal = group.invoices
+          .filter((inv) => !inv.paid)
+          .reduce((sum, inv) => sum + inv.amount, 0);
         return (
           <Paper
             key={group.counterparty}
@@ -163,6 +165,11 @@ export function InvoiceMobileCardView({
               }}
             >
               {group.counterparty}
+              {group.invoices.length > 1 && (
+                <Text size="sm" fw={400} c="dimmed">
+                  Итого: {formatAmountRub(unpaidTotal)}
+                </Text>
+              )}
             </Text>
 
             {group.invoices.map((invoice) => {
@@ -301,10 +308,6 @@ export function InvoiceMobileCardView({
                 </Paper>
               );
             })}
-
-            <Text ta="right" fw={700} size="sm" mt="xs" style={{ whiteSpace: 'nowrap' }}>
-              Итого: {formatAmountRub(groupTotal)}
-            </Text>
           </Paper>
         );
       })}

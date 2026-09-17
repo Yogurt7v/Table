@@ -41,7 +41,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { getInvoiceFileUrl } from '@/api/collections';
-import { formatAmountRub } from '@/shared/utils/format-currency';
+import { formatAmountNumber, formatAmountRub } from '@/shared/utils/format-currency';
 import { shortenFileName } from '@/shared/utils/shorten-file-name';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { getUserDisplayName } from '@/shared/utils/user-display-name';
@@ -484,7 +484,9 @@ export function GroupedInvoiceTable({
     amount: {
       width: 100,
       header: 'Сумма',
-      renderCell: (invoice) => <>{formatAmountRub(getEffectiveAmount(invoice))}</>,
+      renderCell: (invoice) => (
+        <Text fw={400}>{formatAmountNumber(getEffectiveAmount(invoice))}</Text>
+      ),
       renderDraft: () => (
         <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
           <NumberInput
@@ -927,7 +929,19 @@ export function GroupedInvoiceTable({
                                   >
                                     <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
                                       {colId === 'counterparty' && showCounterparty ? (
-                                        <Text fw={600}>{group.counterparty}</Text>
+                                        <>
+                                          <Text fw={600}>{group.counterparty}</Text>
+                                          {group.invoices.length > 1 && (
+                                            <Text size="xs" c="dimmed">
+                                              Итого:{' '}
+                                              {formatAmountRub(
+                                                group.invoices
+                                                  .filter((inv) => !inv.paid)
+                                                  .reduce((sum, inv) => sum + inv.amount, 0),
+                                              )}
+                                            </Text>
+                                          )}
+                                        </>
                                       ) : colId === 'counterparty' ? null : (
                                         col.renderCell(invoice)
                                       )}
@@ -1272,7 +1286,19 @@ export function GroupedInvoiceTable({
                                   >
                                     <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
                                       {colId === 'counterparty' && showCounterparty ? (
-                                        <Text fw={600}>{group.counterparty}</Text>
+                                        <>
+                                          <Text fw={600}>{group.counterparty}</Text>
+                                          {group.invoices.length > 1 && (
+                                            <Text size="xs" c="dimmed">
+                                              Итого:{' '}
+                                              {formatAmountRub(
+                                                group.invoices
+                                                  .filter((inv) => !inv.paid)
+                                                  .reduce((sum, inv) => sum + inv.amount, 0),
+                                              )}
+                                            </Text>
+                                          )}
+                                        </>
                                       ) : colId === 'counterparty' ? null : (
                                         col.renderCell(invoice)
                                       )}

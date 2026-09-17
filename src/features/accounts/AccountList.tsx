@@ -177,8 +177,8 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
                 <Table.Tr>
                   <Table.Td colSpan={2}>
                     <Group justify="flex-end" gap="lg">
-                      <Text fw={700}>ИТОГО</Text>
-                      <Text fw={700}>{toFixed2(total)}</Text>
+                      <Text fw={400}>ИТОГО</Text>
+                      <Text fw={400}>{toFixed2(total)}</Text>
                     </Group>
                   </Table.Td>
                   {canEditHere && <Table.Td />}
