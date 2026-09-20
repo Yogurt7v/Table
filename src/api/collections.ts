@@ -882,8 +882,16 @@ export function findDuplicateInvoices(orgId: string, invoiceNo: string) {
 
 export function searchAllInvoices(orgId: string, text: string) {
   const clean = stripInvisible(text);
+  const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
+
+  const fields = ['counterparty', 'purpose', 'contract_no', 'invoice_no', 'comment'];
+  const conditions = fields.flatMap((f) => [
+    `${f} ~ "${clean}"`,
+    `${f} ~ "${capitalized}"`,
+  ]);
+
   return pb.collection('invoices').getFullList<IInvoice>({
-    filter: `organization_id = "${orgId}" && (counterparty ~ "${clean}" || purpose ~ "${clean}" || contract_no ~ "${clean}" || invoice_no ~ "${clean}" || comment ~ "${clean}")`,
+    filter: `organization_id = "${orgId}" && (${conditions.join(' || ')})`,
     sort: '-date',
   });
 }
