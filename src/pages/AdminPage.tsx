@@ -62,6 +62,7 @@ export function AdminPage() {
   );
   const [editUserTarget, setEditUserTarget] = useState<IUser | null>(null);
   const canEditUsers = currentRole === 'admin' || currentRole === 'moderator';
+  const canDeleteUsers = currentRole === 'admin';
   const [deleteOrgTarget, setDeleteOrgTarget] = useState<{ id: string; name: string } | null>(null);
   const [editOrgId, setEditOrgId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -124,6 +125,7 @@ export function AdminPage() {
     (ou) => ou.user_id === currentUser?.id && ou.organization_id === editOrgId,
   )?.role;
   const canEditAccountingObjects = editOrgRole === 'admin' || editOrgRole === 'moderator';
+  const canDelete = currentRole === 'admin';
 
   const editOrg = organizations.find((o) => o.id === editOrgId);
 
@@ -193,6 +195,7 @@ export function AdminPage() {
             accountsByOrg={accountsByOrg}
             objectsByOrg={objectsByOrg}
             colorName={ORG_COLOR_NAME}
+            canDelete={canDelete}
             onAdd={() => setShowOrgForm(true)}
             onEdit={openEditOrg}
             onDelete={(org) => setDeleteOrgTarget({ id: org.id, name: org.name })}
@@ -204,7 +207,9 @@ export function AdminPage() {
             users={users}
             orgUsers={orgUsers}
             currentUserId={currentUser?.id}
+            accessibleOrgIds={organizations.map((o) => o.id)}
             canEdit={canEditUsers}
+            canDelete={canDeleteUsers}
             onAdd={() => setCreateOpened(true)}
             onEdit={(user) => setEditUserTarget(user)}
             onDelete={(target) => setDeleteUserTarget(target)}

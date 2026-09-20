@@ -7,6 +7,7 @@ interface OrganizationAdminTableProps {
   accountsByOrg: Record<string, IBankAccount[]>;
   objectsByOrg: Record<string, IAccountingObject[]>;
   colorName: Record<string, string>;
+  canDelete: boolean;
   onAdd: () => void;
   onEdit: (orgId: string) => void;
   onDelete: (org: IOrganization) => void;
@@ -17,6 +18,7 @@ export function OrganizationAdminTable({
   accountsByOrg,
   objectsByOrg,
   colorName,
+  canDelete,
   onAdd,
   onEdit,
   onDelete,
@@ -104,7 +106,7 @@ export function OrganizationAdminTable({
                     >
                       <IconPencil size={22} />
                     </ActionIcon>
-                    <ActionIcon
+                    {canDelete && (<ActionIcon
                       color="red"
                       variant="subtle"
                       size="lg"
@@ -112,7 +114,7 @@ export function OrganizationAdminTable({
                       onClick={() => onDelete(org)}
                     >
                       <IconTrash size={22} />
-                    </ActionIcon>
+                    </ActionIcon>)}
                   </Group>
                 </Table.Td>
               </Table.Tr>

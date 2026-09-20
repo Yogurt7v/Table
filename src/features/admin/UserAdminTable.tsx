@@ -26,6 +26,8 @@ interface UserAdminTableProps {
   orgUsers: IOrganizationUser[] | undefined;
   currentUserId: string | undefined;
   canEdit: boolean;
+  canDelete: boolean;
+  accessibleOrgIds: string[];
   onAdd: () => void;
   onEdit: (user: IUser) => void;
   onDelete: (user: { id: string; name: string }) => void;
@@ -36,6 +38,8 @@ export function UserAdminTable({
   orgUsers,
   currentUserId,
   canEdit,
+  canDelete,
+  accessibleOrgIds,
   onAdd,
   onEdit,
   onDelete,
@@ -140,7 +144,7 @@ export function UserAdminTable({
               </Table.Tr>
             )}
             {filteredUsers?.map((user) => {
-              const userOrgUsers = (orgUsers ?? []).filter((ou) => ou.user_id === user.id);
+              const userOrgUsers = (orgUsers ?? []).filter((ou) => ou.user_id === user.id).filter((ou) => accessibleOrgIds.includes(ou.organization_id));;
 
               return (
                 <Table.Tr key={user.id}>
@@ -163,7 +167,7 @@ export function UserAdminTable({
                       >
                         <IconPencil size={16} />
                       </ActionIcon>
-                      {currentUserId !== user.id && (
+                      {currentUserId !== user.id && canDelete && (
                         <ActionIcon
                           color="red"
                           variant="subtle"
