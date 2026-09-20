@@ -2,9 +2,15 @@
 
 // ── Fill actor fields on request ──
 
+// `created_by`/`updated_by` store an id that stops resolving once the user is
+// deleted, and never resolves for superusers (absent from `users`). The matching
+// `*_by_name` fields snapshot the display name alongside the id so the
+// "Инициатор" column survives both cases.
+
 onRecordCreateRequest((e) => {
   if (e.auth) {
     e.record.set('created_by', e.auth.id);
+    e.record.set('created_by_name', e.auth.get('name') || e.auth.get('login') || e.auth.get('email') || '');
   }
   e.next();
 }, 'invoices');
@@ -12,6 +18,7 @@ onRecordCreateRequest((e) => {
 onRecordUpdateRequest((e) => {
   if (e.auth) {
     e.record.set('updated_by', e.auth.id);
+    e.record.set('updated_by_name', e.auth.get('name') || e.auth.get('login') || e.auth.get('email') || '');
   }
   e.next();
 }, 'invoices');
@@ -39,6 +46,19 @@ onRecordCreate((e) => {
     }
   } catch (err) {
     console.error('[notify:seq]', String(err));
+  }
+
+  // --- Actor name snapshot (internal saves bypass the request hook) ---
+  try {
+    var actorRec = e.record;
+    if (!actorRec.get('created_by_name') && actorRec.get('created_by')) {
+      actorRec.set('created_by_name', require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('created_by')]));
+    }
+    if (actorRec.get('updated_by') && !actorRec.get('updated_by_name')) {
+      actorRec.set('updated_by_name', require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('updated_by')]));
+    }
+  } catch (err) {
+    console.error('[notify:actor-name]', String(err));
   }
 
   // --- Notification ---
@@ -110,10 +130,24 @@ onRecordUpdate((e) => {
     var oldRec = $app.findRecordById('invoices', rec.id);
     if (!oldRec) { e.next(); return; }
 
+    // --- Actor name snapshot (internal saves bypass the request hook) ---
+    try {
+      if (rec.get('updated_by') && !rec.get('updated_by_name')) {
+        rec.set('updated_by_name', require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('updated_by')]));
+      }
+      if (rec.get('created_by') && !rec.get('created_by_name')) {
+        rec.set('created_by_name', require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('created_by')]));
+      }
+    } catch (err) {
+      console.error('[notify:actor-name]', String(err));
+    }
+
     var invOrgId = rec.get('organization_id');
     var invId = rec.id;
     var actorId = rec.get('updated_by');
-    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || 'Пользователь';
+    var actorName = rec.get('updated_by_name')
+      || require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId])
+      || 'Пользователь';
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';

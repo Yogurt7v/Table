@@ -51,6 +51,8 @@ export interface IInvoice {
   copy_comments: Record<string, string>;
   created_by: string;
   updated_by: string;
+  created_by_name?: string;
+  updated_by_name?: string;
   original_invoice_id?: string;
   source_paid_amount: number;
   source_paid_date: string;
@@ -182,6 +184,8 @@ export interface IDeletedInvoice {
   copy_comments: Record<string, string>;
   created_by: string;
   updated_by: string;
+  created_by_name?: string;
+  updated_by_name?: string;
   original_invoice_id: string;
   source_paid_amount: number;
   source_paid_date: string;
