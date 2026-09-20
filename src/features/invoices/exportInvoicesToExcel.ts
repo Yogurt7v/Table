@@ -22,7 +22,7 @@ import dayjs from 'dayjs';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
-import { getUserDisplayName } from '@/shared/utils/user-display-name';
+import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
@@ -103,7 +103,7 @@ function cellText(
     }
 
     case 'initiator':
-      return getUserDisplayName(userMap.get(invoice.created_by));
+      return getInitiatorDisplayName(invoice.created_by, invoice.created_by_name, userMap);
 
     default:
       return '';

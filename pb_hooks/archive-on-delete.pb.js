@@ -32,6 +32,7 @@ onRecordDeleteRequest((e) => {
       'counterparty', 'purpose', 'contract_no', 'invoice_no',
       'amount', 'paid', 'paid_date', 'paid_amount', 'payment_amounts',
       'comment', 'copy_comments', 'created_by', 'updated_by',
+      'created_by_name', 'updated_by_name',
       'original_invoice_id', 'source_paid_amount', 'source_paid_date',
       'source_created',
     ];

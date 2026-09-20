@@ -375,6 +375,8 @@ export async function deleteInvoice(id: string) {
     copy_comments: invoice.copy_comments,
     created_by: invoice.created_by,
     updated_by: invoice.updated_by,
+    created_by_name: invoice.created_by_name || '',
+    updated_by_name: invoice.updated_by_name || '',
     original_invoice_id: invoice.original_invoice_id || '',
     source_paid_amount: invoice.source_paid_amount,
     source_paid_date: invoice.source_paid_date,

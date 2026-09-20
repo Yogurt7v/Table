@@ -8,6 +8,7 @@ import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
 import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
 import { paymentMarkLabel } from '@/features/invoices/payment-mark-status';
+import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
 import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
 import type { OrgRole } from '@/features/invoices/invoice-field-access';
 import dayjs from 'dayjs';
@@ -130,7 +131,7 @@ export function PrintableInvoices({
       case 'payment_mark':
         return renderPaymentMarkText(invoice);
       case 'initiator':
-        return usersMap.get(invoice.created_by)?.name ?? '—';
+        return getInitiatorDisplayName(invoice.created_by, invoice.created_by_name, usersMap);
       default:
         return '';
     }

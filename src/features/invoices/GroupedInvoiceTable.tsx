@@ -44,7 +44,7 @@ import { getInvoiceFileUrl } from '@/api/collections';
 import { formatAmountNumber, formatAmountRub } from '@/shared/utils/format-currency';
 import { shortenFileName } from '@/shared/utils/shorten-file-name';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
-import { getUserDisplayName } from '@/shared/utils/user-display-name';
+import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
@@ -692,7 +692,7 @@ export function GroupedInvoiceTable({
     initiator: {
       width: 120,
       header: 'Инициатор',
-      renderCell: (invoice) => <>{getUserDisplayName(userMap.get(invoice.created_by))}</>,
+      renderCell: (invoice) => <>{getInitiatorDisplayName(invoice.created_by, invoice.created_by_name, userMap)}</>,
       renderDraft: () => null,
     },
   };

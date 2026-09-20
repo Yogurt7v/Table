@@ -7,7 +7,7 @@ import {
 } from '@/shared/hooks/useDeletedInvoices';
 import { getDeletedInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import { getUserDisplayName } from '@/shared/utils/user-display-name';
+import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import type { IDeletedInvoice } from '@/shared/types';
 
@@ -74,7 +74,10 @@ function DetailsTab({ invoice }: { invoice: IDeletedInvoice }) {
       )}
       {invoice.comment && <Row label="Комментарий" value={invoice.comment} />}
 
-      <Row label="Инициатор" value={getUserDisplayName(userMap.get(invoice.created_by))} />
+      <Row
+        label="Инициатор"
+        value={getInitiatorDisplayName(invoice.created_by, invoice.created_by_name, userMap)}
+      />
       <Box
         mt="sm"
         p="sm"
