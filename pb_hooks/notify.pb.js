@@ -1,17 +1,5 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// ── Helpers ──
-
-function resolveObjectName(app, objectId) {
-  if (!objectId) return '';
-  try {
-    var obj = app.findRecordById('accounting_objects', objectId);
-    return obj ? (obj.get('name') || '') : '';
-  } catch (_) {
-    return '';
-  }
-}
-
 // ── Fill actor fields on request ──
 
 onRecordCreateRequest((e) => {
@@ -59,14 +47,11 @@ onRecordCreate((e) => {
     if (rec.get('original_invoice_id')) { e.next(); return; }
     var invOrgId = rec.get('organization_id');
     var invId = rec.id;
-    var actorId = rec.get('created_by');
-    var actorName = 'Пользователь';
-    if (actorId) {
-      try {
-        var actorUser = $app.findRecordById('users', actorId);
-        if (actorUser) actorName = actorUser.get('name') || actorUser.get('email') || 'Пользователь';
-      } catch (_) {}
-    }
+    var actorId = rec.get('created_by') || (e.auth ? e.auth.id : '');
+    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [
+      actorId,
+      e.auth ? e.auth.id : '',
+    ]) || 'Пользователь';
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
@@ -128,13 +113,7 @@ onRecordUpdate((e) => {
     var invOrgId = rec.get('organization_id');
     var invId = rec.id;
     var actorId = rec.get('updated_by');
-    var actorName = 'Пользователь';
-    if (actorId) {
-      try {
-        var actorUser = $app.findRecordById('users', actorId);
-        if (actorUser) actorName = actorUser.get('name') || actorUser.get('email') || 'Пользователь';
-      } catch (_) {}
-    }
+    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || 'Пользователь';
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
@@ -212,13 +191,7 @@ onRecordCreateRequest((e) => {
 
     var invOrgId = rec.get('organization_id');
     var actorId = e.auth.id;
-    var actorName = 'Пользователь';
-    if (actorId) {
-      try {
-        var actorUser = $app.findRecordById('users', actorId);
-        if (actorUser) actorName = actorUser.get('name') || actorUser.get('email') || 'Пользователь';
-      } catch (_) {}
-    }
+    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || 'Пользователь';
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
@@ -277,13 +250,7 @@ onRecordCreate((e) => {
 
     var invOrgId = inv.get('organization_id');
     var actorId = pm.get('created_by');
-    var actorName = 'Пользователь';
-    if (actorId) {
-      try {
-        var actorUser = $app.findRecordById('users', actorId);
-        if (actorUser) actorName = actorUser.get('name') || actorUser.get('email') || 'Пользователь';
-      } catch (_) {}
-    }
+    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || 'Пользователь';
     var counterparty = inv.get('counterparty');
     var pmAmount = pm.get('amount');
     var pmComment = pm.get('comment');
@@ -355,19 +322,12 @@ onRecordDeleteRequest((e) => {
     var rec = e.record;
     var invOrgId = rec.get('organization_id');
     var invId = rec.id;
-    var actorId = e.auth ? e.auth.id : '';
-
-    var actorName = 'Пользователь';
-    if (e.auth) {
-      actorName = e.auth.get('name') || e.auth.get('email') || 'Пользователь';
-    } else if (rec.get('updated_by')) {
-      try {
-        var fallbackUser = $app.findRecordById('users', rec.get('updated_by'));
-        if (fallbackUser) {
-          actorName = fallbackUser.get('name') || fallbackUser.get('email') || 'Пользователь';
-        }
-      } catch (_) {}
-    }
+    var actorId = (e.auth ? e.auth.id : '') || rec.get('updated_by') || rec.get('created_by');
+    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [
+      actorId,
+      rec.get('updated_by'),
+      rec.get('created_by'),
+    ]) || 'Пользователь';
 
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
