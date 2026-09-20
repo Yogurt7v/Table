@@ -145,7 +145,12 @@ export interface INotification {
   organization_id: string;
   user_id: string;
   invoice_id: string;
-  type: 'invoice_created' | 'invoice_updated' | 'payment_marked' | 'invoice_restored';
+  type:
+    | 'invoice_created'
+    | 'invoice_updated'
+    | 'payment_marked'
+    | 'invoice_restored'
+    | 'invoice_deleted';
   event: string;
   message: string;
   actor_name: string;

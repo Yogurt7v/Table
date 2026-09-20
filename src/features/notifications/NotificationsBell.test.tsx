@@ -189,4 +189,34 @@ describe('NotificationsBell', () => {
 
     expect(mockHooks.loadMore).toHaveBeenCalledTimes(1);
   });
+
+  it('renders invoice_deleted notification with deleter name in event', async () => {
+    const user = userEvent.setup();
+    mockHooks.setNotifications(
+      [
+        {
+          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
+          type: 'invoice_deleted', event: 'Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр',
+          message: 'Счёт удалён: ООО Ромашка, 5000 ₽\nУдалил(а): Пётр',
+          actor_name: 'Пётр', object_name: 'Основной', read: false,
+          created: '2026-06-02T10:00:00Z',
+        } as INotification,
+      ],
+      1,
+    );
+    renderBell();
+
+    const bell = document.querySelector('button')!;
+    await user.click(bell);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр'),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getAllByText('Пётр').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: 'Подробнее' }));
+    expect(screen.getByText(/Удалил\(а\): Пётр/)).toBeInTheDocument();
+  });
 });

@@ -347,3 +347,74 @@ onRecordCreate((e) => {
 
   e.next();
 }, 'payment_marks');
+
+// ── Invoice Deleted (notification) ──
+
+onRecordDeleteRequest((e) => {
+  try {
+    var rec = e.record;
+    var invOrgId = rec.get('organization_id');
+    var invId = rec.id;
+    var actorId = e.auth ? e.auth.id : '';
+
+    var actorName = 'Пользователь';
+    if (e.auth) {
+      actorName = e.auth.get('name') || e.auth.get('email') || 'Пользователь';
+    } else if (rec.get('updated_by')) {
+      try {
+        var fallbackUser = $app.findRecordById('users', rec.get('updated_by'));
+        if (fallbackUser) {
+          actorName = fallbackUser.get('name') || fallbackUser.get('email') || 'Пользователь';
+        }
+      } catch (_) {}
+    }
+
+    var counterparty = rec.get('counterparty');
+    var amount = rec.get('amount');
+    var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
+    var eventText = 'Счёт удалён: ' + counterparty + ', ' + amtStr + ' \u20BD \u00B7 ' + actorName;
+    var messageText = 'Счёт удалён: ' + counterparty + ', ' + amtStr + ' \u20BD\nУдалил(а): ' + actorName;
+
+    var objName = '';
+    try {
+      var obj = $app.findRecordById('accounting_objects', rec.get('accounting_object_id'));
+      objName = obj ? (obj.get('name') || '') : '';
+    } catch (_) {
+      objName = '';
+    }
+
+    var invPaid = rec.get('paid') || false;
+    var invDate = rec.get('date') || '';
+
+    var orgUsers = $app.findRecordsByFilter(
+      'organization_users',
+      '(role = "admin" || role = "moderator") && organization_id = "' + invOrgId + '"',
+      '',
+      0,
+      0,
+    );
+    for (var i = 0; i < orgUsers.length; i++) {
+      var userId = orgUsers[i].get('user_id');
+      if (userId === actorId) continue;
+      var notifCol = $app.findCollectionByNameOrId('notifications');
+      var notifRec = new Record(notifCol);
+      notifRec.set('organization_id', invOrgId);
+      notifRec.set('user_id', userId);
+      notifRec.set('invoice_id', invId);
+      notifRec.set('type', 'invoice_deleted');
+      notifRec.set('event', eventText);
+      notifRec.set('message', messageText);
+      notifRec.set('actor_name', actorName);
+      notifRec.set('read', false);
+      notifRec.set('object_name', objName);
+      notifRec.set('amount', amount);
+      notifRec.set('paid', invPaid);
+      notifRec.set('invoice_date', invDate);
+      $app.save(notifRec);
+    }
+  } catch (err) {
+    console.error('[notify:delete]', String(err));
+  }
+
+  e.next();
+}, 'invoices');
