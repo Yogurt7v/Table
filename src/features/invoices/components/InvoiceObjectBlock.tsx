@@ -59,6 +59,7 @@ export function InvoiceObjectBlock({
       .filter((i) => !hasSearch || highlightedIds.includes(i.id));
   }, [invoices, paymentMarks, activeFilters, obj.id, hasSearch, highlightedIds]);
 
+
   const { isCollapsed, toggle } = useCollapsedObjects();
   const collapsed = isCollapsed(obj.id);
 
@@ -108,7 +109,8 @@ export function InvoiceObjectBlock({
       >
         {collapsed ? <IconChevronRight size={18} /> : <IconChevronDown size={18} />}
         <Title order={5}>{obj.name}</Title>
-        {onPrint && (
+        {onPrint && !isMobile && (
+
           <Tooltip label="Печать">
             <ActionIcon
               size="sm"

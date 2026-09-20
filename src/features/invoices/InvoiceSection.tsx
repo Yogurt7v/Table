@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Menu, Box, Button } from '@mantine/core';
+import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Menu, Box, Button, useMantineTheme } from '@mantine/core';
 import { IconPrinter, IconSettings, IconFileExport, IconChevronsDown, IconChevronsUp, IconX, IconFilter, IconCheck } from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
@@ -32,6 +32,7 @@ import {
 import type { IInvoice, IInvoiceFile, IAccountingObject, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { normalizeInvoiceForDate } from '@/shared/utils/invoice-utils';
+import { useMediaQuery } from '@mantine/hooks';
 
 interface InvoiceSectionProps {
   orgId: string;
@@ -124,6 +125,9 @@ function ObjectsList({
   const allCollapsed = objects.length > 0 && objects.every((o) => collapsedIds.has(o.id));
   const isFullAccess = permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
 
+  const theme = useMantineTheme();
+  const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+
   const prevHasSearchRef = useRef(hasSearch);
   useEffect(() => {
     if (hasSearch && !prevHasSearchRef.current) expandAll();
@@ -201,28 +205,30 @@ function ObjectsList({
         <Group justify="space-between" mb="xs" wrap="wrap" gap="xs">
           <Group gap={8} justify="flex-start">
             <Title order={5}>Счета</Title>
-            <Tooltip label="Настройка колонок">
-              <ActionIcon
-                size="md"
-                variant="subtle"
-                color="gray"
-                aria-label="Настройка колонок"
-                onClick={onColumnSettingsClick}
-              >
-                <IconSettings size={20} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Печать">
-              <ActionIcon
-                size="md"
-                variant="subtle"
-                color="gray"
-                aria-label="Печать"
-                onClick={onPrintAll}
-              >
-                <IconPrinter size={20} />
-              </ActionIcon>
-            </Tooltip>
+            {!isMobile && (
+              <Tooltip label="Настройка колонок">
+                <ActionIcon
+                  size="md"
+                  variant="subtle"
+                  color="gray"
+                  aria-label="Настройка колонок"
+                  onClick={onColumnSettingsClick}
+                >
+                  <IconSettings size={20} />
+                </ActionIcon>
+              </Tooltip>)}
+            {!isMobile && (
+              <Tooltip label="Печать">
+                <ActionIcon
+                  size="md"
+                  variant="subtle"
+                  color="gray"
+                  aria-label="Печать"
+                  onClick={onPrintAll}
+                >
+                  <IconPrinter size={20} />
+                </ActionIcon>
+              </Tooltip>)}
             <Tooltip label="Экспорт в Excel">
               <ActionIcon
                 size="md"
