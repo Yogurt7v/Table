@@ -6,23 +6,27 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DeletedInvoicesSection } from './DeletedInvoicesSection';
 import type { IDeletedInvoice } from '@/shared/types';
 
-const { getDeletedInvoices, searchDeletedInvoices, restoreDeletedInvoice,
-  getDeletedInvoiceHistory, getDeletedInvoiceFiles } = vi.hoisted(() => ({
+const { getDeletedInvoices, getAllDeletedInvoices, restoreDeletedInvoice,
+  getDeletedInvoiceHistory, getDeletedInvoiceFiles, getDeletedInvoiceById, getUsers } = vi.hoisted(() => ({
   getDeletedInvoices: vi.fn(),
-  searchDeletedInvoices: vi.fn(),
+  getAllDeletedInvoices: vi.fn(),
   restoreDeletedInvoice: vi.fn(),
   getDeletedInvoiceHistory: vi.fn(),
   getDeletedInvoiceFiles: vi.fn(),
+  getDeletedInvoiceById: vi.fn(),
+  getUsers: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock('@/api/collections', () => ({
   ARCHIVE_PAGE_SIZE: 25,
   getDeletedInvoices,
-  searchDeletedInvoices,
+  getAllDeletedInvoices,
   restoreDeletedInvoice,
   getDeletedInvoiceHistory,
   getDeletedInvoiceFiles,
+  getDeletedInvoiceById,
   getDeletedInvoiceFileUrl: () => '/mock-file.pdf',
+  getUsers,
 }));
 
 vi.mock('@/api/client', () => ({
@@ -41,6 +45,7 @@ vi.mock('@/shared/hooks/useCurrentUserRole', () => ({
 function makeArchiveItem(i: number): IDeletedInvoice {
   return {
     id: `del-${i}`,
+    original_id: `inv-${i}`,
     organization_id: 'org1',
     accounting_object_id: '',
     date: '',
@@ -73,7 +78,7 @@ const archiveData = Array.from({ length: 60 }, (_, idx) => makeArchiveItem(idx +
 
 function setupMocks() {
   getDeletedInvoices.mockImplementation(
-    (orgId: string, page: number, perPage: number) => {
+    (_orgId: string, page: number, perPage: number) => {
       const start = (page - 1) * perPage;
       return Promise.resolve({
         items: archiveData.slice(start, start + perPage),
@@ -84,31 +89,17 @@ function setupMocks() {
       });
     },
   );
-  searchDeletedInvoices.mockImplementation(
-    (orgId: string, query: string, page: number, perPage: number) => {
-      const filtered = archiveData.filter((inv) =>
-        inv.counterparty.toLowerCase().includes(query.toLowerCase()),
-      );
-      const start = (page - 1) * perPage;
-      return Promise.resolve({
-        items: filtered.slice(start, start + perPage),
-        page,
-        perPage,
-        totalItems: filtered.length,
-        totalPages: Math.ceil(filtered.length / perPage),
-      });
-    },
-  );
+  getAllDeletedInvoices.mockResolvedValue(archiveData);
 }
 
-function renderSection() {
+function renderSection(props?: Partial<React.ComponentProps<typeof DeletedInvoicesSection>>) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
       <MantineProvider>
-        <DeletedInvoicesSection orgId="org1" />
+        <DeletedInvoicesSection orgId="org1" {...props} />
       </MantineProvider>
     </QueryClientProvider>,
   );
@@ -148,27 +139,22 @@ describe('DeletedInvoicesSection', () => {
     expect(getDeletedInvoices).toHaveBeenCalledWith('org1', 2, 25);
   });
 
-  it('поиск работает по всей базе и сбрасывает страницу на первую', async () => {
+  it('поиск по кнопке работает по всей базе, регистронезависим и без пагинации', async () => {
     const user = userEvent.setup();
     renderSection();
 
     await screen.findByText('Контрагент 1');
 
-    await user.click(screen.getByRole('button', { name: '2' }));
+    await user.type(screen.getByLabelText('Поиск в архиве'), 'контрагент 1');
+    await user.click(screen.getByRole('button', { name: 'Найти' }));
+
     await waitFor(() => {
-      expect(screen.getByText('Контрагент 26')).toBeInTheDocument();
+      expect(screen.getByText('Контрагент 19')).toBeInTheDocument();
     });
-
-    await user.type(screen.getByLabelText('Поиск в архиве'), 'Контрагент 1');
-
-    await waitFor(
-      () => {
-        expect(screen.getByText('Контрагент 19')).toBeInTheDocument();
-      },
-      { timeout: 2000 },
-    );
+    expect(screen.getByText('Контрагент 1')).toBeInTheDocument();
     expect(screen.queryByText('Контрагент 20')).not.toBeInTheDocument();
-    expect(searchDeletedInvoices).toHaveBeenCalledWith('org1', 'Контрагент 1', 1, 25);
+    expect(screen.queryByRole('button', { name: '2' })).not.toBeInTheDocument();
+    expect(getAllDeletedInvoices).toHaveBeenCalledWith('org1');
   });
 
   it('показывает "Ничего не найдено" при пустом результате поиска', async () => {
@@ -178,17 +164,15 @@ describe('DeletedInvoicesSection', () => {
     await screen.findByText('Контрагент 1');
 
     await user.type(screen.getByLabelText('Поиск в архиве'), 'несуществующий');
+    await user.click(screen.getByRole('button', { name: 'Найти' }));
 
-    await waitFor(
-      () => {
-        expect(screen.getByText('Ничего не найдено')).toBeInTheDocument();
-      },
-      { timeout: 2000 },
-    );
-    expect(screen.queryByRole('button', { name: '1' })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Ничего не найдено')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: '2' })).not.toBeInTheDocument();
   });
 
-  it('кнопка "X" стирает поисковый запрос', async () => {
+  it('кнопка "X" стирает поисковый запрос и возвращает к пагинации', async () => {
     const user = userEvent.setup();
     renderSection();
 
@@ -196,24 +180,45 @@ describe('DeletedInvoicesSection', () => {
 
     const input = screen.getByLabelText('Поиск в архиве');
     await user.type(input, 'Контрагент 1');
-    await waitFor(
-      () => {
-        expect(screen.getByText('Контрагент 19')).toBeInTheDocument();
-      },
-      { timeout: 2000 },
-    );
+    await user.click(screen.getByRole('button', { name: 'Найти' }));
+    await waitFor(() => {
+      expect(screen.getByText('Контрагент 19')).toBeInTheDocument();
+    });
 
     await user.click(screen.getByRole('button', { name: 'Очистить поиск' }));
 
     await waitFor(() => {
       expect(input).toHaveValue('');
     });
-    await waitFor(
-      () => {
-        expect(screen.getByText('Контрагент 20')).toBeInTheDocument();
-      },
-      { timeout: 2000 },
-    );
+    await waitFor(() => {
+      expect(screen.getByText('Контрагент 20')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
     expect(getDeletedInvoices).toHaveBeenLastCalledWith('org1', 1, 25);
+  });
+
+  it('открывает модалку удалённого счёта по highlightInvoiceId', async () => {
+    const target = makeArchiveItem(1);
+    getDeletedInvoiceById.mockResolvedValue(target);
+    const onConsumed = vi.fn();
+
+    renderSection({ highlightInvoiceId: 'del-1', onHighlightConsumed: onConsumed });
+
+    await waitFor(() => {
+      expect(getDeletedInvoiceById).toHaveBeenCalledWith('del-1');
+    });
+    expect(await screen.findByText(/Контрагент 1 · 101/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(onConsumed).toHaveBeenCalled();
+    });
+  });
+
+  it('выделяет строку удалённого счёта в текущем списке', async () => {
+    renderSection({ highlightInvoiceId: 'del-2' });
+
+    await screen.findByText('Контрагент 2');
+
+    const row = screen.getByText('Контрагент 2').closest('tr');
+    expect(row).toHaveAttribute('data-highlighted', 'true');
   });
 });

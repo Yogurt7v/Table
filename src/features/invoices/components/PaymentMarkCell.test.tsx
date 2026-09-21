@@ -10,6 +10,7 @@ const invoice: IInvoice = {
   purpose: 'Оплата', contract_no: '', invoice_no: 'СФ-001',
   amount: 50000, paid: false, paid_amount: null, payment_amounts: [],
   paid_date: '', comment: '', created_by: 'admin1', updated_by: 'admin1',
+  copy_comments: {}, source_paid_amount: 0, source_paid_date: '',
 };
 
 const partialMark: IPaymentMark = {

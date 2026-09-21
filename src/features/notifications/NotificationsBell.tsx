@@ -16,11 +16,12 @@ import {
 } from '@mantine/core';
 import { Calendar } from '@mantine/dates';
 import { IconBell, IconBellFilled } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useNotifications, useNotificationsByDate } from '@/shared/hooks/useNotifications';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
-import { getInvoice } from '@/api/collections';
+import { getInvoice, getDeletedInvoiceByOriginalId } from '@/api/collections';
 import type { INotification } from '@/shared/types';
 
 function formatDate(dateStr: string) {
@@ -143,6 +144,7 @@ export function NotificationsBell() {
     markAllAsRead,
   } = useNotifications();
   const { requestHighlight } = useInvoiceNavigation();
+  const navigate = useNavigate();
 
   const selectedDateStr = calendarDate ? dayjs(calendarDate).format('YYYY-MM-DD') : '';
   const { data: dateNotifications, isLoading: dateLoading } =
@@ -168,17 +170,32 @@ export function NotificationsBell() {
       if (n.organization_id && n.organization_id !== currentOrgId) {
         setCurrentOrgId(n.organization_id);
       }
-      if (n.invoice_id) {
-        getInvoice(n.invoice_id)
-          .then((invoice) => {
-            requestHighlight(invoice.id, new Date(dayjs(invoice.date).toISOString()));
+      if (!n.invoice_id) return;
+
+      if (n.type === 'invoice_deleted') {
+        if (!n.organization_id) {
+          navigate('/admin?tab=archive');
+          return;
+        }
+        getDeletedInvoiceByOriginalId(n.organization_id, n.invoice_id)
+          .then((deleted) => {
+            navigate(`/admin?tab=archive&highlight=${encodeURIComponent(deleted.id)}`);
           })
           .catch(() => {
-            requestHighlight('', new Date());
+            navigate('/admin?tab=archive');
           });
+        return;
       }
+
+      getInvoice(n.invoice_id)
+        .then((invoice) => {
+          requestHighlight(invoice.id, new Date(dayjs(invoice.date).toISOString()));
+        })
+        .catch(() => {
+          requestHighlight('', new Date());
+        });
     },
-    [currentOrgId, markAsRead, requestHighlight, setCurrentOrgId],
+    [currentOrgId, markAsRead, requestHighlight, setCurrentOrgId, navigate],
   );
 
   const upcomingCount = items.filter((n) => !n.read).length;

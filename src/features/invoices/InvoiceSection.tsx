@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Menu, Box, Button, useMantineTheme } from '@mantine/core';
+import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Menu, Box, Button, Loader, Center, useMantineTheme } from '@mantine/core';
 import { IconPrinter, IconSettings, IconFileExport, IconChevronsDown, IconChevronsUp, IconX, IconFilter, IconCheck } from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
@@ -78,11 +78,10 @@ interface ObjectsListProps {
   date: string;
   objects: IAccountingObject[];
   invoices: IInvoice[] | undefined;
-  activeFilters: InvoiceFilterType[];
   highlightedIds: string[];
   hasSearch: boolean;
   draftObjectId: string | null;
-  permissions: { canCreate: boolean; role: string };
+  permissions: { canCreate: boolean; role: string | null };
   paymentMarks: IPaymentMark[] | undefined;
   filesByInvoice: Record<string, IInvoiceFile[]>;
   visibleColumns: InvoiceColumnId[];
@@ -409,7 +408,7 @@ export function InvoiceSection({
     () => (invoices ?? []).map((inv) => normalizeInvoiceForDate(inv, date)),
     [invoices, date],
   );
-  const { data: searchResults } = useSearchInvoices(orgId);
+  const { data: searchResults, isLoading: searchResultsLoading } = useSearchInvoices(orgId);
   const { data: paymentMarks } = usePaymentMarks(orgId);
   const { data: orgFiles } = useOrgInvoiceFiles(orgId);
   const permissions = useInvoicePermissions(orgId);
@@ -550,6 +549,16 @@ export function InvoiceSection({
         <Skeleton height={140} radius="md" />
       </Stack>
     );
+
+  if (searchAll && searchResultsLoading) {
+    return (
+      <Paper withBorder p="xl">
+        <Center py="xl">
+          <Loader />
+        </Center>
+      </Paper>
+    );
+  }
 
   if (searchAll && searchResults) {
     return (

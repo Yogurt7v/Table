@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Container,
   Title,
@@ -55,6 +56,9 @@ export function AdminPage() {
   const createOrg = useCreateOrganization();
   const updateOrg = useUpdateOrganization();
   const deleteOrg = useDeleteOrganization();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') ?? 'organizations';
+  const highlightDeletedId = searchParams.get('highlight') || null;
   const [createOpened, setCreateOpened] = useState(false);
   const [showOrgForm, setShowOrgForm] = useState(false);
   const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: string; name: string } | null>(
@@ -156,6 +160,23 @@ export function AdminPage() {
     }
   };
 
+  const handleTabChange = (value: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set('tab', value);
+    else next.delete('tab');
+    setSearchParams(next, { replace: true });
+    if (value === 'archive') {
+      queryClient.invalidateQueries({ queryKey: ['deleted_invoices'] });
+    }
+  };
+
+  const clearHighlightParam = () => {
+    if (!searchParams.has('highlight')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('highlight');
+    setSearchParams(next, { replace: true });
+  };
+
   if (isRestricted) {
     return (
       <Container py="xl">
@@ -175,14 +196,7 @@ export function AdminPage() {
         <Title order={3}>Администрирование</Title>
       </Group>
 
-      <Tabs
-        defaultValue="organizations"
-        onChange={(value) => {
-          if (value === 'archive') {
-            queryClient.invalidateQueries({ queryKey: ['deleted_invoices'] });
-          }
-        }}
-      >
+      <Tabs value={activeTab} onChange={handleTabChange}>
         <Tabs.List>
           <Tabs.Tab value="organizations">Организации</Tabs.Tab>
           <Tabs.Tab value="users">Пользователи</Tabs.Tab>
@@ -217,7 +231,13 @@ export function AdminPage() {
         </Tabs.Panel>
 
         <Tabs.Panel value="archive" pt="md">
-          {currentOrgId && <DeletedInvoicesSection orgId={currentOrgId} />}
+          {currentOrgId && (
+            <DeletedInvoicesSection
+              orgId={currentOrgId}
+              highlightInvoiceId={highlightDeletedId}
+              onHighlightConsumed={clearHighlightParam}
+            />
+          )}
         </Tabs.Panel>
       </Tabs>
 

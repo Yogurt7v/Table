@@ -26,7 +26,7 @@ function cloneForDisplay(invoice: IInvoice, overrides: Partial<IInvoice>): IInvo
     ...invoice,
     paid_amount: null,
     payment_amounts: [],
-    paid_date: null,
+    paid_date: null as unknown as string,
     ...overrides,
   };
 }

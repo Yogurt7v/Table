@@ -739,16 +739,24 @@ export function getDeletedInvoices(orgId: string, page: number, perPage: number)
   });
 }
 
-export function searchDeletedInvoices(
-  orgId: string,
-  query: string,
-  page: number,
-  perPage: number,
-) {
-  const clean = query.trim();
-  if (!clean) return getDeletedInvoices(orgId, page, perPage);
-  return pb.collection('deleted_invoices').getList<IDeletedInvoice>(page, perPage, {
-    filter: `organization_id = "${orgId}" && (counterparty ~ "${clean}" || purpose ~ "${clean}" || invoice_no ~ "${clean}")`,
+export function getDeletedInvoiceById(id: string) {
+  return pb.collection('deleted_invoices').getOne<IDeletedInvoice>(id, {
+    expand: 'accounting_object_id',
+  });
+}
+
+export function getDeletedInvoiceByOriginalId(orgId: string, invoiceId: string) {
+  return pb
+    .collection('deleted_invoices')
+    .getFirstListItem<IDeletedInvoice>(
+      `organization_id = "${orgId}" && original_id = "${invoiceId}"`,
+      { expand: 'accounting_object_id' },
+    );
+}
+
+export function getAllDeletedInvoices(orgId: string) {
+  return pb.collection('deleted_invoices').getFullList<IDeletedInvoice>({
+    filter: `organization_id = "${orgId}"`,
     sort: '-deleted_at',
     expand: 'accounting_object_id',
   });
@@ -863,12 +871,13 @@ export async function restoreDeletedInvoice(
   return newInvoice;
 }
 
-function stripInvisible(s: string): string {
-  return s
-    .normalize('NFC')
-    .replace(/[\u00a0\u2000-\u200f\u2028-\u202f\u205f\u3000\ufeff]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+export function getAllInvoices(orgId: string) {
+  return pb.collection('invoices').getFullList<IInvoice>({
+    filter: `organization_id = "${orgId}"`,
+    fields:
+      'id,date,counterparty,purpose,amount,paid,payment_amounts,contract_no,invoice_no,comment',
+    sort: '-date',
+  });
 }
 
 export function findDuplicateInvoices(orgId: string, invoiceNo: string) {
@@ -880,22 +889,6 @@ export function findDuplicateInvoices(orgId: string, invoiceNo: string) {
       sort: '-date',
     })
     .then((list) => list.map(normalizeInvoice));
-}
-
-export function searchAllInvoices(orgId: string, text: string) {
-  const clean = stripInvisible(text);
-  const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
-
-  const fields = ['counterparty', 'purpose', 'contract_no', 'invoice_no', 'comment'];
-  const conditions = fields.flatMap((f) => [
-    `${f} ~ "${clean}"`,
-    `${f} ~ "${capitalized}"`,
-  ]);
-
-  return pb.collection('invoices').getFullList<IInvoice>({
-    filter: `organization_id = "${orgId}" && (${conditions.join(' || ')})`,
-    sort: '-date',
-  });
 }
 
 // --- Notifications ---

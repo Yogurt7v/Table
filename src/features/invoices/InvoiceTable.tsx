@@ -120,6 +120,7 @@ export function InvoiceTable({
           paid: false,
           paid_date: '',
           comment: src.comment,
+          file: null,
         });
       } else {
         setDraftForm(createEmptyDraft());
@@ -283,7 +284,7 @@ export function InvoiceTable({
         paid_amount: amount,
         paid_date: date.slice(0, 10),
         last_deleted_mark: existingMark
-          ? { amount: existingMark.amount ?? null, comment: existingMark.comment ?? '', status: existingMark.status }
+          ? { amount: existingMark.amount ?? null, comment: existingMark.comment ?? '', status: existingMark.status ?? 'proposed' }
           : undefined,
       },
       {
@@ -332,7 +333,7 @@ export function InvoiceTable({
         paid: newAmounts.length > 0,
         payment_amounts: newAmounts,
         paid_amount: newAmounts.length > 0 ? newAmounts[newAmounts.length - 1]! : null,
-        paid_date: newAmounts.length > 0 ? invoice.paid_date : null,
+        paid_date: newAmounts.length > 0 ? invoice.paid_date : (null as unknown as string),
         last_deleted_mark: null,
       },
       {

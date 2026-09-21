@@ -19,6 +19,8 @@ const baseProps = {
   orgUsers: [orgUserAdmin, orgUserUser] as IOrganizationUser[],
   currentUserId: 'admin1',
   canEdit: true,
+  canDelete: true,
+  accessibleOrgIds: ['org1'],
   onAdd: () => {},
   onEdit: vi.fn(),
   onDelete: vi.fn(),

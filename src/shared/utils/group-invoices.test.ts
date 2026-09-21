@@ -4,12 +4,10 @@ import type { IInvoice } from '@/shared/types';
 
 function inv(partial: Partial<IInvoice> & Pick<IInvoice, 'id' | 'counterparty'>): IInvoice {
   return {
-    id: partial.id,
     organization_id: 'org1',
     accounting_object_id: 'ao1',
     date: '2026-09-01',
     seq: 0,
-    counterparty: partial.counterparty,
     purpose: '',
     contract_no: '',
     invoice_no: '',
@@ -19,8 +17,11 @@ function inv(partial: Partial<IInvoice> & Pick<IInvoice, 'id' | 'counterparty'>)
     payment_amounts: [],
     paid_date: '',
     comment: '',
+    copy_comments: {},
     created_by: 'u1',
     updated_by: 'u1',
+    source_paid_amount: 0,
+    source_paid_date: '',
     ...partial,
   };
 }

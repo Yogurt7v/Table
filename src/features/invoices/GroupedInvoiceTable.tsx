@@ -53,6 +53,7 @@ import type {
   DraftFieldErrorKey,
   DraftFieldErrors,
   DraftInvoiceForm,
+  InvoiceEditableField,
 } from './invoice-field-access';
 import { isDraftDirty, validateDraftFields } from './invoice-field-access';
 import { PaymentMarkCell } from './components/PaymentMarkCell';
@@ -89,7 +90,7 @@ function SortableGroupBody({
 }: {
   id: string;
   children: (ctx: {
-    listeners: Record<string, unknown>;
+    listeners: object | undefined;
     isDragging: boolean;
     isOver: boolean;
   }) => React.ReactNode;
@@ -118,12 +119,12 @@ function StaticGroupBody({
   children,
 }: {
   children: (ctx: {
-    listeners: Record<string, unknown>;
+    listeners: object | undefined;
     isDragging: boolean;
     isOver: boolean;
   }) => React.ReactNode;
 }) {
-  return <Table.Tbody>{children({ listeners: {}, isDragging: false, isOver: false })}</Table.Tbody>;
+  return <Table.Tbody>{children({ listeners: undefined, isDragging: false, isOver: false })}</Table.Tbody>;
 }
 
 interface GroupedInvoiceTableProps {
@@ -156,7 +157,7 @@ interface GroupedInvoiceTableProps {
     canViewPaymentMarks: boolean;
     canViewPaidDate: boolean;
     canManageFiles: boolean;
-    canEditField?: (field: string) => boolean;
+    canEditField?: (field: InvoiceEditableField) => boolean;
   };
   paymentMarks?: IPaymentMark[];
   onMarkForPayment?: (invoice: IInvoice) => void;
@@ -715,7 +716,6 @@ export function GroupedInvoiceTable({
         onDraftCancel={onDraftCancel}
         onMarkForPayment={onMarkForPayment}
         onMarkForApproval={onMarkForApproval}
-        onMarkPartialPayment={onMarkPartialPayment}
         onClearPaymentMark={onClearPaymentMark}
         onApproveMark={onApproveMark}
         onClearPaymentConfirm={(id) => setClearConfirmInvoiceId(id)}
@@ -1035,14 +1035,14 @@ export function GroupedInvoiceTable({
                           // 3. Remainder row
                           if (!paid && totalPaid > 0 && remaining > 0) {
                             const remainderId = `${invoice.id}__r`;
-                            const remainderInvoice = {
+                            const remainderInvoice: IInvoice = {
                               ...invoice,
                               id: remainderId,
                               amount: remaining,
                               paid: false,
                               paid_amount: null,
                               payment_amounts: [],
-                              paid_date: null,
+                              paid_date: null as unknown as string,
                             };
                             rows.push(
                               <Table.Tr
@@ -1376,14 +1376,14 @@ export function GroupedInvoiceTable({
                           // 3. Remainder row
                           if (!paid && totalPaid > 0 && remaining > 0) {
                             const remainderId = `${invoice.id}__r`;
-                            const remainderInvoice = {
+                            const remainderInvoice: IInvoice = {
                               ...invoice,
                               id: remainderId,
                               amount: remaining,
                               paid: false,
                               paid_amount: null,
                               payment_amounts: [],
-                              paid_date: null,
+                              paid_date: null as unknown as string,
                             };
                             rows.push(
                               <Table.Tr

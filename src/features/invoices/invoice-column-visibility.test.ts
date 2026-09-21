@@ -21,16 +21,18 @@ describe('invoice-column-visibility', () => {
     // Boss same as admin
     expect(bossCols).toEqual(adminCols);
 
-    // User has no actions, payment_mark, but CAN see paid_date
-    expect(userCols).not.toContain('actions');
+    // User CAN create/edit/copy — actions column visible
+    expect(userCols).toContain('actions');
     expect(userCols).not.toContain('payment_mark');
     expect(userCols).toContain('paid_date');
     expect(userCols).toContain('paid'); // paid visible but read-only
     expect(userCols).toContain('counterparty');
     expect(userCols).toContain('amount');
 
-    // Guest same as user
-    expect(guestCols).toEqual(userCols);
+    // Guest read-only — no actions, no payment_mark, but CAN see paid_date
+    expect(guestCols).not.toContain('actions');
+    expect(guestCols).not.toContain('payment_mark');
+    expect(guestCols).toContain('paid_date');
 
     // Null returns empty
     expect(nullCols).toEqual([]);
@@ -48,9 +50,9 @@ describe('invoice-column-visibility', () => {
     const userItems = getColumnSettingsItems('user');
     const adminItems = getColumnSettingsItems('admin');
 
-    // User items should not contain restricted columns
+    // User items contain actions (edit/copy/files) but not restricted columns
     const userIds = userItems.map((i) => i.id);
-    expect(userIds).not.toContain('actions');
+    expect(userIds).toContain('actions');
     expect(userIds).not.toContain('payment_mark');
     // User CAN see paid_date
     expect(userIds).toContain('paid_date');
@@ -68,8 +70,9 @@ describe('invoice-column-visibility', () => {
     });
   });
 
-  it('user and guest have identical columns', () => {
-    expect(getVisibleColumnsForRole('user')).toEqual(getVisibleColumnsForRole('guest'));
+  it('user has actions column, guest does not', () => {
+    expect(getVisibleColumnsForRole('user')).toContain('actions');
+    expect(getVisibleColumnsForRole('guest')).not.toContain('actions');
   });
 
   it('admin, moderator, boss have identical columns', () => {

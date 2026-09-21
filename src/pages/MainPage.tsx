@@ -44,7 +44,7 @@ export function MainPage() {
 
   return (
     <Container size="fluid" py={{ base: 'xs', sm: 'md' }}>
-      <Stack gap={{ base: 'md', sm: 'lg' }}>
+      <Stack className="main-page-stack">
         <div ref={registerAnchor} className="main-date-picker-page">
           <div
             className={

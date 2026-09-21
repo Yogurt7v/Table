@@ -29,6 +29,7 @@ const mockInvoice: IInvoice = {
   comment: '',
   created_by: 'admin1',
   updated_by: 'admin1',
+  copy_comments: {},
   source_paid_amount: 0,
   source_paid_date: '',
 };

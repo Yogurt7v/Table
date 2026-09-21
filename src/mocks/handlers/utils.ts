@@ -159,7 +159,10 @@ export function createDeleteHandler(db: DB, collection: CollectionName) {
   });
 }
 
-function enrich(item: Entity, collectionName: string): Entity {
+function enrich(item: Entity, collectionName: string): Entity & {
+  collectionId: string;
+  collectionName: string;
+} {
   return {
     ...item,
     collectionId: `pbc_${collectionName}`,

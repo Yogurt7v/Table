@@ -4,6 +4,18 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Респонсивный gap главного стека MainPage (мобилка md / десктоп lg).
+   Stack.gap не принимает responsive-объекты в этой версии Mantine. */
+.main-page-stack {
+  gap: var(--mantine-spacing-md);
+}
+
+@media (min-width: 48em) {
+  .main-page-stack {
+    gap: var(--mantine-spacing-lg);
+  }
+}
+
 /* WCAG AA: вторичный (dimmed) текст должен иметь контраст >= 4.5:1.
    Mantine по умолчанию использует gray-6 (~3.3:1) — переопределяем на gray-7. */
 :root {

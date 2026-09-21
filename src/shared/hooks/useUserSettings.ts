@@ -20,6 +20,10 @@ export function useUpsertUserSetting(key: string) {
     onSettled: () =>
       qc.invalidateQueries({ queryKey: ['user_settings', user?.id, key] }),
     onError: (err) =>
-      console.error(`upsertUserSetting('${key}') failed:`, err?.message, err?.data ?? ''),
+      console.error(
+        `upsertUserSetting('${key}') failed:`,
+        err?.message,
+        (err as { data?: unknown })?.data ?? '',
+      ),
   });
 }

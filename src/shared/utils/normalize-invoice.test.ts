@@ -48,6 +48,11 @@ describe('normalizeInvoice', () => {
       payment_amounts: [],
       paid_date: '',
       comment: '',
+      copy_comments: {},
+      created_by: 'admin1',
+      updated_by: 'admin1',
+      source_paid_amount: 0,
+      source_paid_date: '',
     });
     expect(result.date).toBe('2026-05-18');
     expect(result.accounting_object_id).toBe('obj1');
@@ -74,6 +79,11 @@ describe('normalizeInvoice', () => {
       payment_amounts: [100],
       paid_date: '2026-05-18',
       comment: '',
+      copy_comments: {},
+      created_by: 'admin1',
+      updated_by: 'admin1',
+      source_paid_amount: 0,
+      source_paid_date: '',
     });
     expect(full.paid_amount).toBeNull();
     expect(full.payment_amounts).toEqual([100]);
@@ -94,6 +104,11 @@ describe('normalizeInvoice', () => {
       payment_amounts: [60],
       paid_date: '2026-05-18',
       comment: '',
+      copy_comments: {},
+      created_by: 'admin1',
+      updated_by: 'admin1',
+      source_paid_amount: 0,
+      source_paid_date: '',
     });
     expect(partial.paid_amount).toBe(60);
     expect(partial.payment_amounts).toEqual([60]);

@@ -361,7 +361,7 @@ function computeHistoryDiffs(
           toValue = nextPrev[key];
         }
       } else if (currentInvoice && key in currentInvoice) {
-        toValue = (currentInvoice as Record<string, unknown>)[key];
+        toValue = (currentInvoice as unknown as Record<string, unknown>)[key];
       }
 
       diffs.push({ key, from: value, to: toValue });

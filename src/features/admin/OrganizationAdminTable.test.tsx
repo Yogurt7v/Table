@@ -26,6 +26,7 @@ describe('OrganizationAdminTable', () => {
         accountsByOrg={accountsByOrg}
         objectsByOrg={objectsByOrg}
         colorName={{ '#228be6': 'Синий' }}
+        canDelete
         onAdd={() => {}}
         onEdit={() => {}}
         onDelete={() => {}}
@@ -49,6 +50,7 @@ describe('OrganizationAdminTable', () => {
         accountsByOrg={accountsByOrg}
         objectsByOrg={objectsByOrg}
         colorName={{}}
+        canDelete
         onAdd={onAdd}
         onEdit={() => {}}
         onDelete={() => {}}

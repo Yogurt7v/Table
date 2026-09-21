@@ -11,6 +11,7 @@ const mockInvoice: IInvoice = {
   purpose: 'Оплата услуг', contract_no: 'Д-001', invoice_no: 'СФ-001',
   amount: 50000, paid: false, paid_amount: null, payment_amounts: [],
   paid_date: '', comment: 'Комментарий', created_by: 'admin1', updated_by: 'admin1',
+  copy_comments: {}, source_paid_amount: 0, source_paid_date: '',
 };
 
 describe('InvoiceEditModal', () => {

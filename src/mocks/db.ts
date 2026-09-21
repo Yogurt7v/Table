@@ -13,22 +13,35 @@ import type {
   IUserSetting,
 } from '@/shared/types';
 
-interface Collections {
-  organizations: Map<string, IOrganization>;
-  bank_accounts: Map<string, IBankAccount>;
-  balance_history: Map<string, IBalanceHistory>;
-  accounting_objects: Map<string, IAccountingObject>;
-  invoices: Map<string, IInvoice>;
-  invoice_history: Map<string, IInvoiceHistory>;
-  payment_marks: Map<string, IPaymentMark>;
-  users: Map<string, IUser>;
-  organization_users: Map<string, IOrganizationUser>;
-  user_settings: Map<string, IUserSetting>;
-  invoice_files: Map<string, IInvoiceFile>;
-  notifications: Map<string, INotification>;
+interface Store<T> {
+  all: () => T[];
+  get: (id: string) => T | undefined;
+  set: (item: T) => T;
+  delete: (id: string) => boolean;
+  clear: () => void;
+  entries: () => T[];
 }
 
-function createStore<T extends { id: string }>() {
+interface Collections {
+  organizations: Store<IOrganization>;
+  bank_accounts: Store<IBankAccount>;
+  balance_history: Store<IBalanceHistory>;
+  accounting_objects: Store<IAccountingObject>;
+  invoices: Store<IInvoice>;
+  invoice_history: Store<IInvoiceHistory>;
+  payment_marks: Store<IPaymentMark>;
+  users: Store<IUser>;
+  organization_users: Store<IOrganizationUser>;
+  user_settings: Store<IUserSetting>;
+  invoice_files: Store<IInvoiceFile>;
+  notifications: Store<INotification>;
+}
+
+type SeedCollections = {
+  [K in keyof Collections]?: Collections[K] extends Store<infer T> ? T[] : never;
+};
+
+function createStore<T extends { id: string }>(): Store<T> {
   const map = new Map<string, T>();
   return {
     all: () => Array.from(map.values()),
@@ -40,7 +53,7 @@ function createStore<T extends { id: string }>() {
   };
 }
 
-export function createDB(seed?: Partial<Collections>) {
+export function createDB(seed?: SeedCollections) {
   const organizations = createStore<IOrganization>();
   const bank_accounts = createStore<IBankAccount>();
   const balance_history = createStore<IBalanceHistory>();
@@ -54,7 +67,7 @@ export function createDB(seed?: Partial<Collections>) {
   const invoice_files = createStore<IInvoiceFile>();
   const notifications = createStore<INotification>();
 
-  function init(data: NonNullable<typeof seed>) {
+  function init(data: SeedCollections) {
     data.organizations?.forEach(o => organizations.set(o));
     data.bank_accounts?.forEach(b => bank_accounts.set(b));
     data.balance_history?.forEach(h => balance_history.set(h));
@@ -85,7 +98,7 @@ export function createDB(seed?: Partial<Collections>) {
       user_settings,
       invoice_files,
       notifications,
-    } as Collections,
+    },
     init,
     clear() {
       for (const store of Object.values(this.collections)) {

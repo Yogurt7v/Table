@@ -366,8 +366,8 @@ onRecordDeleteRequest((e) => {
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
-    var eventText = 'Счёт удалён: ' + counterparty + ', ' + amtStr + ' \u20BD \u00B7 ' + actorName;
-    var messageText = 'Счёт удалён: ' + counterparty + ', ' + amtStr + ' \u20BD\nУдалил(а): ' + actorName;
+    var eventText = 'Счёт удалён: ' + counterparty + ', ' + amtStr + ' \u20BD';
+    var messageText = eventText;
 
     var objName = '';
     try {

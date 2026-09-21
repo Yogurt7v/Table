@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = pb.authStore.onChange((token, model) => {
+    const unsub = pb.authStore.onChange((_token, model) => {
       if (model) {
         setUser(model as unknown as IUser);
       } else {

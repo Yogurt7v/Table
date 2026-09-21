@@ -38,6 +38,16 @@ const mockHooks = vi.hoisted(() => {
   };
 });
 
+const mockNavigate = vi.hoisted(() => vi.fn());
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
 vi.mock('@/shared/context/AuthContext', () => ({
   useAuth: mockHooks.useAuth,
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -62,8 +72,12 @@ vi.mock('@/shared/context/InvoiceNavigationContext', () => ({
   }),
 }));
 
+const getDeletedInvoiceByOriginalId = vi.hoisted(() => vi.fn());
+const getInvoice = vi.hoisted(() => vi.fn(() => Promise.resolve({ id: 'inv1', date: '2026-06-02' })));
+
 vi.mock('@/api/collections', () => ({
-  getInvoice: vi.fn(() => Promise.resolve({ id: 'inv1', date: '2026-06-02' })),
+  getInvoice,
+  getDeletedInvoiceByOriginalId,
 }));
 
 vi.mock('@/api/client', () => ({}));
@@ -218,5 +232,69 @@ describe('NotificationsBell', () => {
 
     await user.click(screen.getByRole('button', { name: 'Подробнее' }));
     expect(screen.getByText(/Удалил\(а\): Пётр/)).toBeInTheDocument();
+  });
+
+  it('ведёт в архив с подсветкой при клике на invoice_deleted', async () => {
+    const user = userEvent.setup();
+    mockNavigate.mockClear();
+    getDeletedInvoiceByOriginalId.mockResolvedValue({ id: 'di1' });
+    mockHooks.setNotifications(
+      [
+        {
+          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
+          type: 'invoice_deleted', event: 'Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр',
+          message: 'Счёт удалён: ООО Ромашка, 5000 ₽\nУдалил(а): Пётр',
+          actor_name: 'Пётр', read: false, created: '2026-06-02T10:00:00Z',
+        } as INotification,
+      ],
+      1,
+    );
+    renderBell();
+
+    const bell = document.querySelector('button')!;
+    await user.click(bell);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр'),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр'));
+
+    await waitFor(() => {
+      expect(getDeletedInvoiceByOriginalId).toHaveBeenCalledWith('org1', 'inv1');
+    });
+    expect(mockNavigate).toHaveBeenCalledWith('/admin?tab=archive&highlight=di1');
+  });
+
+  it('ведёт в архив без подсветки, если удалённый счёт не найден', async () => {
+    const user = userEvent.setup();
+    mockNavigate.mockClear();
+    getDeletedInvoiceByOriginalId.mockRejectedValue(new Error('not found'));
+    mockHooks.setNotifications(
+      [
+        {
+          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
+          type: 'invoice_deleted', event: 'Счёт удалён', message: 'Счёт удалён',
+          actor_name: 'Пётр', read: false, created: '2026-06-02T10:00:00Z',
+        } as INotification,
+      ],
+      1,
+    );
+    renderBell();
+
+    const bell = document.querySelector('button')!;
+    await user.click(bell);
+
+    await waitFor(() => {
+      expect(screen.getByText('Счёт удалён')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Счёт удалён'));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/admin?tab=archive');
+    });
   });
 });

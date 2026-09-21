@@ -22,6 +22,7 @@ const ROLE_COLORS: Record<IOrganizationUser['role'], string> = {
   moderator: 'blue',
   user: 'green',
   guest: 'gray',
+  boss: 'orange',
 };
 
 const ROLE_LABELS: Record<IOrganizationUser['role'], string> = {
@@ -29,6 +30,7 @@ const ROLE_LABELS: Record<IOrganizationUser['role'], string> = {
   moderator: 'Модератор',
   user: 'Пользователь',
   guest: 'Гость',
+  boss: 'Босс',
 };
 
 export function RoleManager({ userId }: RoleManagerProps) {

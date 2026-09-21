@@ -116,7 +116,6 @@ export function InvoiceEditModal({
             setErrors((prev) => ({ ...prev, counterparty: undefined }));
           }}
           data={counterpartyResults}
-          searchable
           required
           error={errors.counterparty}
         />
@@ -159,7 +158,7 @@ export function InvoiceEditModal({
           placeholder="0"
           value={form.amount}
           onChange={(v) => {
-            setForm((prev) => ({ ...prev, amount: v ?? 0 }));
+            setForm((prev) => ({ ...prev, amount: Number(v) || 0 }));
             setErrors((prev) => ({ ...prev, amount: undefined }));
           }}
           thousandSeparator=" "

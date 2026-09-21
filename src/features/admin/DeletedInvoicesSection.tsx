@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useDebouncedValue } from '@mantine/hooks';
+import { useEffect, useRef, useState } from 'react';
 import {
   Table,
   Text,
@@ -17,9 +16,11 @@ import { IconSearch, IconX } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import {
   useDeletedInvoices,
+  useAllDeletedInvoices,
   useRestoreInvoice,
 } from '@/shared/hooks/useDeletedInvoices';
-import { ARCHIVE_PAGE_SIZE } from '@/api/collections';
+import { ARCHIVE_PAGE_SIZE, getDeletedInvoiceById } from '@/api/collections';
+import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
 import { DeletedInvoiceDetailModal } from './DeletedInvoiceDetailModal';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
@@ -28,35 +29,69 @@ import type { IDeletedInvoice } from '@/shared/types';
 
 interface DeletedInvoicesSectionProps {
   orgId: string;
+  highlightInvoiceId?: string | null;
+  onHighlightConsumed?: () => void;
 }
 
-export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
+export function DeletedInvoicesSection({
+  orgId,
+  highlightInvoiceId,
+  onHighlightConsumed,
+}: DeletedInvoicesSectionProps) {
   const role = useCurrentUserRole(orgId);
   const canRestore = role === 'admin' || role === 'moderator';
 
   const [search, setSearch] = useState('');
-  const [debouncedSearch] = useDebouncedValue(search, 500);
-  const query = debouncedSearch.trim();
+  const [activatedQuery, setActivatedQuery] = useState('');
 
   const [page, setPage] = useState(1);
-  const [lastQuery, setLastQuery] = useState(query);
-  if (lastQuery !== query) {
-    setLastQuery(query);
-    setPage(1);
-  }
 
-  const { data, isLoading } = useDeletedInvoices(orgId, query, page, ARCHIVE_PAGE_SIZE);
+  const listQuery = useDeletedInvoices(orgId, page, ARCHIVE_PAGE_SIZE);
+  const searchQuery = foldSearchText(activatedQuery);
+  const isSearchMode = searchQuery !== '';
+  const allDeletedQuery = useAllDeletedInvoices(orgId, isSearchMode);
 
-  const invoices = data?.items ?? [];
-  const totalPages = data?.totalPages ?? 0;
+  const invoices = isSearchMode
+    ? (allDeletedQuery.data ?? []).filter((inv) =>
+        matchesFolded(
+          [inv.counterparty, inv.purpose, inv.contract_no, inv.invoice_no, inv.comment],
+          searchQuery,
+        ),
+      )
+    : listQuery.data?.items ?? [];
+  const totalPages = isSearchMode ? 0 : listQuery.data?.totalPages ?? 0;
+  const isLoading = isSearchMode ? allDeletedQuery.isLoading : listQuery.isLoading;
 
-  if (totalPages > 0 && page > totalPages) {
+  if (!isSearchMode && totalPages > 0 && page > totalPages) {
     setPage(totalPages);
   }
 
   const [detailInvoice, setDetailInvoice] = useState<IDeletedInvoice | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<IDeletedInvoice | null>(null);
   const restore = useRestoreInvoice(orgId);
+
+  const highlightHandledRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!highlightInvoiceId) {
+      highlightHandledRef.current = null;
+      return;
+    }
+    if (highlightHandledRef.current === highlightInvoiceId) return;
+    highlightHandledRef.current = highlightInvoiceId;
+    getDeletedInvoiceById(highlightInvoiceId)
+      .then((inv) => setDetailInvoice(inv))
+      .catch(() => {})
+      .finally(() => onHighlightConsumed?.());
+  }, [highlightInvoiceId, onHighlightConsumed]);
+
+  useEffect(() => {
+    if (!highlightInvoiceId) return;
+    const el = document.querySelector('[data-highlighted="true"]');
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [highlightInvoiceId, listQuery.data]);
 
   return (
     <div>
@@ -68,9 +103,19 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
           w={480}
           size="sm"
           leftSection={<IconSearch size={14} />}
-          placeholder="Поиск по контрагенту, назначению, номеру"
+          placeholder="Поиск по контрагенту, назначению, договору, номеру"
           value={search}
-          onChange={(e) => setSearch(e.currentTarget.value)}
+          onChange={(e) => {
+            setSearch(e.currentTarget.value);
+            if (e.currentTarget.value !== activatedQuery) {
+              setActivatedQuery('');
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              setActivatedQuery(search);
+            }
+          }}
           aria-label="Поиск в архиве"
           rightSection={
             search ? (
@@ -79,7 +124,10 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
                 color="gray"
                 size="sm"
                 aria-label="Очистить поиск"
-                onClick={() => setSearch('')}
+                onClick={() => {
+                  setSearch('');
+                  setActivatedQuery('');
+                }}
               >
                 <IconX size={14} />
               </ActionIcon>
@@ -87,6 +135,16 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
           }
           rightSectionPointerEvents="all"
         />
+        {search.trim() !== '' && (
+          <Button
+            variant="light"
+            size="compact-sm"
+            leftSection={<IconSearch size={14} />}
+            onClick={() => setActivatedQuery(search)}
+          >
+            Найти
+          </Button>
+        )}
       </Group>
 
       {isLoading && (
@@ -97,7 +155,7 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
 
       {!isLoading && invoices.length === 0 && (
         <Text c="dimmed" size="sm">
-          {query ? 'Ничего не найдено' : 'Архив пуст'}
+          {isSearchMode ? 'Ничего не найдено' : 'Архив пуст'}
         </Text>
       )}
 
@@ -123,7 +181,15 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
               {invoices.map((inv) => {
                 const objectName = inv.expand?.accounting_object_id?.name ?? '—';
                 return (
-                  <Table.Tr key={inv.id}>
+                  <Table.Tr
+                    key={inv.id}
+                    data-highlighted={inv.id === highlightInvoiceId ? 'true' : undefined}
+                    style={
+                      inv.id === highlightInvoiceId
+                        ? { background: 'var(--mantine-color-yellow-1)' }
+                        : undefined
+                    }
+                  >
                     <Table.Td>
                       <Text lineClamp={1} title={inv.counterparty} aria-label={inv.counterparty}>{inv.counterparty || '—'}</Text>
                     </Table.Td>
@@ -179,7 +245,7 @@ export function DeletedInvoicesSection({ orgId }: DeletedInvoicesSectionProps) {
         </Box>
       )}
 
-      {totalPages > 1 && (
+      {!isSearchMode && totalPages > 1 && (
         <Group justify="center" mt="md">
           <Pagination value={page} onChange={setPage} total={totalPages} size="sm" />
         </Group>

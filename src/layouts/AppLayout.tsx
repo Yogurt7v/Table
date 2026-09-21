@@ -135,7 +135,7 @@ function AppLayoutContent() {
                           width: 12,
                           height: 12,
                           borderRadius: '50%',
-                          backgroundColor: (option as Record<string, unknown>).color as string,
+backgroundColor: (option as { color?: unknown }).color as string,
                         }}
                       />
                       <Text>{option.label}</Text>
@@ -241,7 +241,7 @@ function AppLayoutContent() {
                         width: 12,
                         height: 12,
                         borderRadius: '50%',
-                        backgroundColor: (option as Record<string, unknown>).color as string,
+                        backgroundColor: (option as { color?: unknown }).color as string,
                       }}
                     />
                     <Text>{option.label}</Text>

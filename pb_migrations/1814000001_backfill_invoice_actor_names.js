@@ -12,7 +12,7 @@ function resolveName(app, id) {
       if (user) {
         return user.get('name') || user.get('login') || user.get('email') || '';
       }
-    } catch (_) {
+    } catch {
       // нет в этой коллекции — пробуем следующую
     }
   }

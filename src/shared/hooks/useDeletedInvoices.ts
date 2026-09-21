@@ -4,20 +4,20 @@ import { notifications } from '@mantine/notifications';
 import { pb } from '@/api/client';
 import {
   getDeletedInvoices,
-  searchDeletedInvoices,
+  getAllDeletedInvoices,
   getDeletedInvoiceHistory,
   getDeletedInvoiceFiles,
   restoreDeletedInvoice,
 } from '@/api/collections';
 
-export function useDeletedInvoices(orgId: string, query: string, page: number, perPage: number) {
+export function useDeletedInvoices(orgId: string, page: number, perPage: number) {
   const queryClient = useQueryClient();
-  const clean = query.trim();
 
   useEffect(() => {
     if (!orgId) return;
     const sub = pb.collection('deleted_invoices').subscribe('*', () => {
       queryClient.invalidateQueries({ queryKey: ['deleted_invoices', orgId] });
+      queryClient.invalidateQueries({ queryKey: ['deleted_invoices', 'all', orgId] });
     });
     return () => {
       sub.then((unsub) => unsub());
@@ -25,13 +25,19 @@ export function useDeletedInvoices(orgId: string, query: string, page: number, p
   }, [orgId, queryClient]);
 
   return useQuery({
-    queryKey: ['deleted_invoices', orgId, clean, page, perPage],
-    queryFn: () =>
-      clean
-        ? searchDeletedInvoices(orgId, clean, page, perPage)
-        : getDeletedInvoices(orgId, page, perPage),
+    queryKey: ['deleted_invoices', orgId, page, perPage],
+    queryFn: () => getDeletedInvoices(orgId, page, perPage),
     enabled: !!orgId,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useAllDeletedInvoices(orgId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['deleted_invoices', 'all', orgId],
+    queryFn: () => getAllDeletedInvoices(orgId),
+    enabled: enabled && !!orgId,
+    retry: false,
   });
 }
 
@@ -69,6 +75,7 @@ export function useRestoreInvoice(orgId: string) {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['deleted_invoices', orgId] });
+      qc.invalidateQueries({ queryKey: ['deleted_invoices', 'all', orgId] });
       qc.invalidateQueries({ queryKey: ['invoices'] });
       qc.invalidateQueries({ queryKey: ['notifications'] });
     },

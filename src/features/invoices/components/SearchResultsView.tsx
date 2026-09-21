@@ -1,4 +1,4 @@
-import { Anchor, Badge, Group, Paper, Table, Text, Title } from '@mantine/core';
+import { Badge, Button, Group, Paper, Table, Text, Title } from '@mantine/core';
 import { IconArrowLeft, IconSearchOff } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -64,16 +64,15 @@ export function SearchResultsView({
           </Table.Tbody>
         </Table>
       )}
-      <Anchor
-        component="button"
-        type="button"
+      <Button
+        variant="subtle"
         size="xs"
         mt={8}
         onClick={onBackToDate}
         leftSection={<IconArrowLeft size={14} />}
       >
         Вернуться к {dayjs(date).format('DD.MM.YYYY')}
-      </Anchor>
+      </Button>
     </Paper>
   );
 }
