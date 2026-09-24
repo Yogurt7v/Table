@@ -25,6 +25,7 @@ builds/
 *.njsproj
 *.sln
 *.sw?
+.*
 
 # PocketBase
 pocketbase.exe
@@ -40,3 +41,9 @@ TableApp.zip
 standalone
 PLAN.md
 design-system/*
+
+# Playwright (e2e)
+test-results/
+playwright-report/
+blob-report/
+e2e/test-results/

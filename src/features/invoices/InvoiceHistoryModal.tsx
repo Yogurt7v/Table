@@ -23,6 +23,7 @@ const FIELD_LABELS: Record<string, string> = {
   invoice_no: 'Номер счёта',
   amount: 'Сумма',
   comment: 'Комментарий',
+  created_by_name: 'Инициатор',
 };
 
 const HIDDEN_FIELDS = new Set([
@@ -33,6 +34,7 @@ const HIDDEN_FIELDS = new Set([
   'payment',
   'paid',
   'paid_date',
+  'created_by',
 ]);
 
 interface HistoryDiff {

@@ -101,4 +101,79 @@ describe('InvoiceEditModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('Закрыть без сохранения? Введённые данные будут потеряны.')).not.toBeInTheDocument();
   });
+
+  it('does not render initiator select in create mode', () => {
+    renderWithProviders(
+      <InvoiceEditModal
+        opened
+        onClose={() => {}}
+        onSave={() => {}}
+        canEditInitiator
+        initiatorOptions={[{ value: 'u1', label: 'Иван Петров' }]}
+      />,
+    );
+
+    expect(screen.queryByPlaceholderText('-')).not.toBeInTheDocument();
+  });
+
+  it('renders initiator select for admin in edit mode', () => {
+    renderWithProviders(
+      <InvoiceEditModal
+        opened
+        invoice={mockInvoice}
+        onClose={() => {}}
+        onSave={() => {}}
+        canEditInitiator
+        initiatorOptions={[
+          { value: 'admin1', label: 'Анна Админова' },
+          { value: 'u1', label: 'Иван Петров' },
+        ]}
+      />,
+    );
+
+    expect(screen.getByDisplayValue('Анна Админова')).toBeInTheDocument();
+  });
+
+  it('shows placeholder "-" when invoice has no initiator', () => {
+    const withoutInitiator = { ...mockInvoice, created_by: '', created_by_name: '' };
+    renderWithProviders(
+      <InvoiceEditModal
+        opened
+        invoice={withoutInitiator}
+        onClose={() => {}}
+        onSave={() => {}}
+        canEditInitiator
+        initiatorOptions={[{ value: 'u1', label: 'Иван Петров' }]}
+      />,
+    );
+
+    expect(screen.getByPlaceholderText('-')).toBeInTheDocument();
+  });
+
+  it('saves selected initiator', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+
+    renderWithProviders(
+      <InvoiceEditModal
+        opened
+        invoice={mockInvoice}
+        onClose={() => {}}
+        onSave={onSave}
+        canEditInitiator
+        initiatorOptions={[
+          { value: 'admin1', label: 'Анна Админова' },
+          { value: 'u2', label: 'Иван Петров' },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByDisplayValue('Анна Админова'));
+    await user.click(await screen.findByRole('option', { name: 'Иван Петров' }));
+    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ initiator: 'u2' }));
+    });
+  });
 });

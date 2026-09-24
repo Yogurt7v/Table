@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Text, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -18,6 +18,7 @@ import {
   type DraftInvoiceForm,
 } from './invoice-field-access';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
+import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useBeforeUnloadGuard } from '@/shared/hooks/useBeforeUnloadGuard';
 import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
 import { useUpdateInvoice } from '@/shared/hooks/useUpdateInvoice';
@@ -75,6 +76,28 @@ export function InvoiceTable({
   allInvoices,
 }: InvoiceTableProps) {
   const permissions = useInvoicePermissions(orgId);
+  const { data: orgUsers } = useOrganizationUsers();
+  const initiatorOptions = useMemo(() => {
+    if (!orgUsers) return [];
+    return orgUsers
+      .filter((ou) => ou.organization_id === orgId)
+      .flatMap((ou) => {
+        const user = ou.expand?.user_id;
+        return user ? [{ value: user.id, label: user.name || user.login || user.email }] : [];
+      });
+  }, [orgUsers, orgId]);
+  const initiatorNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (orgUsers) {
+      for (const ou of orgUsers) {
+        if (ou.organization_id !== orgId) continue;
+        const user = ou.expand?.user_id;
+        if (!user) continue;
+        map.set(user.id, user.name || user.login || user.email);
+      }
+    }
+    return map;
+  }, [orgUsers, orgId]);
   const queryClient = useQueryClient();
   const createInvoice = useCreateInvoice(orgId, date);
   const updateInvoice = useUpdateInvoice(orgId, date);
@@ -120,6 +143,7 @@ export function InvoiceTable({
           paid: false,
           paid_date: '',
           comment: src.comment,
+          initiator: '',
           file: null,
         });
       } else {
@@ -242,6 +266,7 @@ export function InvoiceTable({
       data,
       editInvoice,
       date.slice(0, 10),
+      (userId) => initiatorNameMap.get(userId) ?? '',
     );
     if (!changed) {
       setEditInvoice(null);
@@ -570,6 +595,8 @@ export function InvoiceTable({
         opened={!!editInvoice}
         invoice={editInvoice}
         counterpartyResults={counterpartySearch.results}
+        initiatorOptions={initiatorOptions}
+        canEditInitiator={editInvoice ? permissions.canEditField('created_by') : false}
         onSave={handleEditInvoice}
         loading={updateInvoice.isPending}
         onClose={() => setEditInvoice(null)}

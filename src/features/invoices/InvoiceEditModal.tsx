@@ -7,6 +7,7 @@ import {
   Autocomplete,
   Group,
   Textarea,
+  Select,
 } from '@mantine/core';
 import { useState, useEffect, useMemo } from 'react';
 import type { IInvoice } from '@/shared/types';
@@ -20,6 +21,8 @@ interface InvoiceEditModalProps {
   onClose: () => void;
   invoice?: IInvoice | null;
   counterpartyResults?: string[];
+  initiatorOptions?: { value: string; label: string }[];
+  canEditInitiator?: boolean;
   onSave: (data: DraftInvoiceForm) => void;
   loading?: boolean;
 }
@@ -29,6 +32,8 @@ export function InvoiceEditModal({
   onClose,
   invoice,
   counterpartyResults = [],
+  initiatorOptions = [],
+  canEditInitiator = false,
   onSave,
   loading,
 }: InvoiceEditModalProps) {
@@ -57,6 +62,7 @@ export function InvoiceEditModal({
           paid: invoice.paid || false,
           paid_date: invoice.paid_date ?? '',
           comment: invoice.comment ?? '',
+          initiator: invoice.created_by ?? '',
           file: null,
         };
       } else {
@@ -176,6 +182,19 @@ export function InvoiceEditModal({
             setForm((prev) => ({ ...prev, comment: value }));
           }}
         />
+        {isEditMode && canEditInitiator && (
+          <Select
+            label="Инициатор"
+            placeholder="-"
+            value={form.initiator || null}
+            onChange={(v) => {
+              const value = v ?? '';
+              setForm((prev) => ({ ...prev, initiator: value }));
+            }}
+            data={initiatorOptions}
+            clearable={false}
+          />
+        )}
         <Group justify="flex-end" gap="sm">
           <Button variant="default" onClick={requestClose}>
             Отмена

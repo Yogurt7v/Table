@@ -99,6 +99,14 @@ describe('canEditInvoiceField', () => {
     expect(canEditInvoiceField('moderator', 'paid')).toBe(true);
     expect(canEditInvoiceField('moderator', 'amount')).toBe(true);
   });
+
+  it('only admin and moderator can edit initiator', () => {
+    expect(canEditInvoiceField('admin', 'created_by')).toBe(true);
+    expect(canEditInvoiceField('moderator', 'created_by')).toBe(true);
+    expect(canEditInvoiceField('user', 'created_by')).toBe(false);
+    expect(canEditInvoiceField('guest', 'created_by')).toBe(false);
+    expect(canEditInvoiceField('boss', 'created_by')).toBe(false);
+  });
 });
 
 describe('validateDraftForm', () => {
@@ -129,6 +137,14 @@ describe('validateDraftForm', () => {
 describe('isDraftDirty', () => {
   it('empty draft is clean', () => {
     expect(isDraftDirty(createEmptyDraft())).toBe(false);
+  });
+
+  it('empty draft has empty initiator', () => {
+    expect(createEmptyDraft().initiator).toBe('');
+  });
+
+  it('selected initiator makes it dirty', () => {
+    expect(isDraftDirty({ ...createEmptyDraft(), initiator: 'u1' })).toBe(true);
   });
 
   it('any filled text field makes it dirty', () => {

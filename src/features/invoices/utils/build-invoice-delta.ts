@@ -11,6 +11,7 @@ export function buildInvoiceDelta(
   data: DraftInvoiceForm,
   original: IInvoice,
   defaultDate: string,
+  initiatorNameResolver?: (userId: string) => string,
 ): InvoiceDelta {
   const updates: Record<string, unknown> = {};
   let changed = false;
@@ -48,6 +49,11 @@ export function buildInvoiceDelta(
   }
   if (data.comment !== (original.comment || '')) {
     updates.comment = data.comment.trim();
+    changed = true;
+  }
+  if (data.initiator && data.initiator !== (original.created_by || '')) {
+    updates.created_by = data.initiator;
+    updates.created_by_name = initiatorNameResolver?.(data.initiator) || '';
     changed = true;
   }
 

@@ -32,4 +32,17 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Playwright-фикстуры и e2e-спеки: паттерн `use` не является React-хуком,
+    // неиспользуемые параметры хелперов помечаются префиксом `_`.
+    files: ['e2e/**/*.{ts,tsx}'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'no-empty-pattern': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
 ])

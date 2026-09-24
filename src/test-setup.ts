@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { beforeAll, afterEach, afterAll } from 'vitest';
+import { beforeAll, afterEach, afterAll, vi } from 'vitest';
 import { server } from '@/mocks/server';
 
 class ResizeObserverMock {
@@ -8,6 +8,14 @@ class ResizeObserverMock {
   disconnect() {}
 }
 window.ResizeObserver = ResizeObserverMock;
+
+if (!Element.prototype.scrollIntoView) {
+  Object.defineProperty(Element.prototype, 'scrollIntoView', {
+    configurable: true,
+    writable: true,
+    value: vi.fn(),
+  });
+}
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

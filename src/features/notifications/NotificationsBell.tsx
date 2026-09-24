@@ -206,6 +206,7 @@ export function NotificationsBell() {
         variant="subtle"
         color="gray"
         size="lg"
+        aria-label="Уведомления"
         onClick={() => setOpened(true)}
         pos="relative"
       >

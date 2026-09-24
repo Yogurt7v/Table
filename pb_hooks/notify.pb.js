@@ -164,9 +164,19 @@ onRecordUpdate((e) => {
     var invDate = rec.get('date') || '';
 
     var paidChanged = String(oldRec.get('paid')) !== String(rec.get('paid'));
+    var initiatorChanged = String(oldRec.get('created_by')) !== String(rec.get('created_by'));
     var notifType, eventText;
 
-    if (paidChanged) {
+    if (initiatorChanged) {
+      notifType = 'invoice_updated';
+      var oldInitiator = oldRec.get('created_by_name')
+        || require(__hooks + '/lib-actor.js').resolveActorName($app, [oldRec.get('created_by')])
+        || '—';
+      var newInitiator = rec.get('created_by_name')
+        || require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('created_by')])
+        || '—';
+      eventText = 'Изменён инициатор счёта: ' + counterparty + ' — ' + oldInitiator + ' → ' + newInitiator;
+    } else if (paidChanged) {
       notifType = 'payment_marked';
       if (rec.get('paid')) {
         eventText = 'Счёт оплачен: ' + counterparty;

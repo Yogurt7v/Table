@@ -10,7 +10,8 @@ export type InvoiceEditableField =
   | 'amount'
   | 'comment'
   | 'paid'
-  | 'paid_date';
+  | 'paid_date'
+  | 'created_by';
 
 export const DRAFT_INVOICE_ID = '__draft__';
 
@@ -35,6 +36,9 @@ export function canEditInvoiceField(role: OrgRole, field: InvoiceEditableField):
   if (field === 'paid' || field === 'paid_date') {
     return role === 'admin' || role === 'moderator';
   }
+  if (field === 'created_by') {
+    return role === 'admin' || role === 'moderator';
+  }
   return true;
 }
 
@@ -47,6 +51,7 @@ export interface DraftInvoiceForm {
   paid: boolean;
   paid_date: string;
   comment: string;
+  initiator: string;
   file: File | null;
 }
 
@@ -60,6 +65,7 @@ export function createEmptyDraft(): DraftInvoiceForm {
     paid: false,
     paid_date: '',
     comment: '',
+    initiator: '',
     file: null,
   };
 }
@@ -104,5 +110,6 @@ export function isDraftDirty(form: DraftInvoiceForm): boolean {
     typeof rawAmount === 'string' ? parseFloat(rawAmount.replace(',', '.')) : rawAmount;
   if (amount != null && !Number.isNaN(amount) && amount !== 0) return true;
   if (form.paid !== false || form.paid_date !== '') return true;
+  if (form.initiator !== '') return true;
   return form.file != null;
 }
