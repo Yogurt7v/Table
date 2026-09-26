@@ -92,9 +92,13 @@ export async function moveObject(
 
 export async function deleteObject(page: Page, modal: Locator, name: string): Promise<void> {
   await modal.getByRole('button', { name: `Удалить «${name}»` }).click();
-  await page.getByRole('dialog').filter({ hasText: 'Удаление объекта' }).getByRole('button', {
-    name: 'Удалить',
-  }).click();
+  await page
+    .getByRole('dialog')
+    .filter({ hasText: 'Удаление объекта' })
+    .getByRole('button', {
+      name: 'Удалить',
+    })
+    .click();
   await expect(modal.getByRole('button', { name: `Удалить «${name}»` })).toHaveCount(0, {
     timeout: 15_000,
   });
@@ -147,11 +151,13 @@ export async function addInvoiceViaDraft(
 ): Promise<Locator> {
   const block = objectBlock(page, objectName);
   await block.getByRole('button', { name: 'Добавить счёт' }).first().click();
-  const form = page.locator('input[placeholder="Контрагент"]:visible').locator('xpath=ancestor::tr');
+  const form = page
+    .locator('input[placeholder="Контрагент"]:visible')
+    .locator('xpath=ancestor::tr');
   await form.locator('input[placeholder="Контрагент"]').fill(data.counterparty);
-  await form.locator('textarea[placeholder="Назначение"], input[placeholder="Назначение"]').fill(
-    data.purpose,
-  );
+  await form
+    .locator('textarea[placeholder="Назначение"], input[placeholder="Назначение"]')
+    .fill(data.purpose);
   if (data.contractNo) {
     await form.locator('input[placeholder="Договор"]').fill(data.contractNo);
   }
@@ -228,7 +234,9 @@ export async function copyInvoice(
   changes: { counterparty: string; invoiceNo: string; amount?: string },
 ): Promise<void> {
   await openInvoiceMenu(page, counterparty, 'Копировать');
-  const form = page.locator('input[placeholder="Контрагент"]:visible').locator('xpath=ancestor::tr');
+  const form = page
+    .locator('input[placeholder="Контрагент"]:visible')
+    .locator('xpath=ancestor::tr');
   await expect(form).toBeVisible();
   await form.locator('input[placeholder="Контрагент"]').fill(changes.counterparty);
   if (changes.amount) await form.locator('input[placeholder="Сумма"]').fill(changes.amount);
@@ -262,7 +270,9 @@ export async function deleteInvoiceFile(
   fileName: string,
 ): Promise<void> {
   const modal = filesDialog(page);
-  const row = modal.getByText(fileName, { exact: true }).locator('xpath=ancestor::div[.//button][1]');
+  const row = modal
+    .getByText(fileName, { exact: true })
+    .locator('xpath=ancestor::div[.//button][1]');
   await row.getByRole('button', { name: 'Удалить файл' }).click();
   await page
     .getByRole('dialog')
@@ -319,11 +329,7 @@ export function invoiceRowByNumber(page: Page, invoiceNumber: string): Locator {
   return page.getByRole('row').filter({ hasText: invoiceNumber }).first();
 }
 
-export function invoiceRowByAmount(
-  page: Page,
-  counterparty: string,
-  amount: RegExp,
-): Locator {
+export function invoiceRowByAmount(page: Page, counterparty: string, amount: RegExp): Locator {
   return page
     .getByRole('row')
     .filter({ hasText: counterparty })
@@ -506,7 +512,9 @@ export async function printRegistry(page: Page): Promise<number> {
   });
   await page.locator('button[aria-label="Печать"]:visible').first().click();
   await expect
-    .poll(() => page.evaluate(() => (window as unknown as { __printCount?: number }).__printCount ?? 0))
+    .poll(() =>
+      page.evaluate(() => (window as unknown as { __printCount?: number }).__printCount ?? 0),
+    )
     .toBeGreaterThan(0);
   return page.evaluate(() => (window as unknown as { __printCount?: number }).__printCount ?? 0);
 }
@@ -517,9 +525,6 @@ export async function exportExcel(page: Page): Promise<string> {
   const file = await download;
   return file.suggestedFilename();
 }
-
-
-
 
 export function archiveRow(page: Page, counterparty: string, amount?: RegExp): Locator {
   const rows = page.getByRole('row').filter({ hasText: counterparty });
@@ -580,14 +585,14 @@ export async function renameUserViaAdmin(
 ): Promise<void> {
   await page.getByRole('tab', { name: 'Пользователи' }).click();
   await page.getByRole('button', { name: `Редактировать пользователя ${currentName}` }).click();
-  const modal = page.getByRole('dialog').filter({ hasText: `Редактировать пользователя ${currentName}` });
+  const modal = page
+    .getByRole('dialog')
+    .filter({ hasText: `Редактировать пользователя ${currentName}` });
   await expect(modal).toBeVisible();
   await modal.getByLabel('Имя').fill(newName);
   await modal.getByRole('button', { name: 'Сохранить' }).click();
   await expect(modal).toBeHidden();
-  await expect(
-    page.getByRole('cell', { name: newName, exact: true }).first(),
-  ).toBeVisible();
+  await expect(page.getByRole('cell', { name: newName, exact: true }).first()).toBeVisible();
 }
 
 export async function renameBankAccount(
@@ -606,11 +611,7 @@ export async function renameBankAccount(
   const input = section.locator('input:not([placeholder])');
   await expect(input).toBeVisible();
   await input.fill(newNumber);
-  await input
-    .locator('xpath=ancestor::*[.//button][1]')
-    .locator('button')
-    .first()
-    .click();
+  await input.locator('xpath=ancestor::*[.//button][1]').locator('button').first().click();
   await expect(section.getByText(newNumber, { exact: true })).toBeVisible();
 }
 

@@ -157,7 +157,9 @@ async function ensureMembership(
 }
 
 export async function forceDeleteInvoices(pb: PocketBase, orgId: string): Promise<void> {
-  const invoices = await pb.collection('invoices').getFullList({ filter: `organization_id = "${orgId}"` });
+  const invoices = await pb
+    .collection('invoices')
+    .getFullList({ filter: `organization_id = "${orgId}"` });
   for (const invoice of invoices) {
     const children: [string, string][] = [
       ['payment_marks', `invoice_id = "${invoice.id}"`],
@@ -233,7 +235,9 @@ export async function forceDeleteOrganization(pb: PocketBase, orgId: string): Pr
   }
 
   for (const collection of ['accounting_objects', 'notifications', 'organization_users']) {
-    const records = await pb.collection(collection).getFullList({ filter: `organization_id = "${orgId}"` });
+    const records = await pb
+      .collection(collection)
+      .getFullList({ filter: `organization_id = "${orgId}"` });
     for (const record of records) {
       await ignoreMissing(() => pb.collection(collection).delete(record.id));
     }
@@ -435,9 +439,7 @@ export async function setMembershipRole(
 ): Promise<void> {
   const membership = await getMembership(userId, orgId);
   if (!membership) throw new Error(`Membership ${userId}/${orgId} не найден`);
-  await pbAdmin()
-    .collection('organization_users')
-    .update(membership.id, { role });
+  await pbAdmin().collection('organization_users').update(membership.id, { role });
 }
 
 export async function setMembershipObjects(
@@ -447,9 +449,7 @@ export async function setMembershipObjects(
 ): Promise<void> {
   const membership = await getMembership(userId, orgId);
   if (!membership) throw new Error(`Membership ${userId}/${orgId} не найден`);
-  await pbAdmin()
-    .collection('organization_users')
-    .update(membership.id, { objects: objectIds });
+  await pbAdmin().collection('organization_users').update(membership.id, { objects: objectIds });
 }
 
 export async function getOrgByName(name: string): Promise<RecordModel> {

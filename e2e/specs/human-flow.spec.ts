@@ -209,19 +209,13 @@ test.describe.serial('Человеческий тест', () => {
 
       const invoiceId = String(moved?.id);
       await uploadInvoiceFile(page, counterparty, filePath);
-      await expect
-        .poll(async () => (await getInvoiceFiles(invoiceId)).length)
-        .toBe(1);
+      await expect.poll(async () => (await getInvoiceFiles(invoiceId)).length).toBe(1);
 
       await deleteInvoiceFile(page, counterparty, FILE_BASENAME);
-      await expect
-        .poll(async () => (await getInvoiceFiles(invoiceId)).length)
-        .toBe(0);
+      await expect.poll(async () => (await getInvoiceFiles(invoiceId)).length).toBe(0);
 
       await uploadInvoiceFile(page, counterparty, filePath);
-      await expect
-        .poll(async () => (await getInvoiceFiles(invoiceId)).length)
-        .toBe(1);
+      await expect.poll(async () => (await getInvoiceFiles(invoiceId)).length).toBe(1);
       const files = await getInvoiceFiles(invoiceId);
       expect(files[0]?.name).toBe(FILE_BASENAME);
       await closeFilesModal(page);
@@ -298,7 +292,11 @@ test.describe.serial('Человеческий тест', () => {
       expect(Number(marks[0]?.amount)).toBe(Number(PARTIAL_AMOUNT));
       expect(String(marks[0]?.status)).toBe('partial');
       expect(invoice?.paid).toBeFalsy();
-      await expect(invoiceRow(page, counterparty).first().getByText(/Частично: 54/)).toBeVisible();
+      await expect(
+        invoiceRow(page, counterparty)
+          .first()
+          .getByText(/Частично: 54/),
+      ).toBeVisible();
     });
 
     await test.step('8. модератор оплачивает остаток по указу и проверяет остаток счёта', async () => {
@@ -319,9 +317,7 @@ test.describe.serial('Человеческий тест', () => {
       expect(original?.paid).toBe(true);
       expect((original?.payment_amounts as number[]) ?? []).toEqual([Number(MODERATOR_PAYMENT)]);
       expect(humanIsoDate(original?.paid_date)).toBe(dates.D7);
-      expect(Number(remainder?.amount)).toBe(
-        Number(AMOUNT_EDITED) - Number(MODERATOR_PAYMENT),
-      );
+      expect(Number(remainder?.amount)).toBe(Number(AMOUNT_EDITED) - Number(MODERATOR_PAYMENT));
       expect(humanIsoDate(remainder?.date)).toBe(dates.D7);
       expect(remainder?.paid).toBeFalsy();
       expect(String(remainder?.original_invoice_id)).toBe(String(original?.id));
@@ -329,7 +325,9 @@ test.describe.serial('Человеческий тест', () => {
 
       await setRegistryDate(page, dates.today);
       await expect(invoiceRowByAmount(page, counterparty, humanAmountPattern(54000))).toBeVisible();
-      await expect(invoiceRow(page, counterparty).filter({ hasText: humanAmountPattern(66000) })).toHaveCount(0);
+      await expect(
+        invoiceRow(page, counterparty).filter({ hasText: humanAmountPattern(66000) }),
+      ).toHaveCount(0);
     });
 
     await test.step('9. пользователь проверяет даты, колонки, печать и Excel', async () => {
@@ -338,15 +336,21 @@ test.describe.serial('Человеческий тест', () => {
       await selectOrg(page, orgName);
 
       await setRegistryDate(page, dates.D);
-      await expect(invoiceRowByAmount(page, counterparty, humanAmountPattern(120000))).toBeVisible();
-      await expect(invoiceRowByAmount(page, counterparty, humanAmountPattern(54000))).toHaveCount(0);
+      await expect(
+        invoiceRowByAmount(page, counterparty, humanAmountPattern(120000)),
+      ).toBeVisible();
+      await expect(invoiceRowByAmount(page, counterparty, humanAmountPattern(54000))).toHaveCount(
+        0,
+      );
 
       await setRegistryDate(page, dates.D7);
       await expect(invoiceRowByAmount(page, counterparty, humanAmountPattern(66000))).toBeVisible();
       await expect(invoiceRowByAmount(page, counterparty, humanAmountPattern(54000))).toBeVisible();
 
       await setRegistryDate(page, dates.D8);
-      await expect(invoiceRow(page, counterparty).filter({ hasText: humanAmountPattern(66000) })).toHaveCount(0);
+      await expect(
+        invoiceRow(page, counterparty).filter({ hasText: humanAmountPattern(66000) }),
+      ).toHaveCount(0);
       await expect(invoiceRowByAmount(page, counterparty, humanAmountPattern(54000))).toBeVisible();
 
       await setRegistryDate(page, dates.today);
@@ -402,29 +406,39 @@ test.describe.serial('Человеческий тест', () => {
       await expect(remainderRow.getByText(/Согласование/)).toBeVisible();
       await clearPaymentMark(page, remainderRow);
       const invoicesAfterMark = await getInvoicesByCounterparty(counterparty, orgId);
-      const remainderId = String(
-        invoicesAfterMark.find((inv) => inv.original_invoice_id)?.id,
-      );
+      const remainderId = String(invoicesAfterMark.find((inv) => inv.original_invoice_id)?.id);
       expect(await getPaymentMarksOf(remainderId)).toHaveLength(0);
 
-      await payInvoice(page, remainderRow, String(Number(AMOUNT_EDITED) - Number(MODERATOR_PAYMENT)));
+      await payInvoice(
+        page,
+        remainderRow,
+        String(Number(AMOUNT_EDITED) - Number(MODERATOR_PAYMENT)),
+      );
       const paidRemainder = (await getInvoicesByCounterparty(counterparty, orgId)).find(
         (inv) => inv.id === remainderId,
       );
       expect(paidRemainder?.paid).toBe(true);
       expect(humanIsoDate(paidRemainder?.paid_date)).toBe(dates.D9);
 
-      await clearInvoicePayment(page, invoiceRowByAmount(page, counterparty, humanAmountPattern(54000)));
+      await clearInvoicePayment(
+        page,
+        invoiceRowByAmount(page, counterparty, humanAmountPattern(54000)),
+      );
       const clearedRemainder = (await getInvoicesByCounterparty(counterparty, orgId)).find(
         (inv) => inv.id === remainderId,
       );
       expect(clearedRemainder?.paid).toBe(false);
       expect((clearedRemainder?.payment_amounts as number[]) ?? []).toHaveLength(0);
 
-      await deleteInvoiceViaMenu(page, invoiceRowByAmount(page, counterparty, humanAmountPattern(54000)));
+      await deleteInvoiceViaMenu(
+        page,
+        invoiceRowByAmount(page, counterparty, humanAmountPattern(54000)),
+      );
       const left = await getInvoicesByCounterparty(counterparty, orgId);
       expect(left).toHaveLength(1);
-      expect(String(left[0]?.id)).toBe(String(invoicesAfterMark.find((inv) => !inv.original_invoice_id)?.id));
+      expect(String(left[0]?.id)).toBe(
+        String(invoicesAfterMark.find((inv) => !inv.original_invoice_id)?.id),
+      );
     });
 
     await test.step('12. администратор находит счёт в архиве, смотрит историю и восстанавливает', async () => {
@@ -435,7 +449,9 @@ test.describe.serial('Человеческий тест', () => {
 
       const archived = archiveRow(page, counterparty, humanAmountPattern(54000));
       await expect(archived).toBeVisible();
-      await expect(archived.getByText(humanUserName(marker, 'moderator'), { exact: true })).toBeVisible();
+      await expect(
+        archived.getByText(humanUserName(marker, 'moderator'), { exact: true }),
+      ).toBeVisible();
 
       const entries = await viewDeletedInvoiceHistory(page, counterparty, [
         'Частично оплачен',
@@ -452,9 +468,7 @@ test.describe.serial('Человеческий тест', () => {
       const restored = (await getInvoicesByCounterparty(counterparty, orgId)).find(
         (inv) => inv.original_invoice_id,
       );
-      expect(Number(restored?.amount)).toBe(
-        Number(AMOUNT_EDITED) - Number(MODERATOR_PAYMENT),
-      );
+      expect(Number(restored?.amount)).toBe(Number(AMOUNT_EDITED) - Number(MODERATOR_PAYMENT));
       expect(restored?.paid).toBeFalsy();
     });
 
@@ -498,10 +512,14 @@ test.describe.serial('Человеческий тест', () => {
       await setRegistryDate(page, dates.today);
       await waitForRegistry(page, String(lastCreated?.counterparty));
       await expect(lastCreatedRow).toBeVisible({ timeout: 30_000 });
-      await changeInvoiceInitiator(page, String(lastCreated?.counterparty), humanUserName(marker, 'admin'));
-      const withInitiator = (await getInvoicesByCounterparty(String(lastCreated?.counterparty), orgId)).find(
-        (inv) => inv.id === lastCreated?.id,
+      await changeInvoiceInitiator(
+        page,
+        String(lastCreated?.counterparty),
+        humanUserName(marker, 'admin'),
       );
+      const withInitiator = (
+        await getInvoicesByCounterparty(String(lastCreated?.counterparty), orgId)
+      ).find((inv) => inv.id === lastCreated?.id);
       expect(String(withInitiator?.created_by)).toBe(String(ids.admin));
       expect(String(withInitiator?.created_by_name)).toBe(humanUserName(marker, 'admin'));
     });
