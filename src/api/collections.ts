@@ -920,6 +920,7 @@ export function getUnreadNotificationsCount(userId: string) {
     .getList<INotification>(1, 1, {
       filter: `user_id = "${userId}" && read = false`,
       fields: 'id',
+      requestKey: null,
     })
     .then((res) => res.totalItems);
 }

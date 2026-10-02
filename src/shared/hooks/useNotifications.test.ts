@@ -436,6 +436,22 @@ describe('useNotifications', () => {
     expect(result.current.unreadCount).toBe(25);
   });
 
+  it('both bells get the true unread count when a page is only partially loaded', async () => {
+    const rows = Array.from({ length: 20 }, (_, i) => notification(`n${i + 1}`));
+    h.fixture = server(rows, { totalItems: 20, unreadTotal: 25 });
+    const { sink } = renderBells(['a', 'b']);
+
+    // Both bells register the count read on the same request path in the same tick, so
+    // the SDK's auto-cancel hands the loser an abort — and the per-arm `.catch(() => null)`
+    // swallows it, pinning that bell to the page-capped fallback of 20.
+    await waitFor(() => {
+      expect(sink.a?.notifications).toHaveLength(20);
+      expect(sink.b?.notifications).toHaveLength(20);
+      expect(sink.a?.unreadCount).toBe(25);
+      expect(sink.b?.unreadCount).toBe(25);
+    });
+  });
+
   it('marking one read decrements the badge immediately', async () => {
     const rows = [notification('n1'), notification('n2')];
     const { result } = await mountBell(server(rows, { totalItems: 2, unreadTotal: 25 }));
