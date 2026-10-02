@@ -7,6 +7,7 @@ import {
   getNotificationsPage,
   getNotificationsByDate,
   getUnreadNotificationsCount,
+  NOTIFICATIONS_PAGE_SIZE,
 } from '@/api/collections';
 import { useAuth } from '@/shared/context/AuthContext';
 import type { INotification } from '@/shared/types';
@@ -30,6 +31,30 @@ function describeFailure(err: unknown): string {
   if (err instanceof ClientResponseError) return `Ошибка загрузки уведомлений (HTTP ${err.status})`;
   if (err instanceof Error) return err.message;
   return 'Не удалось загрузить уведомления';
+}
+
+/** A write that failed leaves the row unread and the badge where it was — say so. */
+function describeWriteFailure(err: unknown): string {
+  if (err instanceof ClientResponseError) {
+    return `Не удалось отметить как прочитанное (HTTP ${err.status})`;
+  }
+  if (err instanceof Error) return err.message;
+  return 'Не удалось отметить уведомление как прочитанное';
+}
+
+/**
+ * A re-check must not take back rows the user paged in with «Показать ещё». The fresh first
+ * page wins for every record it repeats; the rows it does not mention are kept behind them,
+ * re-sorted `created`-descending — the order the server sends. `fresh` comes back untouched
+ * when there is nothing to keep, so the single-page case stays exactly what it always was.
+ */
+function mergePagedIn(fresh: INotification[], held: INotification[]): INotification[] {
+  const freshIds = new Set(fresh.map((n) => n.id));
+  const kept = held.filter((n) => !freshIds.has(n.id));
+  if (kept.length === 0) return fresh;
+  const byCreatedDesc = (a: INotification, b: INotification) =>
+    a.created < b.created ? 1 : a.created > b.created ? -1 : 0;
+  return [...fresh, ...kept].sort(byCreatedDesc);
 }
 
 export function useNotificationsByDate(date: string) {
@@ -59,6 +84,13 @@ export function useNotifications() {
   const inFlightRef = useRef(false);
   const retryTimerRef = useRef<number | null>(null);
   const unsubscribeRef = useRef<UnsubscribeFunc | null>(null);
+  // The rows in memory, readable from callbacks that must not depend on `notifications`
+  // identity: a re-check merges against them, and a read-transition is counted against them.
+  const notificationsRef = useRef<INotification[]>([]);
+
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
 
   const load = useCallback(() => {
     if (retryTimerRef.current !== null) {
@@ -87,7 +119,10 @@ export function useNotifications() {
       return;
     }
 
-    loadedCountRef.current = 0;
+    // A re-check must not take back what the user paged in with «Показать ещё», so the fresh
+    // page merges into the held rows instead of replacing them — but only once something
+    // beyond the first page has actually been loaded.
+    const keepPagedIn = loadedCountRef.current > NOTIFICATIONS_PAGE_SIZE;
     inFlightRef.current = true;
 
     const wait = (ms: number) =>
@@ -108,10 +143,11 @@ export function useNotifications() {
           getUnreadNotificationsCount(user.id).catch(() => null),
         ]);
         apply(() => {
-          loadedCountRef.current = res.items.length;
-          setNotifications(res.items);
+          const merged = keepPagedIn ? mergePagedIn(res.items, notificationsRef.current) : res.items;
+          loadedCountRef.current = merged.length;
+          setNotifications(merged);
           setTotalItems(res.totalItems);
-          setHasMore(res.items.length < res.totalItems);
+          setHasMore(merged.length < res.totalItems);
           if (total !== null) setUnreadTotal(total);
           setError(null);
           setIsLoading(false);
@@ -181,6 +217,12 @@ export function useNotifications() {
         setTotalItems(res.totalItems);
         setHasMore(loadedCountRef.current < res.totalItems);
       })
+      .catch((err: unknown) => {
+        // Only the next page is missing — the rows on screen stay, and the next re-check
+        // retries. A superseded read is dropped: its twin answered the same page.
+        if (isAbortError(err)) return;
+        setError(describeFailure(err));
+      })
       .finally(() => {
         setIsLoadingMore(false);
       });
@@ -194,6 +236,19 @@ export function useNotifications() {
     [notifications],
   );
   const unreadCount = unreadTotal ?? loadedUnreadCount;
+
+  /**
+   * Charges the unread total for rows that just became read. A write response and the
+   * realtime echo of that same write both arrive, and both bells see the echo, so the count
+   * may move exactly once per record: whoever observes the transition while the row is still
+   * held as unread pays for it, and the later observer finds nothing left to charge.
+   */
+  const settleAsRead = useCallback((ids: readonly string[]) => {
+    const justRead = new Set(ids);
+    const charged = notificationsRef.current.filter((n) => !n.read && justRead.has(n.id)).length;
+    if (charged === 0) return;
+    setUnreadTotal((prev) => (prev === null ? prev : Math.max(0, prev - charged)));
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -221,6 +276,10 @@ export function useNotifications() {
               setNewNotification(e.record);
               setTimeout(() => setNewNotification(null), 3000);
             } else if (e.action === 'update') {
+              // Both bells get this event, so the badge has to converge here as well — else
+              // the bell that did not get the click keeps its total until its next re-check.
+              // A record that arrives still unread is not a transition and costs nothing.
+              if (e.record.read) settleAsRead([e.record.id]);
               setNotifications((prev) =>
                 prev.map((n) => (n.id === e.record.id ? e.record : n)),
               );
@@ -247,18 +306,29 @@ export function useNotifications() {
       unsubscribeRef.current = null;
       if (active) release(active);
     };
-  }, [user]);
+  }, [user, settleAsRead]);
 
-  const markAsRead = useCallback((id: string) => {
-    pb.collection('notifications')
-      .update(id, { read: true })
-      .then(() => {
-        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-        // Only inside the existing `.then`: the server total is a count, so it must move
-        // exactly when the write it mirrors lands. Callers only pass unread rows.
-        setUnreadTotal((prev) => (prev === null ? prev : Math.max(0, prev - 1)));
-      });
-  }, []);
+  const markAsRead = useCallback(
+    (id: string) => {
+      pb.collection('notifications')
+        .update(id, { read: true })
+        .then(() => {
+          // Only inside the existing `.then`: the server total is a count, so it must move
+          // exactly when the write it mirrors lands. `settleAsRead` charges only what is
+          // still held as unread, so the realtime echo of this same write cannot pay twice.
+          settleAsRead([id]);
+          setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+        })
+        .catch((err: unknown) => {
+          // The write never landed: the row stays unread, the badge stays put, and the list
+          // is left alone so the next re-check reconciles it. A superseded write is dropped —
+          // the SDK cancels duplicate PATCHes to one record, and its twin did the work.
+          if (isAbortError(err)) return;
+          setError(describeWriteFailure(err));
+        });
+    },
+    [settleAsRead],
+  );
 
   const markAllAsRead = useCallback(() => {
     // Guard on the loaded rows, not on `unreadCount`: this button (owner decision D-2)
@@ -269,13 +339,21 @@ export function useNotifications() {
     if (pending.length === 0) return;
     Promise.all(
       pending.map((n) => pb.collection('notifications').update(n.id, { read: true })),
-    ).then(() => {
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      // Subtract exactly what was marked. Zeroing the total would be a lie: unread
-      // rows outside this page are still unread until they are loaded and marked.
-      setUnreadTotal((prev) => (prev === null ? prev : Math.max(0, prev - pending.length)));
-    });
-  }, [notifications]);
+    )
+      .then(() => {
+        // Subtract exactly what was marked — never zero the total: unread rows outside this
+        // page are still unread until they are loaded and marked. `settleAsRead` counts what
+        // is still held as unread, so the realtime echoes of these writes cannot pay twice.
+        settleAsRead(pending.map((n) => n.id));
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      })
+      .catch((err: unknown) => {
+        // Some of the writes may have landed and some not; the rows on screen keep their
+        // current state either way and the next re-check reconciles against the server.
+        if (isAbortError(err)) return;
+        setError(describeWriteFailure(err));
+      });
+  }, [notifications, settleAsRead]);
 
   return {
     notifications,
