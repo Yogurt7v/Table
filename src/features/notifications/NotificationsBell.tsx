@@ -170,9 +170,10 @@ export function NotificationsBell() {
 
   const listLoading = calendarDate ? dateLoading : isLoading;
 
+  // Отметку о прочтении делает вызывающий (`NotificationBlock.handleClick`) под тем же
+  // условием `!read` — здесь она была бы вторым PATCH на тот же id из одного клика.
   const handleNavigate = useCallback(
     (n: INotification) => {
-      if (!n.read) markAsRead(n.id);
       setOpened(false);
       if (n.organization_id && n.organization_id !== currentOrgId) {
         setCurrentOrgId(n.organization_id);
@@ -202,7 +203,7 @@ export function NotificationsBell() {
           requestHighlight('', new Date());
         });
     },
-    [currentOrgId, markAsRead, requestHighlight, setCurrentOrgId, navigate],
+    [currentOrgId, requestHighlight, setCurrentOrgId, navigate],
   );
 
   const upcomingCount = items.filter((n) => !n.read).length;

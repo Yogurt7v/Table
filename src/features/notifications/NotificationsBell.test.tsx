@@ -16,6 +16,9 @@ const mockHooks = vi.hoisted(() => {
   let mockError: string | null = null;
   const mockLoadMore = vi.fn();
   const mockRetryNow = vi.fn();
+  // Стабильный между рендерами spy: `useNotifications()` вызывается на каждом рендере,
+  // и пересозданный `vi.fn()` сделал бы счётчик вызовов бессмысленным.
+  const mockMarkAsRead = vi.fn();
   const mockIsLoadingMore = false;
 
   return {
@@ -28,6 +31,7 @@ const mockHooks = vi.hoisted(() => {
     setError: (v: string | null) => { mockError = v; },
     loadMore: mockLoadMore,
     retryNow: mockRetryNow,
+    markAsRead: mockMarkAsRead,
     useAuth: () => ({ user: { id: 'user1', login: 'admin' }, isAuthenticated: true, isLoading: false }),
     useNotifications: () => ({
       notifications: mockNotifications,
@@ -38,7 +42,7 @@ const mockHooks = vi.hoisted(() => {
       error: mockError,
       retryNow: mockRetryNow,
       loadMore: mockLoadMore,
-      markAsRead: vi.fn(),
+      markAsRead: mockMarkAsRead,
       markAllAsRead: vi.fn(),
     }),
   };
@@ -112,6 +116,7 @@ describe('NotificationsBell', () => {
     mockHooks.setError(null);
     mockHooks.loadMore.mockClear();
     mockHooks.retryNow.mockClear();
+    mockHooks.markAsRead.mockClear();
   });
 
   it('renders bell icon', () => {
@@ -392,5 +397,37 @@ describe('NotificationsBell', () => {
 
     expect(screen.getByText('99+')).toBeInTheDocument();
     expect(screen.queryByText('150')).not.toBeInTheDocument();
+  });
+
+  it('marks a notification read exactly once per click', async () => {
+    const user = userEvent.setup();
+    getInvoice.mockClear();
+    mockHooks.setNotifications(
+      [
+        {
+          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
+          type: 'invoice_created', event: 'Создан счёт', message: 'Создан счёт',
+          actor_name: 'Админ', read: false, created: '2026-06-02T10:00:00Z',
+        } as INotification,
+      ],
+      1,
+    );
+    renderBell();
+
+    const bell = document.querySelector('button')!;
+    await user.click(bell);
+
+    await waitFor(() => {
+      expect(screen.getByText('Создан счёт')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Создан счёт'));
+
+    expect(mockHooks.markAsRead).toHaveBeenCalledTimes(1);
+    expect(mockHooks.markAsRead).toHaveBeenCalledWith('n1');
+    // Якорь: навигация обязана была произойти — клик по блоку с `invoice_id` ведёт к счёту.
+    await waitFor(() => {
+      expect(getInvoice).toHaveBeenCalledWith('inv1');
+    });
   });
 });
