@@ -3,7 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { ClientResponseError } from 'pocketbase';
 import type { UnsubscribeFunc } from 'pocketbase';
 import { pb } from '@/api/client';
-import { getNotificationsPage, getNotificationsByDate } from '@/api/collections';
+import {
+  getNotificationsPage,
+  getNotificationsByDate,
+  getUnreadNotificationsCount,
+} from '@/api/collections';
 import { useAuth } from '@/shared/context/AuthContext';
 import type { INotification } from '@/shared/types';
 
@@ -46,6 +50,9 @@ export function useNotifications() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // The server's own unread total. `null` until the first count request succeeds — the
+  // list may hold 20 rows out of hundreds, so counting loaded rows is not the truth.
+  const [unreadTotal, setUnreadTotal] = useState<number | null>(null);
   const [newNotification, setNewNotification] = useState<INotification | null>(null);
   const loadedCountRef = useRef(0);
   const requestSeqRef = useRef(0);
@@ -71,6 +78,7 @@ export function useNotifications() {
           setNotifications([]);
           setHasMore(false);
           setTotalItems(0);
+          setUnreadTotal(null);
           setNewNotification(null);
           setError(null);
           setIsLoading(false);
@@ -93,12 +101,18 @@ export function useNotifications() {
     const attempt = async (n: number): Promise<void> => {
       if (n > MAX_ATTEMPTS || seq !== requestSeqRef.current) return;
       try {
-        const res = await getNotificationsPage(user.id);
+        const [res, total] = await Promise.all([
+          getNotificationsPage(user.id),
+          // A failing count must never fail the list, so it degrades to `null` and the
+          // last known total (or the loaded-page count) keeps rendering the bell.
+          getUnreadNotificationsCount(user.id).catch(() => null),
+        ]);
         apply(() => {
           loadedCountRef.current = res.items.length;
           setNotifications(res.items);
           setTotalItems(res.totalItems);
           setHasMore(res.items.length < res.totalItems);
+          if (total !== null) setUnreadTotal(total);
           setError(null);
           setIsLoading(false);
         });
@@ -172,7 +186,14 @@ export function useNotifications() {
       });
   }, [user, isLoadingMore, hasMore, notifications]);
 
-  const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
+  // `loadedUnreadCount` counts only the rows in memory (one page of
+  // NOTIFICATIONS_PAGE_SIZE plus whatever was paged in) and is therefore a lower bound;
+  // it is used only while the server total is unknown, so the bell still renders a number.
+  const loadedUnreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications],
+  );
+  const unreadCount = unreadTotal ?? loadedUnreadCount;
 
   useEffect(() => {
     if (!user) return;
@@ -233,19 +254,28 @@ export function useNotifications() {
       .update(id, { read: true })
       .then(() => {
         setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+        // Only inside the existing `.then`: the server total is a count, so it must move
+        // exactly when the write it mirrors lands. Callers only pass unread rows.
+        setUnreadTotal((prev) => (prev === null ? prev : Math.max(0, prev - 1)));
       });
   }, []);
 
   const markAllAsRead = useCallback(() => {
-    if (unreadCount === 0) return;
+    // Guard on the loaded rows, not on `unreadCount`: this button (owner decision D-2)
+    // only ever marks the notifications it holds, so "is there anything left to mark"
+    // is a property of `notifications` alone — and it stays correct when the server
+    // total is null (never fetched / count request failed) or larger than the page.
+    const pending = notifications.filter((n) => !n.read);
+    if (pending.length === 0) return;
     Promise.all(
-      notifications
-        .filter((n) => !n.read)
-        .map((n) => pb.collection('notifications').update(n.id, { read: true })),
+      pending.map((n) => pb.collection('notifications').update(n.id, { read: true })),
     ).then(() => {
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      // Subtract exactly what was marked. Zeroing the total would be a lie: unread
+      // rows outside this page are still unread until they are loaded and marked.
+      setUnreadTotal((prev) => (prev === null ? prev : Math.max(0, prev - pending.length)));
     });
-  }, [notifications, unreadCount]);
+  }, [notifications]);
 
   return {
     notifications,
