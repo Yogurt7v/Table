@@ -902,6 +902,7 @@ export function getNotificationsPage(userId: string, beforeCreated?: string) {
   return pb.collection('notifications').getList<INotification>(1, NOTIFICATIONS_PAGE_SIZE, {
     filter,
     sort: '-created',
+    requestKey: null,
   });
 }
 
@@ -909,6 +910,7 @@ export function getNotificationsByDate(userId: string, date: string) {
   return pb.collection('notifications').getFullList<INotification>({
     filter: `user_id = "${userId}" && created >= "${date} 00:00:00" && created <= "${date} 23:59:59"`,
     sort: '-created',
+    requestKey: null,
   });
 }
 
