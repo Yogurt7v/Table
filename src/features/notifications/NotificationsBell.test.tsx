@@ -13,7 +13,9 @@ const mockHooks = vi.hoisted(() => {
   let mockLoading = false;
   let mockUnreadCount = 0;
   let mockHasMore = false;
+  let mockError: string | null = null;
   const mockLoadMore = vi.fn();
+  const mockRetryNow = vi.fn();
   const mockIsLoadingMore = false;
 
   return {
@@ -23,7 +25,9 @@ const mockHooks = vi.hoisted(() => {
     },
     setLoading: (v: boolean) => { mockLoading = v; },
     setHasMore: (v: boolean) => { mockHasMore = v; },
+    setError: (v: string | null) => { mockError = v; },
     loadMore: mockLoadMore,
+    retryNow: mockRetryNow,
     useAuth: () => ({ user: { id: 'user1', login: 'admin' }, isAuthenticated: true, isLoading: false }),
     useNotifications: () => ({
       notifications: mockNotifications,
@@ -31,6 +35,8 @@ const mockHooks = vi.hoisted(() => {
       isLoadingMore: mockIsLoadingMore,
       hasMore: mockHasMore,
       unreadCount: mockUnreadCount,
+      error: mockError,
+      retryNow: mockRetryNow,
       loadMore: mockLoadMore,
       markAsRead: vi.fn(),
       markAllAsRead: vi.fn(),
@@ -96,12 +102,16 @@ function renderBell() {
   );
 }
 
+const ERROR_DIFFERING_FROM_BANNER_TITLE = 'Ошибка загрузки уведомлений (HTTP 0)';
+
 describe('NotificationsBell', () => {
   beforeEach(() => {
     mockHooks.setNotifications([], 0);
     mockHooks.setLoading(false);
     mockHooks.setHasMore(false);
+    mockHooks.setError(null);
     mockHooks.loadMore.mockClear();
+    mockHooks.retryNow.mockClear();
   });
 
   it('renders bell icon', () => {
@@ -296,5 +306,91 @@ describe('NotificationsBell', () => {
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/admin?tab=archive');
     });
+  });
+
+  it('shows a retryable error banner when loading fails', async () => {
+    const user = userEvent.setup();
+    mockHooks.setNotifications(
+      [
+        {
+          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
+          type: 'invoice_created', event: 'Создан счёт', message: 'Создан счёт',
+          actor_name: 'Админ', read: false, created: '2026-06-02T10:00:00Z',
+        } as INotification,
+      ],
+      1,
+    );
+    mockHooks.setError(ERROR_DIFFERING_FROM_BANNER_TITLE);
+    renderBell();
+
+    const bell = document.querySelector('button')!;
+    await user.click(bell);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notifications-error-banner')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('notifications-error-detail')).toHaveTextContent(
+      ERROR_DIFFERING_FROM_BANNER_TITLE,
+    );
+    expect(screen.getByTestId('notifications-list')).toBeInTheDocument();
+    expect(screen.getByText('Создан счёт')).toBeInTheDocument();
+  });
+
+  it('«Нет уведомлений» is suppressed while an error is present', async () => {
+    const user = userEvent.setup();
+    mockHooks.setError(ERROR_DIFFERING_FROM_BANNER_TITLE);
+    renderBell();
+
+    const bell = document.querySelector('button')!;
+    await user.click(bell);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notifications-error-banner')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('notifications-empty')).not.toBeInTheDocument();
+    expect(screen.queryByText('Нет уведомлений')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('notifications-list')).not.toBeInTheDocument();
+  });
+
+  it('the retry button calls retryNow', async () => {
+    const user = userEvent.setup();
+    mockHooks.setError(ERROR_DIFFERING_FROM_BANNER_TITLE);
+    renderBell();
+
+    const bell = document.querySelector('button')!;
+    await user.click(bell);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notifications-retry')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTestId('notifications-retry'));
+    expect(mockHooks.retryNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('the badge renders the hook-supplied unreadCount', () => {
+    const loaded = [
+      {
+        id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
+        type: 'invoice_created', event: 'Создан счёт', message: 'Создан счёт',
+        actor_name: 'Админ', read: false, created: '2026-06-02T10:00:00Z',
+      } as INotification,
+    ];
+
+    mockHooks.setNotifications(loaded, 7);
+    const { unmount } = renderBell();
+
+    expect(screen.getByText('7')).toBeInTheDocument();
+    expect(screen.queryByText('99+')).not.toBeInTheDocument();
+
+    unmount();
+
+    mockHooks.setNotifications(loaded, 150);
+    renderBell();
+
+    expect(screen.getByText('99+')).toBeInTheDocument();
+    expect(screen.queryByText('150')).not.toBeInTheDocument();
   });
 });
