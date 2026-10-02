@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ClientResponseError } from 'pocketbase';
+import type { UnsubscribeFunc } from 'pocketbase';
 import { pb } from '@/api/client';
 import { getNotificationsPage, getNotificationsByDate } from '@/api/collections';
 import { useAuth } from '@/shared/context/AuthContext';
@@ -50,6 +51,7 @@ export function useNotifications() {
   const requestSeqRef = useRef(0);
   const inFlightRef = useRef(false);
   const retryTimerRef = useRef<number | null>(null);
+  const unsubscribeRef = useRef<UnsubscribeFunc | null>(null);
 
   const load = useCallback(() => {
     if (retryTimerRef.current !== null) {
@@ -175,26 +177,54 @@ export function useNotifications() {
   useEffect(() => {
     if (!user) return;
 
-    pb.collection('notifications').subscribe<INotification>('*', (e) => {
-      if (e.action === 'create') {
-        setNotifications((prev) => {
-          if (prev.some((n) => n.id === e.record.id)) return prev;
-          loadedCountRef.current += 1;
-          return [e.record, ...prev];
-        });
-        setNewNotification(e.record);
-        setTimeout(() => setNewNotification(null), 3000);
-      } else if (e.action === 'update') {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === e.record.id ? e.record : n)),
-        );
-      } else if (e.action === 'delete') {
-        setNotifications((prev) => prev.filter((n) => n.id !== e.record.id));
+    // subscribe() is async, so teardown can beat it; `unmounted` lets a late resolution release itself.
+    let unmounted = false;
+
+    const release = (unsubscribe: UnsubscribeFunc) => {
+      void unsubscribe().catch((err: unknown) => {
+        console.error('Не удалось отписаться от уведомлений в реальном времени', err);
+      });
+    };
+
+    const connect = async () => {
+      try {
+        const unsubscribe = await pb
+          .collection('notifications')
+          .subscribe<INotification>('*', (e) => {
+            if (e.action === 'create') {
+              setNotifications((prev) => {
+                if (prev.some((n) => n.id === e.record.id)) return prev;
+                loadedCountRef.current += 1;
+                return [e.record, ...prev];
+              });
+              setNewNotification(e.record);
+              setTimeout(() => setNewNotification(null), 3000);
+            } else if (e.action === 'update') {
+              setNotifications((prev) =>
+                prev.map((n) => (n.id === e.record.id ? e.record : n)),
+              );
+            } else if (e.action === 'delete') {
+              setNotifications((prev) => prev.filter((n) => n.id !== e.record.id));
+            }
+          });
+
+        if (unmounted) {
+          release(unsubscribe);
+          return;
+        }
+        unsubscribeRef.current = unsubscribe;
+      } catch (err) {
+        console.error('Не удалось подключиться к уведомлениям в реальном времени', err);
       }
-    });
+    };
+
+    void connect();
 
     return () => {
-      pb.collection('notifications').unsubscribe('*');
+      unmounted = true;
+      const active = unsubscribeRef.current;
+      unsubscribeRef.current = null;
+      if (active) release(active);
     };
   }, [user]);
 
