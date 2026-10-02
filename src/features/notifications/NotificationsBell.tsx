@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActionIcon,
+  Alert,
   Badge,
   Button,
   Drawer,
@@ -15,7 +16,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { Calendar } from '@mantine/dates';
-import { IconBell, IconBellFilled } from '@tabler/icons-react';
+import { IconAlertCircle, IconBell, IconBellFilled } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useNotifications, useNotificationsByDate } from '@/shared/hooks/useNotifications';
@@ -23,6 +24,10 @@ import { useOrg } from '@/shared/context/OrgContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
 import { getInvoice, getDeletedInvoiceByOriginalId } from '@/api/collections';
 import type { INotification } from '@/shared/types';
+
+// `describeFailure` в useNotifications.ts возвращает эту же строку как fallback,
+// поэтому деталь ниже печатается только если error отличается от шапки.
+const LOAD_ERROR_TITLE = 'Не удалось загрузить уведомления';
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -139,6 +144,8 @@ export function NotificationsBell() {
     isLoadingMore,
     hasMore,
     unreadCount,
+    error,
+    retryNow,
     loadMore,
     markAsRead,
     markAllAsRead,
@@ -257,18 +264,46 @@ export function NotificationsBell() {
           style={{ flex: 1, minHeight: 0 }}
           styles={{ viewport: { maxHeight: 'none' } }}
         >
+          {error && (
+            <Alert
+              color="red"
+              icon={<IconAlertCircle size={16} />}
+              title={LOAD_ERROR_TITLE}
+              mb="sm"
+              data-testid="notifications-error-banner"
+            >
+              {error !== LOAD_ERROR_TITLE && (
+                <Text size="xs" data-testid="notifications-error-detail">
+                  {error}
+                </Text>
+              )}
+              <Button
+                variant="light"
+                color="red"
+                size="xs"
+                mt="xs"
+                onClick={retryNow}
+                data-testid="notifications-retry"
+              >
+                Повторить
+              </Button>
+            </Alert>
+          )}
+
           {listLoading ? (
             <Center h={120}>
               <Loader />
             </Center>
           ) : usedNotifications.length === 0 ? (
-            <Center h={120}>
-              <Text c="dimmed">
-                {calendarDate ? 'Нет уведомлений за этот день' : 'Нет уведомлений'}
-              </Text>
-            </Center>
+            error ? null : (
+              <Center h={120}>
+                <Text c="dimmed" data-testid="notifications-empty">
+                  {calendarDate ? 'Нет уведомлений за этот день' : 'Нет уведомлений'}
+                </Text>
+              </Center>
+            )
           ) : (
-            <Stack gap="xs">
+            <Stack gap="xs" data-testid="notifications-list">
               {usedNotifications.map((n) => (
                 <NotificationBlock
                   key={n.id}
