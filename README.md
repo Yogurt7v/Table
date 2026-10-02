@@ -58,7 +58,7 @@ src/
 pb_hooks/             # серверные хуки PocketBase (JavaScript)
 ├── notify.pb.js      # автонумерация seq + уведомления
 ├── snapshot.pb.js    # cron (ежедневно в полночь) — снятие остатков
-├── cleanup.pb.js     # cron — удаление уведомлений старше 30 дней
+├── cleanup.pb.js     # cron — удаление уведомлений старше 180 дней
 └── encryption.pb.js  # запланировано (полевое шифрование)
 
 pb_migrations/        # JS-миграции схемы PocketBase (48 файлов)

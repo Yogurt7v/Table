@@ -3,7 +3,7 @@
 cronAdd('cleanup-notifications', '0 0 * * *', () => {
   try {
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
+    cutoff.setDate(cutoff.getDate() - 180);
     const cutoffStr = cutoff.toISOString();
 
     const oldNotifications = $app.findRecordsByFilter(
