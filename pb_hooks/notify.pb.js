@@ -127,7 +127,7 @@ onRecordUpdate((e) => {
   try {
     var rec = e.record;
     if (rec.get('original_invoice_id')) { e.next(); return; }
-    var oldRec = $app.findRecordById('invoices', rec.id);
+    var oldRec = rec.original();
     if (!oldRec) { e.next(); return; }
 
     // --- Actor name snapshot (internal saves bypass the request hook) ---
