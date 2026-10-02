@@ -1,9 +1,31 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { ClientResponseError } from 'pocketbase';
 import { pb } from '@/api/client';
 import { getNotificationsPage, getNotificationsByDate } from '@/api/collections';
 import { useAuth } from '@/shared/context/AuthContext';
 import type { INotification } from '@/shared/types';
+
+// Backoff before each retry; a failing read gets MAX_ATTEMPTS tries in total.
+const RETRY_DELAYS_MS: readonly number[] = [1000, 3000];
+const MAX_ATTEMPTS = RETRY_DELAYS_MS.length + 1;
+
+/** A superseded request is not a user-facing failure — fail silently and keep the list. */
+function isAbortError(err: unknown): boolean {
+  if (err instanceof ClientResponseError) return err.isAbort;
+  return err instanceof DOMException && err.name === 'AbortError';
+}
+
+/** A 401 already cleared the auth store and redirected to /login, so retrying is pointless. */
+function isUnauthorized(err: unknown): boolean {
+  return err instanceof ClientResponseError && err.status === 401;
+}
+
+function describeFailure(err: unknown): string {
+  if (err instanceof ClientResponseError) return `Ошибка загрузки уведомлений (HTTP ${err.status})`;
+  if (err instanceof Error) return err.message;
+  return 'Не удалось загрузить уведомления';
+}
 
 export function useNotificationsByDate(date: string) {
   const { user } = useAuth();
@@ -22,11 +44,19 @@ export function useNotifications() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [newNotification, setNewNotification] = useState<INotification | null>(null);
   const loadedCountRef = useRef(0);
   const requestSeqRef = useRef(0);
+  const inFlightRef = useRef(false);
+  const retryTimerRef = useRef<number | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    if (retryTimerRef.current !== null) {
+      window.clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+
     const seq = ++requestSeqRef.current;
     const apply = (updates: () => void) => {
       if (seq !== requestSeqRef.current) return;
@@ -40,6 +70,7 @@ export function useNotifications() {
           setHasMore(false);
           setTotalItems(0);
           setNewNotification(null);
+          setError(null);
           setIsLoading(false);
         }),
       );
@@ -47,24 +78,76 @@ export function useNotifications() {
     }
 
     loadedCountRef.current = 0;
-    getNotificationsPage(user.id)
-      .then((res) =>
+    inFlightRef.current = true;
+
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        retryTimerRef.current = window.setTimeout(() => {
+          retryTimerRef.current = null;
+          resolve();
+        }, ms);
+      });
+
+    const attempt = async (n: number): Promise<void> => {
+      if (n > MAX_ATTEMPTS || seq !== requestSeqRef.current) return;
+      try {
+        const res = await getNotificationsPage(user.id);
         apply(() => {
           loadedCountRef.current = res.items.length;
           setNotifications(res.items);
           setTotalItems(res.totalItems);
           setHasMore(res.items.length < res.totalItems);
+          setError(null);
           setIsLoading(false);
-        }),
-      )
-      .catch(() =>
+        });
+      } catch (err) {
+        if (isAbortError(err)) return;
+        if (n < MAX_ATTEMPTS && !isUnauthorized(err)) {
+          await wait(RETRY_DELAYS_MS[n - 1] ?? 0);
+          await attempt(n + 1);
+          return;
+        }
         apply(() => {
-          setNotifications([]);
-          setHasMore(false);
+          setError(describeFailure(err));
           setIsLoading(false);
-        }),
-      );
+        });
+      }
+    };
+
+    void attempt(1).finally(() => {
+      if (seq === requestSeqRef.current) inFlightRef.current = false;
+    });
   }, [user]);
+
+  const hasUser = !!user;
+
+  useEffect(() => {
+    load();
+
+    if (!hasUser) return;
+
+    const recheck = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (inFlightRef.current) return;
+      load();
+    };
+
+    document.addEventListener('visibilitychange', recheck);
+    window.addEventListener('focus', recheck);
+    window.addEventListener('online', recheck);
+
+    return () => {
+      document.removeEventListener('visibilitychange', recheck);
+      window.removeEventListener('focus', recheck);
+      window.removeEventListener('online', recheck);
+      if (retryTimerRef.current !== null) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      requestSeqRef.current += 1;
+      inFlightRef.current = false;
+    };
+  }, [load, hasUser]);
 
   const loadMore = useCallback(() => {
     if (!user || isLoadingMore || !hasMore || notifications.length === 0) return;
@@ -142,6 +225,8 @@ export function useNotifications() {
     hasMore,
     unreadCount,
     newNotification,
+    error,
+    retryNow: load,
     loadMore,
     markAsRead,
     markAllAsRead,
