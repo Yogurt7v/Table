@@ -793,6 +793,36 @@ describe('useNotifications', () => {
     expect(result.current.notifications.map((n) => n.read)).toEqual([true, false]);
   });
 
+  it('charges a read once when both observers arrive before any commit', async () => {
+    const pair = [notification('n1'), notification('n2')];
+    const { result } = await mountBell(server(pair, { totalItems: 2, unreadTotal: 25 }));
+    await waitFor(() => expect(h.listeners).toHaveLength(1));
+
+    const write = deferred();
+    h.gate = { kind: 'write', until: write.until };
+    await act(async () => {
+      result.current.markAsRead('n1');
+    });
+    expect(requestCount('write')).toBe(1);
+
+    // Both observers of this one transition, deliberately NOT wrapped in `act`. `act` flushes
+    // React's commit *and* its passive effects before it returns, and it queues that flush at
+    // entry — so every microtask this test schedules runs after the ref has already been
+    // republished, and the case passes against a double charge. Outside `act`, React commits
+    // on the scheduler's macrotask while the write response continues on microtasks, which is
+    // the browser ordering the defect actually depends on: commit in a microtask, passive
+    // effects in a macrotask. React's "not wrapped in act" warning below is the direct
+    // consequence and is expected — do not silence it by adding `act` back.
+    h.listeners[0]?.({ action: 'update', record: notification('n1', { read: true }) });
+    write.release();
+
+    // One transition, so one charge: 25 - 1. A ref published by an effect is still holding the
+    // pre-commit rows when the response arrives, finds n1 unread a second time, charges again,
+    // and lands on 23.
+    await waitFor(() => expect(result.current.unreadCount).toBe(24));
+    expect(result.current.notifications.map((n) => n.read)).toEqual([true, false]);
+  });
+
   it('the realtime echo does not charge a read the write response already charged', async () => {
     const pair = [notification('n1'), notification('n2')];
     const { result } = await mountBell(server(pair, { totalItems: 2, unreadTotal: 25 }));

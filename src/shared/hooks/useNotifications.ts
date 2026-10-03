@@ -47,6 +47,12 @@ function describeWriteFailure(err: unknown): string {
  * page wins for every record it repeats; the rows it does not mention are kept behind them,
  * re-sorted `created`-descending — the order the server sends. `fresh` comes back untouched
  * when there is nothing to keep, so the single-page case stays exactly what it always was.
+ *
+ * Accepted trade-off, do not "fix" without a tombstone: a kept row the server has since
+ * deleted comes back with the merge. The re-check cannot tell "gone" from "not on page 1" —
+ * only the realtime `delete` can, and a tab that missed it has no other signal. Measured:
+ * 40 rows held against `totalItems` 39. A later `delete` event or a fresh mount clears it.
+ * Dropping rows the merge cannot vouch for would defeat the only thing it exists to do.
  */
 function mergePagedIn(fresh: INotification[], held: INotification[]): INotification[] {
   const freshIds = new Set(fresh.map((n) => n.id));
@@ -84,13 +90,34 @@ export function useNotifications() {
   const inFlightRef = useRef(false);
   const retryTimerRef = useRef<number | null>(null);
   const unsubscribeRef = useRef<UnsubscribeFunc | null>(null);
-  // The rows in memory, readable from callbacks that must not depend on `notifications`
-  // identity: a re-check merges against them, and a read-transition is counted against them.
+  /**
+   * The rows in memory, readable from callbacks that must not depend on `notifications`
+   * identity: a re-check merges against them, and a read-transition is counted against them.
+   *
+   * Authoritative on its own — written synchronously by the two writers below, never mirrored
+   * out of state after the fact. An effect-synced mirror is still showing the pre-commit rows
+   * when the write response and the realtime echo of that same write both land in one batch
+   * (React commits in a microtask, passive effects in a macrotask), so both would charge.
+   */
   const notificationsRef = useRef<INotification[]>([]);
 
-  useEffect(() => {
-    notificationsRef.current = notifications;
-  }, [notifications]);
+  /** The writer for rows whose contents are already known. */
+  const writeNotifications = useCallback((next: INotification[]) => {
+    notificationsRef.current = next;
+    setNotifications(next);
+  }, []);
+
+  /**
+   * The writer for a change computed from the rows in memory. Eager, from the ref, and the
+   * ref is assigned before the state setter so it is already correct for anything reading it
+   * later in this same batch. No updater function reaches React, so StrictMode cannot call
+   * one twice and re-run a side effect inside it.
+   */
+  const amendNotifications = useCallback((change: (held: INotification[]) => INotification[]) => {
+    const next = change(notificationsRef.current);
+    notificationsRef.current = next;
+    setNotifications(next);
+  }, []);
 
   const load = useCallback(() => {
     if (retryTimerRef.current !== null) {
@@ -107,7 +134,7 @@ export function useNotifications() {
     if (!user) {
       Promise.resolve().then(() =>
         apply(() => {
-          setNotifications([]);
+          writeNotifications([]);
           setHasMore(false);
           setTotalItems(0);
           setUnreadTotal(null);
@@ -145,7 +172,7 @@ export function useNotifications() {
         apply(() => {
           const merged = keepPagedIn ? mergePagedIn(res.items, notificationsRef.current) : res.items;
           loadedCountRef.current = merged.length;
-          setNotifications(merged);
+          writeNotifications(merged);
           setTotalItems(res.totalItems);
           setHasMore(merged.length < res.totalItems);
           if (total !== null) setUnreadTotal(total);
@@ -169,7 +196,7 @@ export function useNotifications() {
     void attempt(1).finally(() => {
       if (seq === requestSeqRef.current) inFlightRef.current = false;
     });
-  }, [user]);
+  }, [user, writeNotifications]);
 
   const hasUser = !!user;
 
@@ -209,7 +236,7 @@ export function useNotifications() {
     getNotificationsPage(user.id, last.created)
       .then((res) => {
         loadedCountRef.current += res.items.length;
-        setNotifications((prev) => {
+        amendNotifications((prev) => {
           if (res.items.length === 0) return prev;
           const seen = new Set(prev.map((n) => n.id));
           return [...prev, ...res.items.filter((n) => !seen.has(n.id))];
@@ -226,7 +253,7 @@ export function useNotifications() {
       .finally(() => {
         setIsLoadingMore(false);
       });
-  }, [user, isLoadingMore, hasMore, notifications]);
+  }, [user, isLoadingMore, hasMore, notifications, amendNotifications]);
 
   // `loadedUnreadCount` counts only the rows in memory (one page of
   // NOTIFICATIONS_PAGE_SIZE plus whatever was paged in) and is therefore a lower bound;
@@ -268,7 +295,7 @@ export function useNotifications() {
           .collection('notifications')
           .subscribe<INotification>('*', (e) => {
             if (e.action === 'create') {
-              setNotifications((prev) => {
+              amendNotifications((prev) => {
                 if (prev.some((n) => n.id === e.record.id)) return prev;
                 loadedCountRef.current += 1;
                 return [e.record, ...prev];
@@ -279,12 +306,12 @@ export function useNotifications() {
               // Both bells get this event, so the badge has to converge here as well — else
               // the bell that did not get the click keeps its total until its next re-check.
               // A record that arrives still unread is not a transition and costs nothing.
+              // Charging first is load-bearing: the amendment below marks the row read in the
+              // ref, so a second observer in this batch finds no transition left to charge.
               if (e.record.read) settleAsRead([e.record.id]);
-              setNotifications((prev) =>
-                prev.map((n) => (n.id === e.record.id ? e.record : n)),
-              );
+              amendNotifications((prev) => prev.map((n) => (n.id === e.record.id ? e.record : n)));
             } else if (e.action === 'delete') {
-              setNotifications((prev) => prev.filter((n) => n.id !== e.record.id));
+              amendNotifications((prev) => prev.filter((n) => n.id !== e.record.id));
             }
           });
 
@@ -306,7 +333,7 @@ export function useNotifications() {
       unsubscribeRef.current = null;
       if (active) release(active);
     };
-  }, [user, settleAsRead]);
+  }, [user, settleAsRead, amendNotifications]);
 
   const markAsRead = useCallback(
     (id: string) => {
@@ -317,7 +344,7 @@ export function useNotifications() {
           // exactly when the write it mirrors lands. `settleAsRead` charges only what is
           // still held as unread, so the realtime echo of this same write cannot pay twice.
           settleAsRead([id]);
-          setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+          amendNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
         })
         .catch((err: unknown) => {
           // The write never landed: the row stays unread, the badge stays put, and the list
@@ -327,7 +354,7 @@ export function useNotifications() {
           setError(describeWriteFailure(err));
         });
     },
-    [settleAsRead],
+    [settleAsRead, amendNotifications],
   );
 
   const markAllAsRead = useCallback(() => {
@@ -345,7 +372,7 @@ export function useNotifications() {
         // page are still unread until they are loaded and marked. `settleAsRead` counts what
         // is still held as unread, so the realtime echoes of these writes cannot pay twice.
         settleAsRead(pending.map((n) => n.id));
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        amendNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       })
       .catch((err: unknown) => {
         // Some of the writes may have landed and some not; the rows on screen keep their
@@ -353,7 +380,7 @@ export function useNotifications() {
         if (isAbortError(err)) return;
         setError(describeWriteFailure(err));
       });
-  }, [notifications, settleAsRead]);
+  }, [notifications, settleAsRead, amendNotifications]);
 
   return {
     notifications,
