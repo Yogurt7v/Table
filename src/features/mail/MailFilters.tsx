@@ -13,22 +13,22 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconCheck, IconFilter, IconLink, IconPaperclip, IconX } from '@tabler/icons-react';
+import { IconCalendar, IconCheck, IconFilter, IconLink, IconPaperclip, IconX } from '@tabler/icons-react';
 import type { DeliveryMethod } from '@/shared/types';
-import { MAIL_DELIVERY_METHOD_LABELS } from '@/shared/types';
+import { MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import {
   MAIL_ATTACHMENT_FILTER_LABELS,
   MAIL_COUNTERPARTY_FIELD_LABELS,
   MAIL_FILTER_GROUP_LABELS,
   MAIL_NO_ACCOUNTING_OBJECT_LABEL,
   MAIL_NO_DELIVERY_METHOD_LABEL,
-  MAIL_PERIOD_PRESET_LABELS,
+  // MAIL_PERIOD_PRESET_LABELS,
 } from './mail-labels';
 import { dateKeyToLocalDate, localDateToDateKey } from './mail-date';
 import type { MailAttachmentFilter, MailFilterChip, UseMailFiltersResult } from './useMailFilters';
 
 const DELIVERY_METHODS: DeliveryMethod[] = ['email', 'post', 'courier', 'messenger'];
-const PERIOD_ITEMS = ['today', 'week', 'month', 'all'] as const;
+// const PERIOD_ITEMS = ['today', 'week', 'month', 'all'] as const;
 
 const CHECK_MARK = <IconCheck size={16} color="var(--mantine-color-blue-filled)" />;
 const CHECK_PLACEHOLDER = <Box w={16} />;
@@ -163,6 +163,7 @@ export function MailFilters({
   chips,
 }: MailFiltersProps) {
   const state = filters.filters;
+  const periodActive = Boolean(state.customFrom || state.customTo);
   const [opened, setOpened] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -245,7 +246,7 @@ export function MailFilters({
             }}
           >
             <Box className="mail-filters-grid">
-              <FilterColumn label={MAIL_FILTER_GROUP_LABELS.period}>
+              {/*<FilterColumn label={MAIL_FILTER_GROUP_LABELS.period}>
                 <Box className="mail-filters-column__body">
                   {PERIOD_ITEMS.map((preset) => (
                     <FilterOption
@@ -259,7 +260,7 @@ export function MailFilters({
                     </FilterOption>
                   ))}
                 </Box>
-              </FilterColumn>
+              </FilterColumn>*/}
 
               <FilterColumn label={MAIL_FILTER_GROUP_LABELS.accountingObject}>
                 <Box className="mail-filters-column__body">
@@ -300,7 +301,7 @@ export function MailFilters({
                       onSelect={() => filters.toggleDeliveryMethod(method)}
                       onClose={close}
                     >
-                      {MAIL_DELIVERY_METHOD_LABELS[method]}
+                      {MAIL_DELIVERY_METHOD_NAMES[method]}
                     </FilterOption>
                   ))}
                   <FilterOption
@@ -335,15 +336,6 @@ export function MailFilters({
                 </Box>
               </FilterColumn>
 
-              <FilterColumn label={MAIL_FILTER_GROUP_LABELS.counterparty}>
-                <TextInput
-                  size="xs"
-                  placeholder={`${MAIL_COUNTERPARTY_FIELD_LABELS[mailType]}…`}
-                  aria-label={MAIL_FILTER_GROUP_LABELS.counterparty}
-                  value={state.counterparty}
-                  onChange={(e) => filters.setCounterparty(e.currentTarget.value)}
-                />
-              </FilterColumn>
 
               <FilterColumn label={MAIL_FILTER_GROUP_LABELS.attachments}>
                 <Box className="mail-filters-column__body">
@@ -360,6 +352,16 @@ export function MailFilters({
                     onClose={close}
                   />
                 </Box>
+              </FilterColumn>
+
+              <FilterColumn label={MAIL_FILTER_GROUP_LABELS.counterparty}>
+                <TextInput
+                  size="xs"
+                  placeholder={`${MAIL_COUNTERPARTY_FIELD_LABELS[mailType]}…`}
+                  aria-label={MAIL_FILTER_GROUP_LABELS.counterparty}
+                  value={state.counterparty}
+                  onChange={(e) => filters.setCounterparty(e.currentTarget.value)}
+                />
               </FilterColumn>
 
               <FilterColumn label={MAIL_FILTER_GROUP_LABELS.relations}>
@@ -392,32 +394,38 @@ export function MailFilters({
           </Popover.Dropdown>
         </Popover>
 
-        <Group gap="xs" wrap="wrap" style={{ minWidth: 0 }} data-mail-filter-period>
+        <Box
+          style={{ minWidth: 0 }}
+          data-mail-filter-period
+          data-active={periodActive || undefined}
+          className="mail-period-box"
+        >
           <DatePickerInput
+            type="range"
             size="sm"
-            w={{ base: '100%', sm: 150 }}
-            placeholder="С даты"
-            aria-label="Период с"
+            w={{ base: '100%', sm: 320 }}
+            placeholder="Период"
+            aria-label="Период"
             clearable
+            closeOnChange
+            allowSingleDateInRange
             valueFormat="DD.MM.YYYY"
-            value={dateKeyToLocalDate(state.customFrom)}
-            popoverProps={{ classNames: { dropdown: PERIOD_DROPDOWN_CLASS } }}
-            onChange={(value) => filters.setCustomRange(localDateToDateKey(value), state.customTo)}
-          />
-          <DatePickerInput
-            size="sm"
-            w={{ base: '100%', sm: 150 }}
-            placeholder="По дату"
-            aria-label="Период по"
-            clearable
-            valueFormat="DD.MM.YYYY"
-            value={dateKeyToLocalDate(state.customTo)}
+            labelSeparator=" – "
+            leftSection={<IconCalendar size={16} />}
+            leftSectionPointerEvents="none"
+            styles={{
+              input: { fontWeight: periodActive ? 600 : 400 },
+            }}
+            value={[dateKeyToLocalDate(state.customFrom), dateKeyToLocalDate(state.customTo)]}
             popoverProps={{ classNames: { dropdown: PERIOD_DROPDOWN_CLASS } }}
             onChange={(value) =>
-              filters.setCustomRange(state.customFrom, localDateToDateKey(value))
+              filters.setCustomRange(
+                localDateToDateKey(value[0] ?? null),
+                localDateToDateKey(value[1] ?? null),
+              )
             }
           />
-        </Group>
+        </Box>
       </Group>
 
       {chips.length > 0 && (

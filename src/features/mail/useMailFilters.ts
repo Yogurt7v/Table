@@ -13,8 +13,9 @@ import type { MailPeriodPreset } from './mail-date';
 
 /**
  * Единственное состояние фильтров почты. Всё, что `src/api/mail.ts` умеет
- * отбирать на сервере, уезжает в `params`; `search` — тоже, полнотекстовый
- * поиск письма выполняет PocketBase, а не компонент.
+ * отбирать на сервере, уезжает в `params`; `search` уезжает в `params` тоже,
+ * но серверный поиск не выполняется — текстовый поиск письма делает
+ * `MailSection` через `matchesFolded` по уже загруженному списку.
  *
  * Исключения — отбор по вложениям и по связанным письмам: `withFiles` и
  * `hasRelations` в `MailListParams` фильтруют через `?=` со списком id, на что
@@ -193,13 +194,13 @@ export function buildFilterChips(
 ): MailFilterChip[] {
   const chips: MailFilterChip[] = [];
 
-  if (state.period !== 'all' && state.period !== 'custom') {
-    chips.push({
-      group: 'period',
-      label: `${MAIL_PERIOD_PRESET_LABELS[state.period]}`,
-      value: state.period,
-    });
-  }
+  // if (state.period !== 'all' && state.period !== 'custom') {
+  //   chips.push({
+  //     group: 'period',
+  //     label: `${MAIL_PERIOD_PRESET_LABELS[state.period]}`,
+  //     value: state.period,
+  //   });
+  // }
   if (state.period === 'custom') {
     const periodText = formatPeriodBounds(state.period, state.customFrom, state.customTo);
     if (periodText) chips.push({ group: 'period', label: periodText, value: 'custom' });

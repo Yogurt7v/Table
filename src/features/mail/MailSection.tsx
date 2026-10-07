@@ -9,7 +9,6 @@ import {
   Skeleton,
   Stack,
   Tabs,
-  Text,
   Title,
   Tooltip,
 } from '@mantine/core';
@@ -19,6 +18,8 @@ import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useUpsertUserSetting, useUserSetting } from '@/shared/hooks/useUserSettings';
 import {
+  useAllIncomingMails,
+  useAllOutgoingMails,
   useCreateIncomingMail,
   useCreateOutgoingMail,
   useDeleteIncomingMail,
@@ -30,10 +31,11 @@ import {
   useUpdateIncomingMail,
   useUpdateOutgoingMail,
 } from '@/shared/hooks/useMail';
+import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
+import { mailSearchFieldsOf } from './mail-field-access';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import type { IAccountingObject, IIncomingMail, IOutgoingMail, MailType } from '@/shared/types';
-import { MAIL_DELIVERY_METHOD_LABELS } from '@/shared/types';
+import { MAIL_DELIVERY_METHOD_NAMES, type IAccountingObject, type IIncomingMail, type IOutgoingMail, type MailType } from '@/shared/types';
 import { MAIL_PAGE_SIZE } from '@/api/mail';
 import { buildFilterChips, useMailFilters } from './useMailFilters';
 import {
@@ -119,15 +121,33 @@ export function MailSection({ orgId }: MailSectionProps) {
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
   const [deleteFor, setDeleteFor] = useState<string | null>(null);
 
-  const query = useMemo(
-    () => ({ ...filters.query, page, perPage: MAIL_PAGE_SIZE }),
-    [filters.query, page],
-  );
+  const query = useMemo(() => {
+    const result = { ...filters.query, page, perPage: MAIL_PAGE_SIZE };
+    delete result.search;
+    return result;
+  }, [filters.query, page]);
 
   const incoming = useIncomingMails(orgId, query);
   const outgoing = useOutgoingMails(orgId, query);
 
-  const pageCount = (tab === 'incoming' ? incoming : outgoing).data?.totalPages ?? 0;
+  const isSearchMode = filters.filters.search.trim() !== '';
+  const foldedQuery = foldSearchText(filters.filters.search);
+
+  const allQuery = useMemo(() => {
+    const result = { ...filters.query };
+    delete result.search;
+    return result;
+  }, [filters.query]);
+
+  const incomingAll = useAllIncomingMails(orgId, allQuery);
+  const outgoingAll = useAllOutgoingMails(orgId, allQuery);
+
+  const pageCount = isSearchMode
+    ? Math.ceil(
+        (tab === 'incoming' ? incomingAll.data?.length ?? 0 : outgoingAll.data?.length ?? 0) /
+          MAIL_PAGE_SIZE,
+      )
+    : (tab === 'incoming' ? incoming : outgoing).data?.totalPages ?? 0;
 
   // Смена вкладки или ЛЮБОГО фильтра возвращает на первую страницу. Иначе
   // пользователь, сидящий на третьей странице входящих, ставит узкий фильтр
@@ -175,8 +195,32 @@ export function MailSection({ orgId }: MailSectionProps) {
     linkChange.isPending;
 
   const active = tab === 'incoming' ? incoming : outgoing;
+  const activeAll = tab === 'incoming' ? incomingAll : outgoingAll;
 
   const rows = useMemo<MailRow[]>(() => {
+    if (isSearchMode) {
+      const allItems = (activeAll.data ?? []) as (IIncomingMail | IOutgoingMail)[];
+      const matched = allItems.filter((mail) =>
+        matchesFolded(mailSearchFieldsOf(mail, tab), foldedQuery),
+      );
+      const withFiles = filterByAttachments(
+        matched,
+        countsByMailId,
+        filters.filters.attachments,
+        filesLoaded,
+      );
+      const source = filterByRelations(withFiles, linkedByType[tab], filters.filters.hasRelations);
+      const start = (page - 1) * MAIL_PAGE_SIZE;
+      const paged = source.slice(start, start + MAIL_PAGE_SIZE);
+      return paged.map((mail) =>
+        toMailRow(
+          mail,
+          countsByMailId.get(mail.id) ?? 0,
+          namesByMailId.get(mail.id) ?? NO_ATTACHMENT_NAMES,
+        ),
+      );
+    }
+
     const rawItems = (active.data?.items ?? []) as (IIncomingMail | IOutgoingMail)[];
     const withFiles = filterByAttachments(
       rawItems,
@@ -194,6 +238,9 @@ export function MailSection({ orgId }: MailSectionProps) {
     );
   }, [
     active.data,
+    activeAll.data,
+    isSearchMode,
+    foldedQuery,
     tab,
     filters.filters.attachments,
     filters.filters.hasRelations,
@@ -201,6 +248,7 @@ export function MailSection({ orgId }: MailSectionProps) {
     namesByMailId,
     filesLoaded,
     linkedByType,
+    page,
   ]);
 
   const objectNames = useMemo(() => {
@@ -237,7 +285,7 @@ export function MailSection({ orgId }: MailSectionProps) {
         mailType: tab,
         objectNames,
         responsibleNames,
-        deliveryLabels: MAIL_DELIVERY_METHOD_LABELS,
+        deliveryLabels: MAIL_DELIVERY_METHOD_NAMES,
       }),
     [filters.filters, tab, objectNames, responsibleNames],
   );
@@ -428,9 +476,6 @@ export function MailSection({ orgId }: MailSectionProps) {
                 <IconSettings size={20} />
               </ActionIcon>
             </Tooltip>
-            <Text size="xs" c="dimmed">
-              Реестр входящей и исходящей переписки
-            </Text>
           </Group>
           {allowedCreateTypes.length > 0 && (
             <Button
@@ -459,7 +504,7 @@ export function MailSection({ orgId }: MailSectionProps) {
             onChange={handleSearchChange}
             scopeLabel="переписке"
             resultCount={rows.length}
-            resultTotal={active.data?.totalItems ?? 0}
+            resultTotal={isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)}
           />
         </Box>
 
@@ -491,12 +536,12 @@ export function MailSection({ orgId }: MailSectionProps) {
                   mailType={tab}
                   rows={rows}
                   visibleColumns={visibleColumns}
-                  loading={active.isLoading}
+                  loading={isSearchMode ? activeAll.isLoading : active.isLoading}
                   objectNames={objectNames}
                   permissions={permissions}
                   page={page}
                   pageCount={pageCount}
-                  totalItems={active.data?.totalItems ?? 0}
+                  totalItems={isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)}
                   onPageChange={setPage}
                   onOpenFiles={setFilesFor}
                   onEdit={(mailId) => {
@@ -555,6 +600,8 @@ export function MailSection({ orgId }: MailSectionProps) {
         mailId={historyFor}
         mailType={tab}
         mailLabel={labelFor(historyFor)}
+        createdByName={rows.find((row) => row.id === historyFor)?.createdByName}
+        createdAt={rows.find((row) => row.id === historyFor)?.created}
         opened={historyFor !== null}
         onClose={() => setHistoryFor(null)}
       />

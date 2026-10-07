@@ -20,6 +20,7 @@ export interface MailRow {
   accountingObjectId: string;
   created: string | undefined;
   attachmentCount: number;
+  createdByName: string;
   /** Отображаемые имена вложений; пуще, если вложений нет или имя пустое. */
   attachmentNames: string[];
 }
@@ -36,6 +37,7 @@ export type MailRecord = Pick<
   | 'delivery_method'
   | 'accounting_object_id'
   | 'created'
+  | 'created_by_name'
 > &
   (
     | Pick<IIncomingMail, 'sender' | 'number' | 'sender_outgoing_number'>
@@ -63,6 +65,7 @@ export function toMailRow(
     deliveryMethod: record.delivery_method,
     accountingObjectId: record.accounting_object_id ?? '',
     created: record.created,
+    createdByName: record.created_by_name ?? '',
     attachmentCount,
     attachmentNames,
   };

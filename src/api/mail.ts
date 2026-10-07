@@ -79,35 +79,17 @@ function qList(values: string[]): string {
 interface MailFilterSpec {
   /** Field the `counterparty` param matches: sender for incoming, recipient for outgoing. */
   counterparty: string;
-  /** Fields the free-text `search` is matched against, OR-ed together. */
-  searchFields: string[];
   /** Field `dateFrom`/`dateTo` bound. `deleted_at` on the archive registers. */
   dateField: string;
 }
 
 const INCOMING_SPEC: MailFilterSpec = {
   counterparty: 'sender',
-  searchFields: [
-    'number',
-    'sender_outgoing_number',
-    'subject',
-    'sender',
-    'comment',
-    'responsible_name',
-  ],
   dateField: 'date',
 };
 
 const OUTGOING_SPEC: MailFilterSpec = {
   counterparty: 'recipient',
-  searchFields: [
-    'outgoing_number',
-    'counterparty_incoming_number',
-    'subject',
-    'recipient',
-    'comment',
-    'responsible_name',
-  ],
   dateField: 'date',
 };
 
@@ -133,12 +115,6 @@ function buildMailFilter(params: MailListParams, spec: MailFilterSpec): string {
   const counterparty = params.counterparty?.trim();
   if (counterparty) {
     clauses.push(`${spec.counterparty} ~ "${qTag(counterparty)}"`);
-  }
-
-  const search = params.search?.trim();
-  if (search) {
-    const term = qTag(search);
-    clauses.push(`(${spec.searchFields.map((field) => `${field} ~ "${term}"`).join(' || ')})`);
   }
 
   // Date fields are stored as midnight-UTC strings, so a plain lexicographic
@@ -271,8 +247,64 @@ export function getOutgoingMails(params: MailListParams): Promise<ListResult<IOu
     .then((page) => applyClientOnlyMailFlags(page, params, 'outgoing'));
 }
 
+/**
+ * Полный список входящих писем для клиентского поиска — без пагинации и без
+ * текстового фильтра. Текстовый поиск выполняется на клиенте через
+ * `matchesFolded`, потому что серверный `LIKE` сворачивает регистр только для
+ * ASCII, и кириллица ищется регистрозависимо.
+ */
+export function getAllIncomingMails(params: MailListParams): Promise<IIncomingMail[]> {
+  const filterParams = { ...params };
+  delete filterParams.search;
+  delete filterParams.page;
+  delete filterParams.perPage;
+
+  return pb
+    .collection(MAIL_INCOMING_COLLECTION)
+    .getFullList<IIncomingMail>({
+      filter: buildMailFilter(filterParams, INCOMING_SPEC),
+      sort: filterParams.sort ?? LIVE_MAIL_SORT,
+    })
+    .then((items) => {
+      const page: ListResult<IIncomingMail> = {
+        page: 1,
+        perPage: items.length,
+        totalItems: items.length,
+        totalPages: items.length === 0 ? 0 : 1,
+        items,
+      };
+      return applyClientOnlyMailFlags(page, filterParams, 'incoming');
+    })
+    .then((result) => result.items);
+}
+
 export function getIncomingMail(id: string) {
   return pb.collection(MAIL_INCOMING_COLLECTION).getOne<IIncomingMail>(id);
+}
+
+export function getAllOutgoingMails(params: MailListParams): Promise<IOutgoingMail[]> {
+  const filterParams = { ...params };
+  delete filterParams.search;
+  delete filterParams.page;
+  delete filterParams.perPage;
+
+  return pb
+    .collection(MAIL_OUTGOING_COLLECTION)
+    .getFullList<IOutgoingMail>({
+      filter: buildMailFilter(filterParams, OUTGOING_SPEC),
+      sort: filterParams.sort ?? LIVE_MAIL_SORT,
+    })
+    .then((items) => {
+      const page: ListResult<IOutgoingMail> = {
+        page: 1,
+        perPage: items.length,
+        totalItems: items.length,
+        totalPages: items.length === 0 ? 0 : 1,
+        items,
+      };
+      return applyClientOnlyMailFlags(page, filterParams, 'outgoing');
+    })
+    .then((result) => result.items);
 }
 
 export function getOutgoingMail(id: string) {

@@ -251,12 +251,20 @@ export type MailHistoryType =
   | 'linked'
   | 'unlinked';
 
-export const MAIL_DELIVERY_METHOD_LABELS: Record<DeliveryMethod, string> = {
-  email: 'Email',
-  post: 'Почта',
-  courier: 'Курьер',
-  messenger: 'Мессенджер',
-};
+  /** Эмодзи способов доставки для компактного отображения в таблице/карточках. */
+  export const MAIL_DELIVERY_METHOD_EMOJI: Record<DeliveryMethod, string> = {
+    email: '🌍',
+    post: '📨',
+    courier: '🚚',
+    messenger: '📲',
+  };
+
+  export const MAIL_DELIVERY_METHOD_NAMES: Record<DeliveryMethod, string> = {
+    email: 'Email',
+    post: 'Почта',
+    courier: 'Курьер',
+    messenger: 'Мессенджер',
+  };
 
 /** `created_by`/`updated_by` hold user ids, not relations — the name is snapshotted. */
 export interface IMailActorFields {

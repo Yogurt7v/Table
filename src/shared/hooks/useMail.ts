@@ -10,6 +10,8 @@ import {
   deleteMailFile,
   deleteMailRelation,
   deleteOutgoingMail,
+  getAllIncomingMails,
+  getAllOutgoingMails,
   getDeletedIncomingMails,
   getDeletedOutgoingMails,
   getIncomingMail,
@@ -120,6 +122,24 @@ export function useOutgoingMails(orgId: string, params: MailListQuery) {
   return useQuery({
     queryKey: ['outgoingMails', orgId, params],
     queryFn: () => getOutgoingMails({ ...params, organizationId: orgId }),
+    enabled: !!orgId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAllIncomingMails(orgId: string, params: MailListQuery) {
+  return useQuery({
+    queryKey: ['incomingMailsAll', orgId, params],
+    queryFn: () => getAllIncomingMails({ ...params, organizationId: orgId }),
+    enabled: !!orgId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAllOutgoingMails(orgId: string, params: MailListQuery) {
+  return useQuery({
+    queryKey: ['outgoingMailsAll', orgId, params],
+    queryFn: () => getAllOutgoingMails({ ...params, organizationId: orgId }),
     enabled: !!orgId,
     placeholderData: keepPreviousData,
   });

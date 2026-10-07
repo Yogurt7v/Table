@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { IOrganizationUser } from '@/shared/types';
-import { getMailPermissions, type MailPermissions } from './mail-field-access';
+import type { IIncomingMail, IOrganizationUser, IOutgoingMail } from '@/shared/types';
+import { getMailPermissions, mailSearchFieldsOf, type MailPermissions } from './mail-field-access';
+import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
 
 const ALL_FALSE: MailPermissions = {
   canView: false,
@@ -207,5 +208,145 @@ describe('getMailPermissions', () => {
     expect(permissions.canViewHistory).toBe(true);
     expect(permissions.canRestore).toBe(permissions.canViewHistory);
     expect(permissions.canViewArchive).toBe(permissions.canViewHistory);
+  });
+});
+
+describe('mailSearchFieldsOf', () => {
+  function incomingMail(overrides: Partial<IIncomingMail> = {}): IIncomingMail {
+    return {
+      id: 'im1',
+      organization_id: 'org1',
+      date: '2025-01-01',
+      subject: 'Договор поставки',
+      sender: 'ООО Ромашка',
+      responsible: 'u1',
+      ...overrides,
+    } as IIncomingMail;
+  }
+
+  function outgoingMail(overrides: Partial<IOutgoingMail> = {}): IOutgoingMail {
+    return {
+      id: 'om1',
+      organization_id: 'org1',
+      date: '2025-01-01',
+      subject: 'Счёт на оплату',
+      recipient: 'ООО Ромашка',
+      responsible: 'u1',
+      ...overrides,
+    } as IOutgoingMail;
+  }
+
+  it('returns the six searchable fields for incoming mail', () => {
+    const fields = mailSearchFieldsOf(
+      incomingMail({ number: '123', sender_outgoing_number: '456', comment: 'test', responsible_name: 'Иван' }),
+      'incoming',
+    );
+
+    expect(fields).toEqual(['123', 'ООО Ромашка', '456', 'Договор поставки', 'test', 'Иван']);
+  });
+
+  it('returns the six searchable fields for outgoing mail', () => {
+    const fields = mailSearchFieldsOf(
+      outgoingMail({ outgoing_number: '789', counterparty_incoming_number: '012', comment: 'note', responsible_name: 'Пётр' }),
+      'outgoing',
+    );
+
+    expect(fields).toEqual(['789', 'ООО Ромашка', '012', 'Счёт на оплату', 'note', 'Пётр']);
+  });
+
+  it('matches a Cyrillic subject with a lowercased query', () => {
+    const mail = incomingMail({ subject: 'Договор поставки' });
+    const folded = foldSearchText('договор');
+
+    expect(matchesFolded(mailSearchFieldsOf(mail, 'incoming'), folded)).toBe(true);
+  });
+
+  it('matches a Cyrillic subject with an uppercase query', () => {
+    const mail = incomingMail({ subject: 'Договор поставки' });
+    const folded = foldSearchText('ДОГОВОР');
+
+    expect(matchesFolded(mailSearchFieldsOf(mail, 'incoming'), folded)).toBe(true);
+  });
+
+  it('matches an ASCII query against a Latin subject', () => {
+    const mail = incomingMail({ subject: 'Contract agreement' });
+    const folded = foldSearchText('contract');
+
+    expect(matchesFolded(mailSearchFieldsOf(mail, 'incoming'), folded)).toBe(true);
+  });
+
+  it('matches a sender name case-insensitively', () => {
+    const mail = incomingMail({ sender: 'ООО Ромашка' });
+    const folded = foldSearchText('ромашка');
+
+    expect(matchesFolded(mailSearchFieldsOf(mail, 'incoming'), folded)).toBe(true);
+  });
+
+  it('matches a mail number', () => {
+    const mail = incomingMail({ number: '123-А' });
+    const folded = foldSearchText('123-а');
+
+    expect(matchesFolded(mailSearchFieldsOf(mail, 'incoming'), folded)).toBe(true);
+  });
+
+  it('returns true for an empty query', () => {
+    const mail = incomingMail();
+
+    expect(matchesFolded(mailSearchFieldsOf(mail, 'incoming'), '')).toBe(true);
+  });
+
+  it('returns false when no field matches', () => {
+    const mail = incomingMail({ subject: 'Договор поставки', sender: 'ООО Ромашка' });
+    const folded = foldSearchText('несуществующее');
+
+    expect(matchesFolded(mailSearchFieldsOf(mail, 'incoming'), folded)).toBe(false);
+  });
+});
+
+describe('client-side pagination', () => {
+  const PAGE_SIZE = 20;
+
+  function pageCount(totalItems: number): number {
+    return totalItems === 0 ? 0 : Math.ceil(totalItems / PAGE_SIZE);
+  }
+
+  function pageSlice<T>(items: T[], page: number): T[] {
+    const start = (page - 1) * PAGE_SIZE;
+    return items.slice(start, start + PAGE_SIZE);
+  }
+
+  it('computes pageCount for an empty list', () => {
+    expect(pageCount(0)).toBe(0);
+  });
+
+  it('computes pageCount for a partial page', () => {
+    expect(pageCount(5)).toBe(1);
+  });
+
+  it('computes pageCount for exactly one page', () => {
+    expect(pageCount(20)).toBe(1);
+  });
+
+  it('computes pageCount for one item over a full page', () => {
+    expect(pageCount(21)).toBe(2);
+  });
+
+  it('computes pageCount for multiple pages', () => {
+    expect(pageCount(45)).toBe(3);
+  });
+
+  it('slices the first page correctly', () => {
+    const items = Array.from({ length: 25 }, (_, i) => i);
+    expect(pageSlice(items, 1)).toEqual(Array.from({ length: 20 }, (_, i) => i));
+  });
+
+  it('slices the second page correctly', () => {
+    const items = Array.from({ length: 25 }, (_, i) => i);
+    expect(pageSlice(items, 2)).toEqual([20, 21, 22, 23, 24]);
+  });
+
+  it('returns an empty slice for a page beyond the last', () => {
+    const items = Array.from({ length: 10 }, (_, i) => i);
+    expect(pageSlice(items, 2)).toEqual([]);
   });
 });

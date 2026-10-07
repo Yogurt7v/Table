@@ -27,6 +27,10 @@ interface MailHistoryModalProps {
   mailId: string | null;
   mailType: MailType;
   mailLabel: string;
+  /** Снапшот `created_by_name` письма — автор создания (из строки таблицы). */
+  createdByName?: string;
+  /** Дата создания письма (`created`). */
+  createdAt?: string;
   opened: boolean;
   onClose: () => void;
 }
@@ -40,6 +44,8 @@ export function MailHistoryModal({
   mailId,
   mailType,
   mailLabel,
+  createdByName,
+  createdAt,
   opened,
   onClose,
 }: MailHistoryModalProps) {
@@ -48,7 +54,35 @@ export function MailHistoryModal({
   const outgoing = useOutgoingMailHistory(mailType === 'outgoing' ? id : '');
   const query = mailType === 'incoming' ? incoming : outgoing;
 
-  const entries = buildMailHistoryEntries(query.data ?? []);
+  let entries = buildMailHistoryEntries(query.data ?? []);
+
+  // Запись о создании письма всегда занимает ПОСЛЕДНЮЮ позицию в ленте
+  // (история читается сверху вниз: старые события сверху, новые снизу).
+  // Если в истории нет реального типа `created`, синтетически добавляем
+  // запись из данных строки таблицы.
+  const hasCreatedEntry = entries.some((entry) => entry.type === 'created');
+  if (!hasCreatedEntry) {
+    const creationTime = createdAt || entries[0]?.changedAt || new Date().toISOString();
+    entries = [
+      ...entries,
+      {
+        entryId: `created-${mailId ?? 'unknown'}`,
+        changedAt: creationTime,
+        author: createdByName || '—',
+        type: 'created' as MailHistoryType,
+        previousData: {},
+        diffs: [],
+      },
+    ];
+  } else {
+    // Существующая запись о создании — переносим её в конец списка.
+    const creationIdx = entries.findIndex((entry) => entry.type === 'created');
+    if (creationIdx !== -1 && creationIdx !== entries.length - 1) {
+      const [creation] = entries.splice(creationIdx, 1);
+      entries.push(creation!);
+    }
+  }
+
   const hasDiff = entries.some((entry) => entry.diffs.length > 0);
 
   return (

@@ -1,4 +1,5 @@
-import type { IOrganizationUser } from '@/shared/types';
+import type { IIncomingMail, IOrganizationUser, IOutgoingMail } from '@/shared/types';
+import type { MailType } from '@/shared/types';
 
 /** Flat, UI-facing view of the seven authoritative `organization_users` mail flags. */
 export interface MailPermissions {
@@ -47,6 +48,30 @@ export const NO_MAIL_PERMISSIONS: MailPermissions = Object.freeze({
  * missing flag, a `null`, or the string `"false"` from a loose payload all deny
  * rather than fall through to a truthy value.
  */
+/**
+ * Поля письма, по которым выполняется клиентский поиск. Набор включает четыре
+ * обязательных поля (номер письма, отправитель, номер отправителя, тема) и
+ * дополнительные (комментарий, ответственный) для полноты поиска.
+ */
+export function mailSearchFieldsOf(
+  mail: IIncomingMail | IOutgoingMail,
+  mailType: MailType,
+): readonly (string | null | undefined)[] {
+  if (mailType === 'incoming') {
+    const m = mail as IIncomingMail;
+    return [m.number, m.sender, m.sender_outgoing_number, m.subject, m.comment, m.responsible_name];
+  }
+  const m = mail as IOutgoingMail;
+  return [
+    m.outgoing_number,
+    m.recipient,
+    m.counterparty_incoming_number,
+    m.subject,
+    m.comment,
+    m.responsible_name,
+  ];
+}
+
 export function getMailPermissions(
   assignment: IOrganizationUser | null | undefined,
 ): MailPermissions {

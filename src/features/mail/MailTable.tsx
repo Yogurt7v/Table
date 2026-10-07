@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Box, Group, Pagination, Table, Text } from '@mantine/core';
 import { IconMailOff } from '@tabler/icons-react';
 import type { MailType } from '@/shared/types';
-import { MAIL_DELIVERY_METHOD_LABELS } from '@/shared/types';
+import { MAIL_DELIVERY_METHOD_EMOJI, MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import { getOrderedColumns } from './mail-columns';
 import type { MailColumn, MailColumnId } from './mail-columns';
 import {
@@ -123,8 +123,14 @@ function Cell({
       );
     case 'delivery_method':
       return row.deliveryMethod ? (
-        <Text size="sm" style={{ whiteSpace: 'nowrap' }}>
-          {MAIL_DELIVERY_METHOD_LABELS[row.deliveryMethod]}
+        <Text
+          size="xl"
+          role="img"
+          aria-label={MAIL_DELIVERY_METHOD_NAMES[row.deliveryMethod]}
+          title={MAIL_DELIVERY_METHOD_NAMES[row.deliveryMethod]}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {MAIL_DELIVERY_METHOD_EMOJI[row.deliveryMethod]}
         </Text>
       ) : (
         <Text size="sm" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
@@ -153,10 +159,10 @@ function Cell({
       return row.created ? (
         <>
           <Text size="sm" style={{ whiteSpace: 'nowrap' }}>
-            {formatMailDate(row.created)}
+            {formatMailDate(row.created)}, {formatMailTimestamp(row.created).slice(-5)}
           </Text>
           <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-            {formatMailTimestamp(row.created).slice(-5)}
+              {row.createdByName ? ` ${row.createdByName}` : ''}
           </Text>
         </>
       ) : (

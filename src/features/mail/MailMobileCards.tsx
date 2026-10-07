@@ -1,15 +1,14 @@
 import { ActionIcon, Box, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { IconLink } from '@tabler/icons-react';
 import type { MailType } from '@/shared/types';
-import { MAIL_DELIVERY_METHOD_LABELS } from '@/shared/types';
 import { MailActionsMenu } from './MailActionsMenu';
 import { MailAttachmentIndicator } from './MailAttachmentIndicator';
 import { MailFiltersReset } from './MailFilters';
 import { formatMailDate } from './mail-date';
+import { MAIL_DELIVERY_METHOD_EMOJI, MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import {
   MAIL_EMPTY_CELL,
-  MAIL_NO_ACCOUNTING_OBJECT_LABEL,
-  MAIL_NO_DELIVERY_METHOD_LABEL,
+  MAIL_NO_ACCOUNTING_OBJECT_LABEL
 } from './mail-labels';
 import type { MailRow } from './mail-row';
 import type { MailColumnId } from './mail-columns';
@@ -142,9 +141,17 @@ export function MailMobileCards({
               </Text>
             )}
             {showsDelivery && row.deliveryMethod && (
-              <Text size="xs" c="dimmed">
-                {MAIL_DELIVERY_METHOD_LABELS[row.deliveryMethod]}
-              </Text>
+              <Group gap={4}>
+                <Text
+                  size="xd"
+                  component="span"
+                  role="img"
+                  aria-label={MAIL_DELIVERY_METHOD_NAMES[row.delivery_method]}
+                  title={MAIL_DELIVERY_METHOD_NAMES[row.delivery_method]}
+                >
+                  {MAIL_DELIVERY_METHOD_EMOJI[row.delivery_method]}
+                </Text>
+              </Group>
             )}
             {showsCreated && row.created && (
               <Text size="xs" c="dimmed">
@@ -181,9 +188,17 @@ export function MailMobileCards({
           )}
 
           {showsDelivery && !row.deliveryMethod && (
-            <Text size="xs" c="dimmed">
-              Способ доставки: {MAIL_NO_DELIVERY_METHOD_LABEL}
-            </Text>
+            <Group gap={4}>
+              <Text
+                size="xs"
+                component="span"
+                role="img"
+                aria-label={MAIL_DELIVERY_METHOD_NAMES[row.delivery_method]}
+                title={MAIL_DELIVERY_METHOD_NAMES[row.delivery_method]}
+              >
+                {MAIL_DELIVERY_METHOD_EMOJI[row.delivery_method]}
+              </Text>
+            </Group>
           )}
 
           {row.comment && (

@@ -125,10 +125,10 @@ export function UserAdminTable({
         <Table striped highlightOnHover withTableBorder>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Имя</Table.Th>
-              <Table.Th>Логин</Table.Th>
+              <Table.Th w={10}>Имя</Table.Th>
+              <Table.Th w={10}>Логин</Table.Th>
               <Table.Th>Роли в организациях</Table.Th>
-              <Table.Th>Дата регистрации</Table.Th>
+              <Table.Th w={10}>Дата регистрации</Table.Th>
               <Table.Th w={100} />
             </Table.Tr>
           </Table.Thead>

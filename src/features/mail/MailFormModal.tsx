@@ -13,8 +13,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import type { DeliveryMethod, IIncomingMail, IOutgoingMail, MailType } from '@/shared/types';
-import { MAIL_DELIVERY_METHOD_LABELS } from '@/shared/types';
+import { MAIL_DELIVERY_METHOD_NAMES, type DeliveryMethod, type IIncomingMail, type IOutgoingMail, type MailType } from '@/shared/types';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { useBeforeUnloadGuard } from '@/shared/hooks/useBeforeUnloadGuard';
 import { dateKeyToLocalDate, localDateToDateKey } from './mail-date';
@@ -97,8 +96,8 @@ interface MailFormModalProps {
   onOpenThread: (mailType: MailType, mailId: string) => void;
 }
 
-const DELIVERY_OPTIONS = (Object.keys(MAIL_DELIVERY_METHOD_LABELS) as DeliveryMethod[]).map(
-  (value) => ({ value, label: MAIL_DELIVERY_METHOD_LABELS[value] }),
+const DELIVERY_OPTIONS = (Object.keys(MAIL_DELIVERY_METHOD_NAMES) as DeliveryMethod[]).map(
+  (value) => ({ value, label: MAIL_DELIVERY_METHOD_NAMES[value] }),
 );
 
 /** Ключ уже сохранённого родителя — им форма открывается, а не угадывается заново. */

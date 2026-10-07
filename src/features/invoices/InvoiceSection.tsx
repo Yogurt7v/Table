@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Menu, Box, Button, Loader, Center, useMantineTheme } from '@mantine/core';
+import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Menu, Box, Button, Loader, Center, useMantineTheme, Anchor } from '@mantine/core';
 import { IconPrinter, IconSettings, IconFileExport, IconChevronsDown, IconChevronsUp, IconX, IconFilter, IconCheck } from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
@@ -33,6 +33,8 @@ import type { IInvoice, IInvoiceFile, IAccountingObject, IPaymentMark, InvoiceCo
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { normalizeInvoiceForDate } from '@/shared/utils/invoice-utils';
 import { useMediaQuery } from '@mantine/hooks';
+import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
+import { Link } from 'react-router-dom';
 
 interface InvoiceSectionProps {
   orgId: string;
@@ -124,6 +126,8 @@ function ObjectsList({
   const allCollapsed = objects.length > 0 && objects.every((o) => collapsedIds.has(o.id));
   const isFullAccess = permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
 
+  const { currentOrgId } = useOrg();
+  const mailPermissions = useMailPermissions(currentOrgId);
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
@@ -254,6 +258,27 @@ function ObjectsList({
       <Box visibleFrom="sm">
         <Group justify="space-between" mb="sm" wrap="wrap">
           <Group gap={8} justify="flex-start" flex="1">
+
+            {mailPermissions.canView && (
+              <Group gap={6} wrap="nowrap">
+                <Anchor
+                  size="sm"
+                  component={Link}
+                  to="/mail"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    color: "black",
+                    fontWeight: "bolder",
+                    fontSize: "16px"
+                  }}
+                >
+                  Почта
+                  {/*<IconMail size={16} aria-hidden /> */}
+                </Anchor>
+                / </Group>
+            )}
 
             <Title order={5}>Счета</Title>
             <Tooltip label="Настройка колонок">

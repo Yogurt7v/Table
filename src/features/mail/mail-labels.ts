@@ -125,5 +125,5 @@ export const MAIL_HISTORY_HIDDEN_FIELDS = new Set([
 /** Пустые значения ячейки — прочерк в таблице, слово в карточке. */
 export const MAIL_EMPTY_CELL = '—';
 export const MAIL_NO_ACCOUNTING_OBJECT_LABEL = 'Без объекта учёта';
-export const MAIL_NO_DELIVERY_METHOD_LABEL = 'Не указан';
-export const MAIL_NO_RESPONSIBLE_LABEL = 'Не назначен';
+export const MAIL_NO_DELIVERY_METHOD_LABEL = '-';
+export const MAIL_NO_RESPONSIBLE_LABEL = '-';
