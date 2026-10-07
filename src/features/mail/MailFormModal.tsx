@@ -11,6 +11,7 @@ import {
   Text,
   Textarea,
   TextInput,
+  MultiSelect,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { MAIL_DELIVERY_METHOD_NAMES, type DeliveryMethod, type IIncomingMail, type IOutgoingMail, type MailType } from '@/shared/types';
@@ -346,14 +347,17 @@ export function MailFormModal({
         />
 
         <Group grow align="flex-start">
-          <Select
+          <MultiSelect
             label="Ответственный"
-            placeholder="Выберите сотрудника"
+            placeholder="Выберите сотрудников"
             searchable
+            clearable
             required
+            hidePickedOptions
+            maxValues={6}
             data={responsibleOptions}
-            value={form.responsible || null}
-            onChange={(value) => patch({ responsible: value ?? '' })}
+            value={form.responsible ? form.responsible.split(',') : []}
+            onChange={(values) => patch({ responsible: values.join(',') })}
             error={errors.responsible}
           />
           <Select

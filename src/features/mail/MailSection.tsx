@@ -371,7 +371,12 @@ export function MailSection({ orgId }: MailSectionProps) {
       date: form.date,
       subject: form.subject.trim(),
       responsible: form.responsible,
-      responsible_name: responsibleNames.get(form.responsible) ?? '',
+      responsible_name: form.responsible
+        .split(',')
+        .filter(Boolean)
+        .map((id) => responsibleNames.get(id) ?? '')
+        .filter(Boolean)
+        .join(', '),
       accounting_object_id: form.accountingObjectId,
       delivery_method: form.deliveryMethod ?? undefined,
       comment: form.comment.trim(),

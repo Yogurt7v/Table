@@ -109,7 +109,8 @@ function buildMailFilter(params: MailListParams, spec: MailFilterSpec): string {
   }
 
   if (params.responsibleIds?.length) {
-    clauses.push(`responsible ?= {${qList(params.responsibleIds)}}`);
+    const parts = params.responsibleIds.map((id) => `(responsible ~ "${qTag(id)}")`);
+    clauses.push(`(${parts.join(' || ')})`);
   }
 
   const counterparty = params.counterparty?.trim();
