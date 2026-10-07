@@ -49,6 +49,7 @@ function AppLayoutContent() {
   }, []);
 
   const isHomePage = pathname === '/';
+  const isMailPage = pathname === '/mail';
   const showScrollUp = isHomePage && scrolled;
 
   useEffect(() => {
@@ -171,7 +172,7 @@ backgroundColor: (option as { color?: unknown }).color as string,
                 </Tooltip>
               </Group>
             </Group>
-            <InvoiceSearch stretch />
+            {!isMailPage && <InvoiceSearch stretch />}
             <Collapse in={pinned} transitionDuration={200}>
               <Box className="date-pinned-row" py={2}>
                 <MainDatePicker variant="header" />
@@ -248,7 +249,7 @@ backgroundColor: (option as { color?: unknown }).color as string,
                   </Group>
                 )}
               />
-              <InvoiceSearch />
+              {!isMailPage && <InvoiceSearch />}
             </Group>
             <Group>
               {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (

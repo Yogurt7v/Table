@@ -186,6 +186,113 @@ body {
   justify-content: center;
 }
 
+/* Панель фильтров реестра писем: семь групп в сетке, а не в столбик.
+   Владельцев прокрутки два, и у каждого своя работа: `__column__body` горит
+   свой список (сто объектов учёта не растягивают панель), а сама панель —
+   раскладку колонок (`max-height` на `Popover.Dropdown`). Вложенная прокрутка
+   есть только там, где колонок три-четыре и панель от них не зависит; на узком
+   экране ограничение с колонок снято и колесо прокручивает панель целиком. */
+.mail-filters-grid {
+  display: grid;
+  /* min(…, 100%) обязателен: без него трек не схлопывается на телефоне и панель
+     выталкивает страницу в горизонтальную прокрутку. auto-fill, а не auto-fit:
+     при auto-fit пустой трек последней строки схлопнется и её колонки окажутся
+     шире колонок первой строки. */
+  grid-template-columns: repeat(auto-fill, minmax(min(13.5rem, 100%), 1fr));
+  gap: var(--mantine-spacing-md) var(--mantine-spacing-lg);
+  align-items: start;
+}
+
+/* min-width: 0 обязателен: grid-ребёнок по умолчанию не сжимается ниже своего
+   содержимого, и длинное имя объекта растянет колонку, а колонка — панель. */
+.mail-filters-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+}
+
+/* Подпись группы — те же значения, что у `Menu.Label`, но прилипает к своей
+   колонке, а не к верху общего списка. */
+.mail-filters-column__label {
+  color: var(--mantine-color-dimmed);
+  font-weight: 500;
+  font-size: var(--mantine-font-size-xs);
+  line-height: var(--mantine-line-height-xs);
+}
+
+.mail-filters-column__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: 13.75rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 61.999em) {
+  .mail-filters-column__body {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+/* Строка пункта повторяет `Menu.Item` (padding, радиус, размер шрифта, серый
+   hover), чтобы переход с меню на панель не читался как смена кожи. Цвет и
+   hover приходят из переменных, которые ставит компонент. */
+.mail-filters-option {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  width: 100%;
+  padding: calc(var(--mantine-spacing-xs) / 1.5) var(--mantine-spacing-sm);
+  border-radius: var(--popover-radius, var(--mantine-radius-default));
+  font-size: var(--mantine-font-size-sm);
+  line-height: var(--mantine-line-height-sm);
+  color: var(--mail-filter-option-color, var(--mantine-color-text));
+  user-select: none;
+}
+
+.mail-filters-option:hover:where(:not(:disabled)) {
+  background-color: var(--mail-filter-option-hover, var(--mantine-color-gray-1));
+}
+
+.mail-filters-option:where(:disabled) {
+  color: var(--mantine-color-dimmed);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mail-filters-option__marker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 0 0 16px;
+}
+
+/* Имя объекта или пользователя без пробелов не должно выталкивать колонку. */
+.mail-filters-option__label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Пустое состояние группы — текст, а не кликабельная строка: выбирать нечего. */
+.mail-filters-empty {
+  color: var(--mantine-color-dimmed);
+  padding: calc(var(--mantine-spacing-xs) / 1.5) var(--mantine-spacing-sm);
+  padding-inline-start: calc(var(--mantine-spacing-sm) + 16px + var(--mantine-spacing-xs));
+  overflow-wrap: anywhere;
+}
+
+/* Сброс не восьмая группа, поэтому подписи у него нет: это действие панели,
+   отделённое линией — как `Menu.Divider` отделял его от списка пунктов. */
+.mail-filters-footer {
+  border-top: 1px solid var(--mantine-color-gray-2);
+  margin-top: var(--mantine-spacing-sm);
+  padding-top: var(--mantine-spacing-xs);
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root,
   .date-pinned-page-calendar,

@@ -13,7 +13,7 @@ import {
   Loader,
   Table,
 } from '@mantine/core';
-import { IconTrash, IconPlus, IconEye } from '@tabler/icons-react';
+import { IconTrash, IconPlus, IconEye, IconMail } from '@tabler/icons-react';
 import {
   useCreateOrganizationUser,
   useDeleteOrganizationUser,
@@ -22,6 +22,7 @@ import {
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useOrg } from '@/shared/context/OrgContext';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
+import { OrganizationUserMailPermissions } from './OrganizationUserMailPermissions';
 import type { IOrganizationUser } from '@/shared/types';
 
 const ROLE_COLORS: Record<IOrganizationUser['role'], string> = {
@@ -43,6 +44,8 @@ const ROLE_LABELS: Record<IOrganizationUser['role'], string> = {
 interface InlineRoleCellProps {
   userId: string;
   assignments: IOrganizationUser[];
+  /** Reuses AdminPage's admin-only gate; mail flags are never derived from role. */
+  canManageMailPermissions: boolean;
 }
 
 function ObjectCheckboxList({
@@ -98,7 +101,11 @@ function ObjectLabels({ orgId, objectIds }: { orgId: string; objectIds: string[]
   );
 }
 
-export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
+export function InlineRoleCell({
+  userId,
+  assignments,
+  canManageMailPermissions,
+}: InlineRoleCellProps) {
   const createOrgUser = useCreateOrganizationUser();
   const deleteOrgUser = useDeleteOrganizationUser();
   const updateOrgUser = useUpdateOrganizationUser();
@@ -109,6 +116,7 @@ export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; orgName: string } | null>(null);
   const [objectsPopoverId, setObjectsPopoverId] = useState<string | null>(null);
   const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
+  const [mailPopoverId, setMailPopoverId] = useState<string | null>(null);
 
   const availableOrgs = organizations.filter(
     (o) => !assignments.some((a) => a.organization_id === o.id),
@@ -146,6 +154,7 @@ export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
               <Table.Th>Организация</Table.Th>
               <Table.Th w={120}>Роль</Table.Th>
               <Table.Th>Объекты</Table.Th>
+              <Table.Th w={50}>Почта</Table.Th>
               <Table.Th w={50} />
             </Table.Tr>
           </Table.Thead>
@@ -223,6 +232,35 @@ export function InlineRoleCell({ userId, assignments }: InlineRoleCellProps) {
                         </Popover>
                       )}
                     </Group>
+                  </Table.Td>
+                  <Table.Td>
+                    {canManageMailPermissions && (
+                      <Popover
+                        opened={mailPopoverId === a.id}
+                        onClose={() => setMailPopoverId(null)}
+                        closeOnClickOutside={false}
+                        width="min(460px, calc(100vw - 24px))"
+                      >
+                        <Popover.Target>
+                          <ActionIcon
+                            size="sm"
+                            variant="subtle"
+                            color={a.can_view_mails === true ? 'blue' : 'gray'}
+                            aria-label={`Почтовые права: ${orgName}`}
+                            onClick={() => setMailPopoverId(mailPopoverId === a.id ? null : a.id)}
+                          >
+                            <IconMail size={24} />
+                          </ActionIcon>
+                        </Popover.Target>
+                        <Popover.Dropdown>
+                          <OrganizationUserMailPermissions
+                            assignment={a}
+                            canEdit={canManageMailPermissions}
+                            onSaved={() => setMailPopoverId(null)}
+                          />
+                        </Popover.Dropdown>
+                      </Popover>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     <ActionIcon

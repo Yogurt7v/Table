@@ -47,3 +47,7 @@ test-results/
 playwright-report/
 blob-report/
 e2e/test-results/
+
+# Скриншоты визуальной проверки (Playwright)
+artifacts/
+scripts/mail-screenshots.ts

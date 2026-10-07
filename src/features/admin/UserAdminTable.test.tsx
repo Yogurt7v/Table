@@ -20,6 +20,7 @@ const baseProps = {
   currentUserId: 'admin1',
   canEdit: true,
   canDelete: true,
+  canManageMailPermissions: true,
   accessibleOrgIds: ['org1'],
   onAdd: () => {},
   onEdit: vi.fn(),
@@ -105,5 +106,21 @@ describe('UserAdminTable', () => {
 
     await user.click(screen.getByText('Добавить пользователя'));
     expect(onAdd).toHaveBeenCalledOnce();
+  });
+
+  it('hides the mail permissions control when the viewer is not an admin', () => {
+    renderWithProviders(<UserAdminTable {...baseProps} canManageMailPermissions={false} />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Почтовые права: ООО "Тест"' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('exposes the mail permissions control to an admin', () => {
+    renderWithProviders(<UserAdminTable {...baseProps} />);
+
+    expect(
+      screen.getAllByRole('button', { name: 'Почтовые права: ООО "Тест"' }).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 });

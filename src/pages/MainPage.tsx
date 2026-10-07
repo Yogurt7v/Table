@@ -1,4 +1,16 @@
-import { Container, Stack, Loader, Paper, Text, Button, Center } from '@mantine/core';
+import {
+  Anchor,
+  Container,
+  Stack,
+  Loader,
+  Paper,
+  Text,
+  Button,
+  Center,
+  Group,
+} from '@mantine/core';
+import { IconMail } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useAuth } from '@/shared/context/AuthContext';
@@ -6,6 +18,7 @@ import { useSearch } from '@/shared/context/SearchContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
 import { useDatePinned } from '@/shared/context/DatePinnedContext';
 import { useBankAccounts } from '@/shared/hooks/useBankAccounts';
+import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { MainDatePicker } from '@/shared/components/MainDatePicker';
 import { AccountList } from '@/features/accounts/AccountList';
 import { InvoiceSection } from '@/features/invoices/InvoiceSection';
@@ -17,6 +30,7 @@ export function MainPage() {
   const { selectedDate: date } = useInvoiceNavigation();
   const { pinned, registerAnchor } = useDatePinned();
   const dateStr = dayjs(date).format('YYYY-MM-DD');
+  const mailPermissions = useMailPermissions(currentOrgId);
 
   const { data: accounts, isLoading: accountsLoading } = useBankAccounts(currentOrgId, dateStr);
 
@@ -58,6 +72,20 @@ export function MainPage() {
         </div>
 
         <AccountList accounts={accounts} loading={accountsLoading} date={dateStr} />
+
+        {mailPermissions.canView && (
+          <Group gap={6} wrap="nowrap">
+            <Anchor
+              size="sm"
+              component={Link}
+              to="/mail"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <IconMail size={16} aria-hidden />
+              Почта
+            </Anchor>
+          </Group>
+        )}
 
         <InvoiceSection
           orgId={currentOrgId}

@@ -27,6 +27,8 @@ interface UserAdminTableProps {
   currentUserId: string | undefined;
   canEdit: boolean;
   canDelete: boolean;
+  /** Admin-only — unlike `canEdit`, moderators cannot manage mail flags. */
+  canManageMailPermissions: boolean;
   accessibleOrgIds: string[];
   onAdd: () => void;
   onEdit: (user: IUser) => void;
@@ -39,6 +41,7 @@ export function UserAdminTable({
   currentUserId,
   canEdit,
   canDelete,
+  canManageMailPermissions,
   accessibleOrgIds,
   onAdd,
   onEdit,
@@ -49,8 +52,7 @@ export function UserAdminTable({
   const filteredUsers = users?.filter((user) => {
     if (!query) return true;
     return (
-      (user.name || '').toLowerCase().includes(query) ||
-      user.login.toLowerCase().includes(query)
+      (user.name || '').toLowerCase().includes(query) || user.login.toLowerCase().includes(query)
     );
   });
 
@@ -83,7 +85,6 @@ export function UserAdminTable({
         </summary>
         <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light" mt="sm" pb={6}>
           <Stack gap={2}>
-
             <Text size="sm">
               <Text span c="gray" fw={500}>
                 Гость
@@ -116,8 +117,6 @@ export function UserAdminTable({
               </Text>{' '}
               — отметка оплаты
             </Text>
-
-
           </Stack>
         </Alert>
       </details>
@@ -144,7 +143,9 @@ export function UserAdminTable({
               </Table.Tr>
             )}
             {filteredUsers?.map((user) => {
-              const userOrgUsers = (orgUsers ?? []).filter((ou) => ou.user_id === user.id).filter((ou) => accessibleOrgIds.includes(ou.organization_id));;
+              const userOrgUsers = (orgUsers ?? [])
+                .filter((ou) => ou.user_id === user.id)
+                .filter((ou) => accessibleOrgIds.includes(ou.organization_id));
 
               return (
                 <Table.Tr key={user.id}>
@@ -153,7 +154,11 @@ export function UserAdminTable({
                   </Table.Td>
                   <Table.Td>{user.login}</Table.Td>
                   <Table.Td>
-                    <InlineRoleCell userId={user.id} assignments={userOrgUsers} />
+                    <InlineRoleCell
+                      userId={user.id}
+                      assignments={userOrgUsers}
+                      canManageMailPermissions={canManageMailPermissions}
+                    />
                   </Table.Td>
                   <Table.Td>{new Date(user.created).toLocaleString('ru-RU')}</Table.Td>
                   <Table.Td>

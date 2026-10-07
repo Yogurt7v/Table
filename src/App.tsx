@@ -3,6 +3,7 @@ import { AppLayout } from './layouts/AppLayout.tsx';
 import { RequireAuth } from '@/shared/components/RequireAuth';
 import { MainPage } from './pages/MainPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
+import { MailPage } from './pages/MailPage.tsx';
 import { AdminPage } from './pages/AdminPage.tsx';
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<MainPage />} />
+          <Route path="/mail" element={<MailPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Route>
       </Route>

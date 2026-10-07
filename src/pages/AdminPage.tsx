@@ -1,13 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  Container,
-  Title,
-  Group,
-  Text,
-  Stack,
-  Tabs,
-} from '@mantine/core';
+import { Container, Title, Group, Text, Stack, Tabs } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOrg } from '@/shared/context/OrgContext';
@@ -28,6 +21,8 @@ import { DeleteOrgModal } from '@/features/admin/DeleteOrgModal';
 import { OrganizationAdminTable } from '@/features/admin/OrganizationAdminTable';
 import { UserAdminTable } from '@/features/admin/UserAdminTable';
 import { DeletedInvoicesSection } from '@/features/admin/DeletedInvoicesSection';
+import { DeletedMailsSection } from '@/features/admin/DeletedMailsSection';
+import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { buildUserDeleteConsequences } from '@/features/admin/user-delete-consequences';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import {
@@ -49,15 +44,19 @@ export function AdminPage() {
   const deleteUser = useDeleteUser();
   const { user: currentUser } = useAuth();
   const currentRole = useCurrentUserRole(currentOrgId);
+  // Вкладку архива писем гейтит почтовый флаг, а не строка роли: у `deleted_*`
+  // пустой `listRule`, и скрыть вкладку — единственная клиентская проверка.
+  const mailPermissions = useMailPermissions(currentOrgId);
+  const canViewMailArchive = mailPermissions.canViewArchive;
 
-  const isRestricted = !!(
-    currentOrgId && currentRole !== 'admin' && currentRole !== 'moderator'
-  );
+  const isRestricted = !!(currentOrgId && currentRole !== 'admin' && currentRole !== 'moderator');
   const createOrg = useCreateOrganization();
   const updateOrg = useUpdateOrganization();
   const deleteOrg = useDeleteOrganization();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') ?? 'organizations';
+  const requestedTab = searchParams.get('tab') ?? 'organizations';
+  const activeTab =
+    requestedTab === 'mail-archive' && !canViewMailArchive ? 'organizations' : requestedTab;
   const highlightDeletedId = searchParams.get('highlight') || null;
   const [createOpened, setCreateOpened] = useState(false);
   const [showOrgForm, setShowOrgForm] = useState(false);
@@ -67,6 +66,7 @@ export function AdminPage() {
   const [editUserTarget, setEditUserTarget] = useState<IUser | null>(null);
   const canEditUsers = currentRole === 'admin' || currentRole === 'moderator';
   const canDeleteUsers = currentRole === 'admin';
+  const canManageMailPermissions = currentRole === 'admin';
   const [deleteOrgTarget, setDeleteOrgTarget] = useState<{ id: string; name: string } | null>(null);
   const [editOrgId, setEditOrgId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -118,11 +118,7 @@ export function AdminPage() {
 
   const deleteUserConsequences = useMemo(() => {
     if (!deleteUserTarget) return null;
-    return buildUserDeleteConsequences(
-      deleteUserTarget.id,
-      orgUsers ?? [],
-      organizations,
-    );
+    return buildUserDeleteConsequences(deleteUserTarget.id, orgUsers ?? [], organizations);
   }, [deleteUserTarget, orgUsers, organizations]);
 
   const editOrgRole = orgUsers?.find(
@@ -168,6 +164,10 @@ export function AdminPage() {
     if (value === 'archive') {
       queryClient.invalidateQueries({ queryKey: ['deleted_invoices'] });
     }
+    if (value === 'mail-archive') {
+      queryClient.invalidateQueries({ queryKey: ['deletedIncomingMails'] });
+      queryClient.invalidateQueries({ queryKey: ['deletedOutgoingMails'] });
+    }
   };
 
   const clearHighlightParam = () => {
@@ -201,6 +201,7 @@ export function AdminPage() {
           <Tabs.Tab value="organizations">Организации</Tabs.Tab>
           <Tabs.Tab value="users">Пользователи</Tabs.Tab>
           <Tabs.Tab value="archive">Архив счетов</Tabs.Tab>
+          {canViewMailArchive && <Tabs.Tab value="mail-archive">Архив сообщений</Tabs.Tab>}
         </Tabs.List>
 
         <Tabs.Panel value="organizations" pt="md">
@@ -224,6 +225,7 @@ export function AdminPage() {
             accessibleOrgIds={organizations.map((o) => o.id)}
             canEdit={canEditUsers}
             canDelete={canDeleteUsers}
+            canManageMailPermissions={canManageMailPermissions}
             onAdd={() => setCreateOpened(true)}
             onEdit={(user) => setEditUserTarget(user)}
             onDelete={(target) => setDeleteUserTarget(target)}
@@ -239,6 +241,12 @@ export function AdminPage() {
             />
           )}
         </Tabs.Panel>
+
+        {canViewMailArchive && (
+          <Tabs.Panel value="mail-archive" pt="md">
+            {currentOrgId && <DeletedMailsSection orgId={currentOrgId} />}
+          </Tabs.Panel>
+        )}
       </Tabs>
 
       <CreateUserModal opened={createOpened} onClose={() => setCreateOpened(false)} />
@@ -274,12 +282,11 @@ export function AdminPage() {
                 .
               </Text>
             )}
-            {deleteUserConsequences &&
-              deleteUserConsequences.memberships.length === 0 && (
-                <Text size="sm" c="dimmed">
-                  Не состоит ни в одной организации.
-                </Text>
-              )}
+            {deleteUserConsequences && deleteUserConsequences.memberships.length === 0 && (
+              <Text size="sm" c="dimmed">
+                Не состоит ни в одной организации.
+              </Text>
+            )}
             {deleteUserConsequences?.soleAdminOf.map((orgName) => (
               <Text key={orgName} size="sm" c="orange">
                 Внимание: он единственный администратор организации «{orgName}». Без админа
