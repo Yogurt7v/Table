@@ -127,20 +127,29 @@ export function useOutgoingMails(orgId: string, params: MailListQuery) {
   });
 }
 
-export function useAllIncomingMails(orgId: string, params: MailListQuery) {
+/**
+ * Полный список — не то же самое, что страница реестра: он нужен только для
+ * клиентского текстового поиска, который бьёт по всем полям письма и потому
+ * невыполним на стороне сервера одним фильтром. Поэтому `enabled` вынесен в
+ * аргумент: пока строка поиска пуста, оба хука ничего не качают — скачивание
+ * всего реестра при каждом открытии страницы было причиной медленной первой
+ * отрисовки.
+ */
+export function useAllIncomingMails(orgId: string, params: MailListQuery, enabled = true) {
   return useQuery({
     queryKey: ['incomingMailsAll', orgId, params],
     queryFn: () => getAllIncomingMails({ ...params, organizationId: orgId }),
-    enabled: !!orgId,
+    enabled: !!orgId && enabled,
     placeholderData: keepPreviousData,
   });
 }
 
-export function useAllOutgoingMails(orgId: string, params: MailListQuery) {
+/** Как `useAllIncomingMails`: тот же `enabled` по той же причине. */
+export function useAllOutgoingMails(orgId: string, params: MailListQuery, enabled = true) {
   return useQuery({
     queryKey: ['outgoingMailsAll', orgId, params],
     queryFn: () => getAllOutgoingMails({ ...params, organizationId: orgId }),
-    enabled: !!orgId,
+    enabled: !!orgId && enabled,
     placeholderData: keepPreviousData,
   });
 }

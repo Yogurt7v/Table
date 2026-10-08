@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Group, Paper, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Box, Group, Loader, Paper, Stack, Text, Tooltip } from '@mantine/core';
 import { IconLink } from '@tabler/icons-react';
 import type { MailType } from '@/shared/types';
 import { MailActionsMenu } from './MailActionsMenu';
@@ -8,7 +8,8 @@ import { formatMailDate } from './mail-date';
 import { MAIL_DELIVERY_METHOD_EMOJI, MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import {
   MAIL_EMPTY_CELL,
-  MAIL_NO_ACCOUNTING_OBJECT_LABEL
+  MAIL_NO_ACCOUNTING_OBJECT_LABEL,
+  MAIL_NO_DELIVERY_METHOD_LABEL,
 } from './mail-labels';
 import type { MailRow } from './mail-row';
 import type { MailColumnId } from './mail-columns';
@@ -29,6 +30,7 @@ interface MailMobileCardsProps {
   onDelete: (mailId: string) => void;
   onHistory: (mailId: string) => void;
   onRelations: (mailId: string) => void;
+  highlightedMailId?: string | null;
 }
 
 /**
@@ -67,20 +69,22 @@ export function MailMobileCards({
   const showsObject = shows('accounting_object_id');
   const showsDelivery = shows('delivery_method');
   const showsCreated = shows('created');
+  const showsThread = shows('thread');
 
   return (
     <Stack hiddenFrom="sm" gap="sm">
       {rows.map((row) => (
-        <Paper
-          key={row.id}
-          withBorder
-          radius="sm"
-          p="xs"
-          style={{
-            boxShadow: 'var(--mantine-shadow-sm)',
-            borderLeft: '3px solid var(--org-color, #228be6)',
-          }}
-        >
+<Paper
+            key={row.id}
+            withBorder
+            radius="sm"
+            p="xs"
+            style={{
+              boxShadow: 'var(--mantine-shadow-sm)',
+              borderLeft: '3px solid var(--org-color, #228be6)',
+            }}
+            data-highlight-id={row.id}
+          >
           <Group justify="space-between" wrap="nowrap" gap={4} align="flex-start">
             <Group gap={6} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
               {showsSeq && (
@@ -95,17 +99,19 @@ export function MailMobileCards({
               )}
             </Group>
             <Group gap={4} wrap="nowrap">
-              <Tooltip label="Связанные письма">
-                <ActionIcon
-                  size="sm"
-                  variant="subtle"
-                  color="gray"
-                  aria-label="Связанные письма"
-                  onClick={() => onRelations(row.id)}
-                >
-                  <IconLink size={16} />
-                </ActionIcon>
-              </Tooltip>
+              {showsThread && (
+                <Tooltip label="Переписка">
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    color="gray"
+                    aria-label="Переписка"
+                    onClick={() => onRelations(row.id)}
+                  >
+                    <IconLink size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
               <MailActionsMenu
                 mailId={row.id}
                 mailType={mailType}
@@ -114,7 +120,6 @@ export function MailMobileCards({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onHistory={onHistory}
-                onRelations={onRelations}
               />
             </Group>
           </Group>
@@ -146,10 +151,10 @@ export function MailMobileCards({
                   size="xd"
                   component="span"
                   role="img"
-                  aria-label={MAIL_DELIVERY_METHOD_NAMES[row.delivery_method]}
-                  title={MAIL_DELIVERY_METHOD_NAMES[row.delivery_method]}
+                  aria-label={MAIL_DELIVERY_METHOD_NAMES[row.deliveryMethod]}
+                  title={MAIL_DELIVERY_METHOD_NAMES[row.deliveryMethod]}
                 >
-                  {MAIL_DELIVERY_METHOD_EMOJI[row.delivery_method]}
+                  {MAIL_DELIVERY_METHOD_EMOJI[row.deliveryMethod]}
                 </Text>
               </Group>
             )}
@@ -189,14 +194,8 @@ export function MailMobileCards({
 
           {showsDelivery && !row.deliveryMethod && (
             <Group gap={4}>
-              <Text
-                size="xs"
-                component="span"
-                role="img"
-                aria-label={MAIL_DELIVERY_METHOD_NAMES[row.delivery_method]}
-                title={MAIL_DELIVERY_METHOD_NAMES[row.delivery_method]}
-              >
-                {MAIL_DELIVERY_METHOD_EMOJI[row.delivery_method]}
+              <Text size="xs" c="dimmed">
+                {MAIL_NO_DELIVERY_METHOD_LABEL}
               </Text>
             </Group>
           )}
@@ -211,8 +210,19 @@ export function MailMobileCards({
 
       {rows.length === 0 && (
         <Box ta="center" py="xl">
-          <Text c="dimmed">{loading ? 'Загрузка писем…' : emptyHint}</Text>
-          {!loading && hasFilters && <MailFiltersReset onReset={onResetFilters} />}
+          {loading ? (
+            <>
+              <Loader size="sm" />
+              <Text c="dimmed" mt="xs">
+                Загрузка писем…
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text c="dimmed">{emptyHint}</Text>
+              {hasFilters && <MailFiltersReset onReset={onResetFilters} />}
+            </>
+          )}
         </Box>
       )}
     </Stack>

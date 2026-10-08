@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core';
 import type { DragOverEvent, DragStartEvent } from '@dnd-kit/core';
 import type { MailType } from '@/shared/types';
-import type { MailNodeKey } from './mail-thread';
+import type { MailLetter, MailNodeKey } from './mail-thread';
 import { buildMailThread, mailNodeKey, THREAD_MAX_DEPTH } from './mail-thread';
 import {
   buildThreadLine,
@@ -42,7 +42,7 @@ import {
   MAIL_THREAD_UNBUILT_TITLE,
 } from './mail-thread-labels';
 import type { MailOrderPlacement, ThreadDirection, ThreadOverState } from './mail-thread-builder';
-import { formatMailDate } from './mail-date';
+import { formatMailDate, toDateKey } from './mail-date';
 import { MAIL_EMPTY_CELL, MAIL_TYPE_LABELS } from './mail-labels';
 import type { MailPermissions } from './mail-field-access';
 
@@ -79,6 +79,7 @@ interface MailThreadBuilderProps {
   rootMailId: string;
   rootMailType: MailType;
   permissions: MailPermissions;
+  onGoToRegister?: (mailId: string, mailType: MailType, dateKey: string) => void;
 }
 
 /** Письмо, чьи подписи пришли с сброса и которого в графе уже нет. */
@@ -96,6 +97,7 @@ export function MailThreadBuilder({
   rootMailId,
   rootMailType,
   permissions,
+  onGoToRegister,
 }: MailThreadBuilderProps) {
   const activeOrgId = opened ? orgId : '';
   const { letters, graph, cyclicKeys, candidates, parentEdges, isLoading, isError } =
@@ -116,6 +118,10 @@ export function MailThreadBuilder({
     () => mailNodeKey(rootMailType, rootMailId),
     [rootMailType, rootMailId],
   );
+
+  const handleGoToRegister = (
+    letter: MailLetter,
+  ): void => onGoToRegister?.(letter.id, letter.type, toDateKey(letter.date) ?? '');
 
   /**
    * Письмо, снятое с этой переписки последним сбросом, остаётся в линии.
@@ -354,6 +360,7 @@ export function MailThreadBuilder({
                       droppable={!!draggedKey}
                       overState={nodeOverState(node.key)}
                       stacked={!wide}
+                      onGoToRegister={onGoToRegister ? handleGoToRegister : undefined}
                     />
                   </div>
                 ))}

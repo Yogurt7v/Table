@@ -72,10 +72,49 @@ function pickAllowedIds(saved: unknown, allowed: Set<MailColumnId>): MailColumnI
 }
 
 /**
+ * Колонки, существовавшие, когда настройка колонок появилась впервые.
+ *
+ * Нужны, чтобы отличать «пользователь убрал колонку» от «колонки тогда не
+ * было». Сохранённый список хранит только оставшиеся колонки, и без этого
+ * маркера дописывание новых колонок вернуло бы всё, что человек убрал
+ * сознательно. Колонка, которой здесь нет, — новая: её дописываем к
+ * сохранённому списку автоматически, иначе до ручного сброса настройки она
+ * была бы не видна вообще.
+ *
+ * Экспортируется как часть контракта `resolveVisibleColumns`: тесты проверяют
+ * именно эту границу, и второй её список в коде означал бы расхождение
+ * копий при следующем добавлении колонки.
+ */
+export const COLUMNS_AT_LAYOUT_INTRO: MailColumnId[] = [
+  'seq',
+  'date',
+  'number',
+  'counterparty',
+  'counterparty_number',
+  'subject',
+  'responsible_name',
+  'delivery_method',
+  'accounting_object_id',
+  'files',
+  'created',
+  'actions',
+];
+
+/**
  * Сохранённый список пропускается через разрешённые: право могли отозвать уже
  * после того, как пользователь настроил колонки, и запрещённая колонка не должна
  * воскреснуть из хранилища. Пустое или битое значение откатывается к умолчанию —
  * тоже уже пересечённому с правами.
+ *
+ * Колонки, добавленные после того, как список сохранили, добавляются без
+ * участия пользователя — иначе новая колонка не появилась бы до ручного сброса
+ * настроек. Дописываются только те, которых нет в `COLUMNS_AT_LAYOUT_INTRO`:
+ * осознанно убранные пользователем колонки возвращать нельзя.
+ *
+ * Порядок при этом не переписывается: сохранённые колонки идут в сохранённом
+ * порядке, а новая встаёт на своё каноническое место относительно них — то есть
+ * перед первой сохранённой, которая канонически идёт после неё. Добавление в
+ * конец ломало бы привычное «Действия» последней колонкой.
  */
 export function resolveVisibleColumns(
   saved: unknown,
@@ -83,7 +122,20 @@ export function resolveVisibleColumns(
 ): MailColumnId[] {
   const allowed = new Set(getAllowedColumns(permissions));
   const picked = pickAllowedIds(saved, allowed);
-  if (picked.length > 0) return picked;
+  if (picked.length > 0) {
+    const canonicalOrder = new Map(DEFAULT_VISIBLE_COLUMNS.map((id, index) => [id, index]));
+    const kept = new Set(picked);
+    const result = [...picked];
+    for (const id of DEFAULT_VISIBLE_COLUMNS) {
+      if (kept.has(id) || !allowed.has(id) || COLUMNS_AT_LAYOUT_INTRO.includes(id)) continue;
+      const at = result.findIndex(
+        (existing) => (canonicalOrder.get(existing) ?? 0) > (canonicalOrder.get(id) ?? 0),
+      );
+      if (at === -1) result.push(id);
+      else result.splice(at, 0, id);
+    }
+    return result;
+  }
   return DEFAULT_VISIBLE_COLUMNS.filter((id) => allowed.has(id));
 }
 

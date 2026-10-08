@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Group, Pagination, Table, Text } from '@mantine/core';
-import { IconMailOff } from '@tabler/icons-react';
+import { ActionIcon, Box, Group, Loader, Pagination, Table, Text, Tooltip } from '@mantine/core';
+import { IconLink, IconMailOff } from '@tabler/icons-react';
 import type { MailType } from '@/shared/types';
 import { MAIL_DELIVERY_METHOD_EMOJI, MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import { getOrderedColumns } from './mail-columns';
@@ -45,6 +45,7 @@ interface MailTableProps {
   onResetFilters: () => void;
   hasFilters: boolean;
   emptyHint: string;
+  highlightedMailId?: string | null;
 }
 
 /** Узкая колонка всё ещё должна читаться: меньше — уже не буква, а полоса. */
@@ -82,12 +83,14 @@ function Cell({
   row,
   objectNames,
   onOpenFiles,
+  onRelations,
   actions,
 }: {
   id: MailColumnId;
   row: MailRow;
   objectNames: Map<string, string>;
   onOpenFiles: (mailId: string) => void;
+  onRelations: (mailId: string) => void;
   actions: React.ReactNode;
 }) {
   switch (id) {
@@ -162,11 +165,25 @@ function Cell({
             {formatMailDate(row.created)}, {formatMailTimestamp(row.created).slice(-5)}
           </Text>
           <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-              {row.createdByName ? ` ${row.createdByName}` : ''}
+            {row.createdByName ? ` ${row.createdByName}` : ''}
           </Text>
         </>
       ) : (
         <Text size="sm">{MAIL_EMPTY_CELL}</Text>
+      );
+    case 'thread':
+      return (
+        <Tooltip label="Переписка">
+          <ActionIcon
+            size="sm"
+            variant="subtle"
+            color="gray"
+            aria-label={`Переписка письма ${row.number || row.id}`}
+            onClick={() => onRelations(row.id)}
+          >
+            <IconLink size={16} />
+          </ActionIcon>
+        </Tooltip>
       );
     case 'actions':
       return actions;
@@ -203,6 +220,7 @@ export function MailTable({
   onResetFilters,
   hasFilters,
   emptyHint,
+  highlightedMailId,
 }: MailTableProps) {
   const columns = getOrderedColumns(visibleColumns, mailType);
   const columnIds = visibleColumns;
@@ -301,8 +319,8 @@ export function MailTable({
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {rows.map((row) => (
-              <Table.Tr key={row.id}>
+{rows.map((row) => (
+                <Table.Tr key={row.id} data-highlight-id={row.id}>
                 {columns.map((column) => (
                   <Table.Td key={column.id} style={TD_STYLE}>
                     <Cell
@@ -310,6 +328,7 @@ export function MailTable({
                       row={row}
                       objectNames={objectNames}
                       onOpenFiles={onOpenFiles}
+                      onRelations={onRelations}
                       actions={
                         column.id === 'actions' ? (
                           <MailActionsMenu
@@ -319,7 +338,6 @@ export function MailTable({
                             onEdit={onEdit}
                             onDelete={onDelete}
                             onHistory={onHistory}
-                            onRelations={onRelations}
                           />
                         ) : null
                       }
@@ -332,15 +350,26 @@ export function MailTable({
               <Table.Tr>
                 <Table.Td colSpan={columns.length}>
                   <Box ta="center" py="xl">
-                    <IconMailOff
-                      size={36}
-                      stroke={1.5}
-                      style={{ color: 'var(--mantine-color-gray-5)' }}
-                    />
-                    <Text c="dimmed" mt="xs">
-                      {loading ? 'Загрузка писем…' : emptyHint}
-                    </Text>
-                    {!loading && hasFilters && <MailFiltersReset onReset={onResetFilters} />}
+                    {loading ? (
+                      <>
+                        <Loader size="sm" />
+                        <Text c="dimmed" mt="xs">
+                          Загрузка писем…
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <IconMailOff
+                          size={36}
+                          stroke={1.5}
+                          style={{ color: 'var(--mantine-color-gray-5)' }}
+                        />
+                        <Text c="dimmed" mt="xs">
+                          {emptyHint}
+                        </Text>
+                        {hasFilters && <MailFiltersReset onReset={onResetFilters} />}
+                      </>
+                    )}
                   </Box>
                 </Table.Td>
               </Table.Tr>
@@ -364,6 +393,7 @@ export function MailTable({
         onDelete={onDelete}
         onHistory={onHistory}
         onRelations={onRelations}
+        highlightedMailId={highlightedMailId}
       />
 
       {pageCount > 1 && (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import {
   ActionIcon,
@@ -61,9 +61,12 @@ import { MailThreadBuilder } from './MailThreadBuilder';
 import { candidateByKey, parentEdgesOf, planLinkChange } from './mail-parent';
 import { useMailLinkChange } from './useMailLinkChange';
 import { useOrgMailThread } from './useOrgMailThread';
+import { useOrgCounterparties } from './useOrgCounterparties';
 import { mailNodeKey } from './mail-thread';
 import type { MailNodeKey } from './mail-thread';
 import { MAIL_REGISTER_TAB_LABELS, MAIL_TYPE_LABELS } from './mail-labels';
+import { CSS } from '@dnd-kit/utilities';
+import { computeRegisterTarget } from './mail-register-target';
 
 interface MailSectionProps {
   orgId: string;
@@ -112,6 +115,39 @@ export function MailSection({ orgId }: MailSectionProps) {
   const [tab, setTab] = useState<MailType>('incoming');
   const [page, setPage] = useState(1);
   const filters = useMailFilters();
+  const isSearchMode = filters.filters.search.trim() !== '';
+
+  const requestHighlight = (mailId: string): void => {
+    setHighlightedMailId(mailId);
+    setHighlightRequestId((prev) => prev + 1);
+  };
+
+  const clearHighlight = useCallback(() => {
+    setHighlightedMailId(null);
+  }, []);
+
+  const handleGoToRegister = (
+    mailId: string,
+    mailType: MailType,
+    dateKey: string,
+  ): void => {
+    setThreadTarget(null);
+    filters.resetAll();
+        setPage(1);
+    if (dateKey) {
+      const target = computeRegisterTarget(mailType, dateKey, tab);
+      if (target.tab !== tab) {
+        setTab(target.tab);
+      }
+      if (target.customFrom && target.customTo) {
+        filters.setCustomRange(target.customFrom, target.customTo);
+      }
+      requestHighlight(mailId);
+    }
+  };
+
+  const [highlightedMailId, setHighlightedMailId] = useState<string | null>(null);
+  const [highlightRequestId, setHighlightRequestId] = useState(0);
 
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [formType, setFormType] = useState<MailType>('incoming');
@@ -130,7 +166,6 @@ export function MailSection({ orgId }: MailSectionProps) {
   const incoming = useIncomingMails(orgId, query);
   const outgoing = useOutgoingMails(orgId, query);
 
-  const isSearchMode = filters.filters.search.trim() !== '';
   const foldedQuery = foldSearchText(filters.filters.search);
 
   const allQuery = useMemo(() => {
@@ -139,8 +174,8 @@ export function MailSection({ orgId }: MailSectionProps) {
     return result;
   }, [filters.query]);
 
-  const incomingAll = useAllIncomingMails(orgId, allQuery);
-  const outgoingAll = useAllOutgoingMails(orgId, allQuery);
+  const incomingAll = useAllIncomingMails(orgId, allQuery, isSearchMode);
+  const outgoingAll = useAllOutgoingMails(orgId, allQuery, isSearchMode);
 
   const pageCount = isSearchMode
     ? Math.ceil(
@@ -156,10 +191,10 @@ export function MailSection({ orgId }: MailSectionProps) {
   // мутации фильтров идут через `useMailFilters`, поэтому одного этого
   // состояния достаточно — `handleSearchChange` ниже лишь сбрасывает страницу
   // раньше, чем дойдёт до эффекта.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+useEffect(() => {
     setPage(1);
-  }, [tab, filters.filters]);
+    clearHighlight();
+  }, [tab, filters.filters, clearHighlight]);
 
   // Страховка от «страницы за последней»: строки удаляются и с этой таблицы
   // (кнопка «Удалить»), и с другого устройства, поэтому общее число страниц
@@ -167,10 +202,13 @@ export function MailSection({ orgId }: MailSectionProps) {
   // поступает так же.
   useEffect(() => {
     if (pageCount > 0 && page > pageCount) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPage(pageCount);
+            setPage(pageCount);
     }
   }, [page, pageCount]);
+
+  // Подсказки контрагентов нужны, пока открыта форма: словарь качается по
+  // требованию, а не при каждом открытии `/mail`.
+  const { counterpartyOptions } = useOrgCounterparties(orgId, formTarget !== null);
 
   const editId = formTarget?.mode === 'edit' ? formTarget.mailId : '';
   const incomingDetail = useIncomingMail(formType === 'incoming' ? editId : '');
@@ -314,6 +352,23 @@ export function MailSection({ orgId }: MailSectionProps) {
     filters.setSearch(value);
     setPage(1);
   };
+
+
+  // Флеш-подсветка — аналог InvoiceSection.
+  useEffect(() => {
+    if (!highlightedMailId) return;
+    const target = document.querySelector(
+      `[data-highlight-id="${CSS.escape(highlightedMailId)}"]`,
+    );
+    if (!target || target.classList.contains('row-flash')) return;
+    if (getComputedStyle(target).display === 'none') return;
+    target.classList.add('row-flash');
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const timer = window.setTimeout(() => {
+      target.classList.remove('row-flash');
+    }, 2600);
+    return () => clearTimeout(timer);
+  }, [highlightedMailId, highlightRequestId]);
 
   const { data: savedColumns } = useUserSetting('mail_columns');
   const saveColumns = useUpsertUserSetting('mail_columns');
@@ -536,7 +591,7 @@ export function MailSection({ orgId }: MailSectionProps) {
                 chips={chips}
               />
               <Box>
-                <MailTable
+<MailTable
                   orgId={orgId}
                   mailType={tab}
                   rows={rows}
@@ -558,8 +613,9 @@ export function MailSection({ orgId }: MailSectionProps) {
                   onRelations={(mailId) => setThreadTarget({ mailId, mailType: tab })}
                   onResetFilters={filters.resetAll}
                   hasFilters={filters.activeCount > 0}
+                  highlightedMailId={highlightedMailId}
                   emptyHint={
-                    filters.activeCount > 0 ? 'Писем по заданным условиям нет' : 'Писем пока нет'
+                    filters.activeCount > 0 ? 'Писем по заданным условиям нет' : 'Писей пока нет'
                   }
                 />
               </Box>
@@ -579,6 +635,7 @@ export function MailSection({ orgId }: MailSectionProps) {
           value: option.id,
           label: option.name,
         }))}
+        counterpartyOptions={counterpartyOptions}
         candidates={thread.candidates}
         parentEdges={thread.parentEdges}
         graph={thread.graph}
@@ -618,6 +675,7 @@ export function MailSection({ orgId }: MailSectionProps) {
         permissions={permissions}
         rootMailId={threadTarget?.mailId ?? ''}
         rootMailType={threadTarget?.mailType ?? tab}
+        onGoToRegister={handleGoToRegister}
       />
 
       <MailColumnSettingsModal

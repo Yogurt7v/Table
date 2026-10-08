@@ -17,6 +17,7 @@ export type MailColumnId =
   | 'accounting_object_id'
   | 'files'
   | 'created'
+  | 'thread'
   | 'actions';
 
 export interface MailColumnDef {
@@ -50,6 +51,10 @@ const OBJECT = 108;
 // текстовой колонки; вес взят у соседей, а не добавлен к сумме.
 const FILES = 168;
 const CREATED = 98;
+// Вес взят у «Действий» не по совпадению: подписи «Переписка» и «Действия»
+// одной длины, а заголовок обрезается по `overflow: hidden`, поэтому более узкая
+// доля обрезала бы текст.
+const THREAD = 72;
 const ACTIONS = 72;
 
 /** Канонический порядок колонок; он же порядок по умолчанию. */
@@ -65,6 +70,7 @@ export const ALL_MAIL_COLUMNS: MailColumnDef[] = [
   { id: 'accounting_object_id', label: 'Объект учёта', weight: OBJECT },
   { id: 'files', label: 'Файлы', weight: FILES },
   { id: 'created', label: 'Дата создания', weight: CREATED },
+  { id: 'thread', label: 'Переписка', weight: THREAD },
   { id: 'actions', label: 'Действия', weight: ACTIONS },
 ];
 

@@ -6,13 +6,14 @@ import {
   IconArrowUpRight,
   IconGripVertical,
   IconMail,
+  IconSearch,
 } from '@tabler/icons-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { MailLetter } from './mail-thread';
 import { MAIL_TREE_INDENT, mailNodeDropId } from './mail-thread-builder';
 import type { ThreadLineNode, ThreadDirection, ThreadOverState } from './mail-thread-builder';
-import { formatMailDate } from './mail-date';
+import { formatMailDate, toDateKey } from './mail-date';
 import { MAIL_CHAIN_DIRECTION_LABELS } from './mail-thread-labels';
 import { MAIL_EMPTY_CELL, MAIL_REGISTER_BADGE_LABELS, MAIL_REGISTER_COLORS } from './mail-labels';
 
@@ -57,6 +58,8 @@ interface MailThreadNodeProps {
   overState: ThreadOverState;
   /** Узкий экран: дата и номер встают над письмом, линия остаётся слева. */
   stacked: boolean;
+  /** Вызывать при клике по иконке «Переписка» — переход к письму в реестре. */
+  onGoToRegister?: (letter: MailLetter, type: MailType) => void;
 }
 
 /**
@@ -211,6 +214,22 @@ export function MailThreadNode({
                   </Text>
                 )}
               </Box>
+
+              {letter && onGoToRegister && (
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size={28}
+                  aria-label={`Перейти к письму в реестре: ${letterLabel(letter)}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onGoToRegister(letter.id, letter.type, toDateKey(letter.date) ?? '');
+                  }}
+                  style={{ flexShrink: 0 }}
+                >
+                  <IconSearch size={16} />
+                </ActionIcon>
+              )}
             </Group>
           </Paper>
         </Box>

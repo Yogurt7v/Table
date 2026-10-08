@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import {
+  Autocomplete,
   Button,
   Box,
   Group,
@@ -41,7 +42,10 @@ import type {
   ParentIntent,
   ParentEdgeIndex,
 } from './mail-parent';
+import { isOptionsGroup } from '@mantine/core';
+import type { ComboboxItem, ComboboxLikeProps } from '@mantine/core';
 import { MailChainView } from './MailChainView';
+import { rankCounterpartyMatches } from './mail-counterparty-match';
 import { MailLinkControl } from './MailLinkControl';
 import { MailParentPicker } from './MailParentPicker';
 import { MailParentStrip } from './MailParentStrip';
@@ -73,6 +77,41 @@ const RESOLVE_DEBOUNCE_MS = 280;
  */
 const CHAIN_PREVIEW_MAX_HEIGHT = 260;
 
+/**
+ * Потолок выпадающего списка подсказок контрагентов. Восемь строк `limit`
+ * однострочными названиями в него укладываются, а длинные названия с переносом
+ * второй строки — уже нет, и список обязан остаться прокручиваемым блоком, а не
+ * растягивать форму. Величина того же порядка, что `CHAIN_PREVIEW_MAX_HEIGHT`:
+ * оба потолка ограничивают один скролл внутри окна.
+ */
+const COUNTERPARTY_DROPDOWN_MAX_HEIGHT = 300;
+
+type CounterpartyFilter = NonNullable<ComboboxLikeProps['filter']>;
+
+/**
+ * Переходник от `filter` Mantine к `rankCounterpartyMatches`, который про Mantine
+ * ничего не знает.
+ *
+ * Свой `filter` вместо штатного `defaultOptionsFilter` обязателен по двум
+ * причинам, проверенным по исходникам Mantine 7.17.8: тот сохраняет порядок
+ * `options` и режет его по `limit` (а словарь отсортирован по алфавиту целиком,
+ * поэтому совпадение из середины слова не доходило до выпадающего списка), и он
+ * делает только `trim()`, тогда как ранжирование сравнивает через
+ * `foldSearchText` — из-за неразрывных пробелов в названиях.
+ *
+ * Групп в `data` быть не может — он собран из строк, — но тип `filter` допускает
+ * `ComboboxParsedItemGroup`, поэтому группы отсекаются штатным `isOptionsGroup`,
+ * а не приведением типа. Возвращаем те же опции, что пришли: `label` у них равен
+ * `value`, и пересобирать его здесь означало бы дублировать формат Mantine.
+ */
+const rankCounterpartyOptions: CounterpartyFilter = ({ options, search, limit }) => {
+  const items = options.filter((option): option is ComboboxItem => !isOptionsGroup(option));
+  const byValue = new Map(items.map((option) => [option.value, option]));
+  return rankCounterpartyMatches([...byValue.keys()], search, limit)
+    .map((value) => byValue.get(value))
+    .filter((option): option is ComboboxItem => option !== undefined);
+};
+
 interface MailFormModalProps {
   opened: boolean;
   onClose: () => void;
@@ -83,6 +122,8 @@ interface MailFormModalProps {
   allowedTypes: MailType[];
   accountingObjects: { value: string; label: string }[];
   responsibleOptions: { value: string; label: string }[];
+  /** Контрагенты организации для подсказок — общий словарь обеих вкладок. */
+  counterpartyOptions: string[];
   saving: boolean;
   /** Связи организации: кандидаты в родители и уже записанные связи. */
   candidates: MailCandidateLookup | undefined;
@@ -133,6 +174,7 @@ export function MailFormModal({
   allowedTypes,
   accountingObjects,
   responsibleOptions,
+  counterpartyOptions,
   saving,
   candidates,
   parentEdges,
@@ -235,7 +277,12 @@ export function MailFormModal({
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Enter') return;
-    if ((e.target as HTMLElement).tagName === 'TEXTAREA') return;
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'TEXTAREA') return;
+    // Enter в списке с подсвеченной опцией принадлежит списку, а не форме: и
+    // `Autocomplete`, и `MultiSelect` вешают `aria-activedescendant` только при
+    // реальной подсветке (после `ArrowDown`) — проверено на Mantine 7.17.8.
+    if (target.dataset.expanded === 'true' && target.getAttribute('aria-activedescendant')) return;
     e.preventDefault();
     submit();
   };
@@ -280,12 +327,16 @@ export function MailFormModal({
         </Group>
 
         <Group grow align="flex-start">
-          <TextInput
+          <Autocomplete
             label={MAIL_COUNTERPARTY_FIELD_LABELS[mailType]}
             placeholder={MAIL_COUNTERPARTY_FIELD_LABELS[mailType]}
             required
             value={form.counterparty}
-            onChange={(e) => patch({ counterparty: e.currentTarget.value })}
+            onChange={(value) => patch({ counterparty: value })}
+            data={counterpartyOptions}
+            filter={rankCounterpartyOptions}
+            limit={8}
+            maxDropdownHeight={COUNTERPARTY_DROPDOWN_MAX_HEIGHT}
             error={errors.counterparty}
           />
           <TextInput

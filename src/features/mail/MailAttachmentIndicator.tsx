@@ -29,8 +29,8 @@ export function MailAttachmentIndicator({
   onOpenFiles,
 }: MailAttachmentIndicatorProps) {
   const hasAttachments = row.attachmentCount > 0;
-  const [firstName] = row.attachmentNames;
-  const hiddenCount = row.attachmentNames.length - 1;
+  // const [firstName] = row.attachmentNames;
+  // const hiddenCount = row.attachmentNames.length - 1;
 
   return (
     <Tooltip
@@ -50,7 +50,7 @@ export function MailAttachmentIndicator({
         >
           <IconPaperclip size={16} />
         </ActionIcon>
-        {firstName && (
+        {/*{firstName && (
           <>
             <Text
               size="xs"
@@ -67,7 +67,7 @@ export function MailAttachmentIndicator({
               </Text>
             )}
           </>
-        )}
+        )}*/}
       </Group>
     </Tooltip>
   );

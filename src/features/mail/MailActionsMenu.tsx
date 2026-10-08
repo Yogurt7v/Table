@@ -1,5 +1,5 @@
 import { ActionIcon, Menu } from '@mantine/core';
-import { IconHistory, IconLink, IconPencil, IconSettings, IconTrash } from '@tabler/icons-react';
+import { IconHistory, IconPencil, IconSettings, IconTrash } from '@tabler/icons-react';
 import type { MailType } from '@/shared/types';
 import type { MailPermissions } from './mail-field-access';
 
@@ -11,8 +11,6 @@ interface MailActionsMenuProps {
   onEdit: (mailId: string) => void;
   onDelete: (mailId: string) => void;
   onHistory: (mailId: string) => void;
-  /** Открывает конструктор переписки вокруг письма — `MailThreadBuilder`. */
-  onRelations: (mailId: string) => void;
 }
 
 /**
@@ -29,7 +27,6 @@ export function MailActionsMenu({
   onEdit,
   onDelete,
   onHistory,
-  onRelations,
 }: MailActionsMenuProps) {
   const canEdit =
     mailType === 'incoming' ? permissions.canEditIncoming : permissions.canEditOutgoing;
@@ -60,9 +57,6 @@ export function MailActionsMenu({
             История
           </Menu.Item>
         )}
-        <Menu.Item leftSection={<IconLink size={14} />} onClick={() => onRelations(mailId)}>
-          Переписка
-        </Menu.Item>
         {canDelete && (
           <Menu.Item
             leftSection={<IconTrash size={14} />}

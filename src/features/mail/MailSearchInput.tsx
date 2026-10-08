@@ -92,8 +92,8 @@ export function MailSearchInput({
         value={text}
         onChange={(e) => setText(e.currentTarget.value)}
         size="sm"
-        w="100%"
-        style={{ flex: 1, minWidth: 0 }}
+        // style={{ flex: 1, minWidth: 0 }}
+        w="30%"
         disabled={disabled}
         aria-label={`Поиск по ${scopeLabel}`}
       />

@@ -7,8 +7,14 @@ import {
   getColumnSettingsItems,
   resolveVisibleColumns,
 } from './mail-column-visibility';
+import { COLUMNS_AT_LAYOUT_INTRO } from './mail-column-visibility';
 import type { MailColumnSettingItem } from './mail-column-visibility';
-import { ALL_MAIL_COLUMNS, DEFAULT_VISIBLE_COLUMNS, getOrderedColumns } from './mail-columns';
+import {
+  ALL_MAIL_COLUMNS,
+  DEFAULT_VISIBLE_COLUMNS,
+  getMailColumnLabel,
+  getOrderedColumns,
+} from './mail-columns';
 import type { MailColumnId } from './mail-columns';
 import { NO_MAIL_PERMISSIONS } from './mail-field-access';
 import type { MailPermissions } from './mail-field-access';
@@ -19,6 +25,27 @@ const withPermissions = (overrides: Partial<MailPermissions>): MailPermissions =
 });
 
 const READ_ONLY = withPermissions({ canView: true });
+
+/**
+ * Ожидание по контракту `resolveVisibleColumns`: сохранённый список задаёт
+ * порядок, а колонки, добавленные после того, как он был сохранён, встают на своё
+ * каноническое место относительно сохранённых. Оба правила выведены из
+ * `DEFAULT_VISIBLE_COLUMNS` и `COLUMNS_AT_LAYOUT_INTRO`, а не записаны списком —
+ * иначе следующая новая колонка снова сломала бы эти проверки.
+ */
+const withColumnsAddedLater = (...saved: MailColumnId[]): MailColumnId[] => {
+  const canonical = new Map(DEFAULT_VISIBLE_COLUMNS.map((id, index) => [id, index]));
+  const result = [...saved];
+  for (const id of DEFAULT_VISIBLE_COLUMNS) {
+    if (result.includes(id) || COLUMNS_AT_LAYOUT_INTRO.includes(id)) continue;
+    const at = result.findIndex(
+      (existing) => (canonical.get(existing) ?? 0) > (canonical.get(id) ?? 0),
+    );
+    if (at === -1) result.push(id);
+    else result.splice(at, 0, id);
+  }
+  return result;
+};
 
 const FULL = withPermissions({
   canView: true,
@@ -90,19 +117,15 @@ describe('mail-column-visibility', () => {
 
   it('a saved setting containing a now-forbidden column is filtered out', () => {
     const saved = ['seq', 'actions', 'subject', 'files', 'date'];
-    expect(resolveVisibleColumns(saved, READ_ONLY)).toEqual(['seq', 'subject', 'date']);
-    expect(resolveVisibleColumns(saved, withPermissions({ canEditIncoming: true }))).toEqual([
-      'seq',
-      'actions',
-      'subject',
-      'date',
-    ]);
-    expect(resolveVisibleColumns(saved, withPermissions({ canManageFiles: true }))).toEqual([
-      'seq',
-      'subject',
-      'files',
-      'date',
-    ]);
+    expect(resolveVisibleColumns(saved, READ_ONLY)).toEqual(
+      withColumnsAddedLater('seq', 'subject', 'date'),
+    );
+    expect(resolveVisibleColumns(saved, withPermissions({ canEditIncoming: true }))).toEqual(
+      withColumnsAddedLater('seq', 'actions', 'subject', 'date'),
+    );
+    expect(resolveVisibleColumns(saved, withPermissions({ canManageFiles: true }))).toEqual(
+      withColumnsAddedLater('seq', 'subject', 'files', 'date'),
+    );
   });
 
   it('an edit flag alone does not open files — the flags are read independently', () => {
@@ -113,8 +136,20 @@ describe('mail-column-visibility', () => {
   });
 
   it('a saved setting keeps the order it was stored in', () => {
-    const saved = ['subject', 'seq', 'date'];
-    expect(resolveVisibleColumns(saved, READ_ONLY)).toEqual(saved);
+    const saved: MailColumnId[] = ['subject', 'seq', 'date'];
+    expect(resolveVisibleColumns(saved, READ_ONLY)).toEqual(withColumnsAddedLater(...saved));
+  });
+
+  it('a column shipped after the layout was saved lands in its canonical position', () => {
+    const saved: MailColumnId[] = ['subject', 'seq'];
+    expect(resolveVisibleColumns(saved, FULL)).toEqual(withColumnsAddedLater(...saved));
+  });
+
+  it('a column the user deliberately hid is not restored', () => {
+    // Сохранённый список не различает «я убрал» и «её тогда не было», поэтому
+    // границей между ними служит исходный состав колонок на момент настройки.
+    const saved = ['seq', 'subject'];
+    expect(resolveVisibleColumns(saved, FULL)).toEqual(withColumnsAddedLater('seq', 'subject'));
   });
 
   it('an empty or malformed saved setting falls back to the defaults', () => {
@@ -125,7 +160,9 @@ describe('mail-column-visibility', () => {
   });
 
   it('a saved setting repeated twice is collapsed', () => {
-    expect(resolveVisibleColumns(['seq', 'seq', 'date'], READ_ONLY)).toEqual(['seq', 'date']);
+    expect(resolveVisibleColumns(['seq', 'seq', 'date'], READ_ONLY)).toEqual(
+      withColumnsAddedLater('seq', 'date'),
+    );
   });
 
   it('getColumnSettingsItems returns only allowed columns with labels', () => {
@@ -158,5 +195,26 @@ describe('mail-column-visibility', () => {
     expect(incoming.map((item) => item.label)).toEqual(
       getOrderedColumns(DEFAULT_VISIBLE_COLUMNS, 'incoming').map((column) => column.header),
     );
+  });
+
+  it('the thread column is not capability-gated and survives a read-only flag set', () => {
+    expect(ALWAYS_ALLOWED_COLUMNS).toContain('thread');
+    expect(getAllowedColumns(NO_MAIL_PERMISSIONS)).toContain('thread');
+    expect(getAllowedColumns(READ_ONLY)).toContain('thread');
+    expect(resolveVisibleColumns(undefined, READ_ONLY)).toContain('thread');
+  });
+
+  it('the thread column is visible by default', () => {
+    expect(DEFAULT_VISIBLE_COLUMNS).toContain('thread');
+  });
+
+  it('the thread column is labelled the same for incoming and outgoing mail', () => {
+    expect(getMailColumnLabel('thread', 'incoming')).toBe('Переписка');
+    expect(getMailColumnLabel('thread', 'outgoing')).toBe('Переписка');
+  });
+
+  it('the thread column sits immediately before actions', () => {
+    const ids = ALL_MAIL_COLUMNS.map((column) => column.id);
+    expect(ids.indexOf('thread')).toBe(ids.indexOf('actions') - 1);
   });
 });
