@@ -24,7 +24,7 @@ export type MailRegisterTarget = {
  */
 export function computeRegisterTarget(
   targetType: MailType,
-  targetDate?: string | null,
+  targetDate: string | null | undefined,
   currentTab: MailType,
 ): MailRegisterTarget {
   const shouldSwitchTab = targetType !== currentTab;

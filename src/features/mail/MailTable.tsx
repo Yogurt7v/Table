@@ -39,6 +39,7 @@ interface MailTableProps {
   onPageChange: (page: number) => void;
   onOpenFiles: (mailId: string) => void;
   onEdit: (mailId: string) => void;
+  onCopy: (mailId: string) => void;
   onDelete: (mailId: string) => void;
   onHistory: (mailId: string) => void;
   onRelations: (mailId: string) => void;
@@ -214,6 +215,7 @@ export function MailTable({
   onPageChange,
   onOpenFiles,
   onEdit,
+  onCopy,
   onDelete,
   onHistory,
   onRelations,
@@ -319,8 +321,8 @@ export function MailTable({
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-{rows.map((row) => (
-                <Table.Tr key={row.id} data-highlight-id={row.id}>
+            {rows.map((row) => (
+              <Table.Tr key={row.id} data-highlight-id={row.id}>
                 {columns.map((column) => (
                   <Table.Td key={column.id} style={TD_STYLE}>
                     <Cell
@@ -336,6 +338,7 @@ export function MailTable({
                             mailType={mailType}
                             permissions={permissions}
                             onEdit={onEdit}
+                            onCopy={onCopy}
                             onDelete={onDelete}
                             onHistory={onHistory}
                           />
@@ -390,6 +393,7 @@ export function MailTable({
         permissions={permissions}
         visibleColumns={visibleColumns}
         onEdit={onEdit}
+        onCopy={onCopy}
         onDelete={onDelete}
         onHistory={onHistory}
         onRelations={onRelations}

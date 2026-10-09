@@ -74,20 +74,14 @@ describe('страница писем не содержит удалённых �
 });
 
 describe('период по-прежнему достижим целиком', () => {
-  it('все четыре предустановки лежат пунктами меню «Фильтр»', () => {
-    const items = MAIL_FILTERS.match(/const PERIOD_ITEMS = \[[^\]]*\]/)?.[0] ?? '';
-    for (const preset of ['today', 'week', 'month', 'all']) {
-      expect(items).toContain(`'${preset}'`);
-    }
-    // Пункты, а не отдельная строка кнопок: точка входа одна — меню фильтров.
-    expect(MAIL_FILTERS).toMatch(/PERIOD_ITEMS\.map/);
-    expect(MAIL_FILTERS).toMatch(/filters\.setPeriod/);
-  });
-
-  it('произвольный диапазон остался двумя пикерами рядом с меню', () => {
-    expect(MAIL_FILTERS).toMatch(/Период с/);
-    expect(MAIL_FILTERS).toMatch(/Период по/);
+  it('произвольный диапазон остался одним пикером в поповере', () => {
+    expect(MAIL_FILTERS).toMatch(/data-mail-filter-period/);
+    expect(MAIL_FILTERS).toMatch(/aria-label="Период"/);
     expect(MAIL_FILTERS).toMatch(/setCustomRange/);
+    // Двух отдельных пикеров «Период с»/«Период по» больше нет: один вход
+    // задаёт весь диапазон, поэтому их отсутствие тоже закреплено.
+    expect(MAIL_FILTERS).not.toMatch(/Период с/);
+    expect(MAIL_FILTERS).not.toMatch(/Период по/);
   });
 });
 

@@ -10,6 +10,7 @@ import {
 } from '@tabler/icons-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import type { MailType } from '@/shared/types';
 import type { MailLetter } from './mail-thread';
 import { MAIL_TREE_INDENT, mailNodeDropId } from './mail-thread-builder';
 import type { ThreadLineNode, ThreadDirection, ThreadOverState } from './mail-thread-builder';
@@ -76,7 +77,7 @@ export function MailThreadNode({
   droppable,
   overState,
   stacked,
-  onGoToRegister
+  onGoToRegister,
 }: MailThreadNodeProps) {
   const letter = node.letter;
   const {

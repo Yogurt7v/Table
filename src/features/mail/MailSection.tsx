@@ -35,7 +35,13 @@ import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
 import { mailSearchFieldsOf } from './mail-field-access';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import { MAIL_DELIVERY_METHOD_NAMES, type IAccountingObject, type IIncomingMail, type IOutgoingMail, type MailType } from '@/shared/types';
+import {
+  MAIL_DELIVERY_METHOD_NAMES,
+  type IAccountingObject,
+  type IIncomingMail,
+  type IOutgoingMail,
+  type MailType,
+} from '@/shared/types';
 import { MAIL_PAGE_SIZE } from '@/api/mail';
 import { buildFilterChips, useMailFilters } from './useMailFilters';
 import {
@@ -72,7 +78,10 @@ interface MailSectionProps {
   orgId: string;
 }
 
-type FormTarget = { mode: 'create' } | { mode: 'edit'; mailId: string };
+type FormTarget =
+  | { mode: 'create' }
+  | { mode: 'edit'; mailId: string }
+  | { mode: 'copy'; mailId: string };
 
 /** Корень дерева переписки с указанием регистра: родитель может быть из другого. */
 type ThreadTarget = { mailId: string; mailType: MailType };
@@ -172,10 +181,10 @@ export function MailSection({ orgId }: MailSectionProps) {
 
   const pageCount = isSearchMode
     ? Math.ceil(
-        (tab === 'incoming' ? incomingAll.data?.length ?? 0 : outgoingAll.data?.length ?? 0) /
+        (tab === 'incoming' ? (incomingAll.data?.length ?? 0) : (outgoingAll.data?.length ?? 0)) /
           MAIL_PAGE_SIZE,
       )
-    : (tab === 'incoming' ? incoming : outgoing).data?.totalPages ?? 0;
+    : ((tab === 'incoming' ? incoming : outgoing).data?.totalPages ?? 0);
 
   // Смена вкладки или ЛЮБОГО фильтра возвращает на первую страницу. Иначе
   // пользователь, сидящий на третьей странице входящих, ставит узкий фильтр
@@ -184,7 +193,7 @@ export function MailSection({ orgId }: MailSectionProps) {
   // мутации фильтров идут через `useMailFilters`, поэтому одного этого
   // состояния достаточно — `handleSearchChange` ниже лишь сбрасывает страницу
   // раньше, чем дойдёт до эффекта.
-useEffect(() => {
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [tab, filters.filters]);
@@ -204,7 +213,7 @@ useEffect(() => {
   // требованию, а не при каждом открытии `/mail`.
   const { counterpartyOptions } = useOrgCounterparties(orgId, formTarget !== null);
 
-  const editId = formTarget?.mode === 'edit' ? formTarget.mailId : '';
+  const editId = formTarget && formTarget.mode !== 'create' ? formTarget.mailId : '';
   const incomingDetail = useIncomingMail(formType === 'incoming' ? editId : '');
   const outgoingDetail = useOutgoingMail(formType === 'outgoing' ? editId : '');
   const editingMail = (formType === 'incoming' ? incomingDetail.data : outgoingDetail.data) as
@@ -291,17 +300,23 @@ useEffect(() => {
     return map;
   }, [objects]);
 
+  /**
+   * Ответственные по id, а не по имени. Словарь склеивал одноимённых в одну
+   * подпись, и второго сотрудника «Иванова» нельзя было ни выбрать, ни
+   * отобразить: подпись уже занята первым. Ответственных у письма несколько,
+   * значит и список людей должен быть кратным, а не уникальным по подписи.
+   */
   const responsibleOptions = useMemo(() => {
     if (!orgUsers) return [];
-    const byName = new Map<string, string>();
+    const byId = new Map<string, string>();
     for (const membership of orgUsers) {
       if (membership.organization_id !== orgId) continue;
       const user = userMap.get(membership.user_id);
       const name = user?.name || user?.login || membership.user_id;
-      if (!byName.has(name)) byName.set(name, membership.user_id);
+      if (!byId.has(membership.user_id)) byId.set(membership.user_id, name);
     }
-    return [...byName.entries()]
-      .map(([name, id]) => ({ id, name }))
+    return [...byId.entries()]
+      .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
   }, [orgUsers, orgId, userMap]);
 
@@ -336,7 +351,7 @@ useEffect(() => {
    * Ровно тот же список флагов, а не роль: роль в почте не решает ничего.
    */
   const canLinkCurrent =
-    formTarget?.mode === 'create'
+    formTarget?.mode !== 'edit'
       ? allowedCreateTypes.includes(formType)
       : formType === 'incoming'
         ? permissions.canEditIncoming
@@ -346,7 +361,6 @@ useEffect(() => {
     filters.setSearch(value);
     setPage(1);
   };
-
 
   // Флеш-подсветка — по образцу `AutoExpandOnHighlight` в реестре счетов.
   // Первого прохода может не хватить: прыжок меняет фильтры, и строка появляется
@@ -424,7 +438,7 @@ useEffect(() => {
     savedMail: { id: string },
     parentKey: MailNodeKey | null,
   ) => {
-    const isCreate = formTarget?.mode === 'create';
+    const isCreate = formTarget?.mode !== 'edit';
     const canLink = isCreate
       ? mailType === 'incoming'
         ? permissions.canCreateIncoming
@@ -585,7 +599,9 @@ useEffect(() => {
             onChange={handleSearchChange}
             scopeLabel="переписке"
             resultCount={rows.length}
-            resultTotal={isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)}
+            resultTotal={
+              isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)
+            }
           />
         </Box>
 
@@ -612,7 +628,7 @@ useEffect(() => {
                 chips={chips}
               />
               <Box>
-<MailTable
+                <MailTable
                   orgId={orgId}
                   mailType={tab}
                   rows={rows}
@@ -622,12 +638,18 @@ useEffect(() => {
                   permissions={permissions}
                   page={page}
                   pageCount={pageCount}
-                  totalItems={isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)}
+                  totalItems={
+                    isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)
+                  }
                   onPageChange={setPage}
                   onOpenFiles={setFilesFor}
                   onEdit={(mailId) => {
                     setFormType(tab);
                     setFormTarget({ mode: 'edit', mailId });
+                  }}
+                  onCopy={(mailId) => {
+                    setFormType(tab);
+                    setFormTarget({ mode: 'copy', mailId });
                   }}
                   onDelete={setDeleteFor}
                   onHistory={setHistoryFor}
@@ -649,7 +671,8 @@ useEffect(() => {
         opened={formTarget !== null}
         onClose={() => setFormTarget(null)}
         mailType={formType}
-        mail={formTarget?.mode === 'edit' ? (editingMail ?? null) : null}
+        mail={formTarget && formTarget.mode !== 'create' ? (editingMail ?? null) : null}
+        copying={formTarget?.mode === 'copy'}
         allowedTypes={allowedCreateTypes}
         accountingObjects={[...objectNames].map(([value, label]) => ({ value, label }))}
         responsibleOptions={responsibleOptions.map((option) => ({
@@ -659,9 +682,6 @@ useEffect(() => {
         counterpartyOptions={counterpartyOptions}
         candidates={thread.candidates}
         parentEdges={thread.parentEdges}
-        graph={thread.graph}
-        letters={thread.letters}
-        cyclicKeys={thread.cyclicKeys}
         canLink={canLinkCurrent}
         saving={saving}
         onTypeChange={setFormType}

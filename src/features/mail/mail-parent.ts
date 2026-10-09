@@ -1,6 +1,7 @@
 import type { IIncomingMail, IMailRelation, IOutgoingMail, MailType } from '@/shared/types';
 import { foldSearchText } from '@/shared/utils/search-text';
-import { toDateKey } from './mail-date';
+import { formatMailDate, toDateKey } from './mail-date';
+import { MAIL_EMPTY_CELL, MAIL_REGISTER_BADGE_LABELS } from './mail-labels';
 import { relationCounterparty, relationNumber } from './mail-relations';
 import { mailNodeKey, resolveRelationEdge } from './mail-thread';
 import type { MailEdge, MailNodeKey } from './mail-thread';
@@ -167,6 +168,44 @@ export function candidateByKey(
 ): MailCandidate | null {
   if (!lookup || !key) return null;
   return lookup.byKey.get(key) ?? null;
+}
+
+/**
+ * Подпись письма в списке выбора родителя: регистр, номер, контрагент и дата.
+ *
+ * Именно в этом порядке, потому что так человек ищет: сначала «входящее или
+ * исходящее», потом номер, и лишь потом организация. Номер и контрагент
+ * разделены точкой, а не тире, — в письмах оба встречаются с дефисами, и
+ * слитная строка читалась бы как одно длинное слово.
+ */
+export function parentOptionLabel(candidate: MailCandidate): string {
+  return [
+    `${MAIL_REGISTER_BADGE_LABELS[candidate.type]} · № ${candidate.number || MAIL_EMPTY_CELL}`,
+    candidate.counterparty || MAIL_EMPTY_CELL,
+    formatMailDate(candidate.dateKey),
+  ].join(' · ');
+}
+
+/**
+ * Опции поля «Ответ на» — те же письма, что и в ручном подборе, но без поиска
+ * по теме и в обратном порядке.
+ *
+ * Сначала письма организации обоих регистров, потому что письмо может отвечать
+ * и на исходящее, и на входящее, — выбор не должен зависеть от открытой вкладки.
+ * Само редактируемое письмо исключается тем же способом, что в `MailParentPicker`:
+ * связь с собой не является ответом на другое письмо. Порядок — обратный
+ * `compareCandidates`: в переписке ищут свежее, а не то, что было первым заведено.
+ */
+export function parentSelectOptions(
+  lookup: MailCandidateLookup | undefined,
+  selfKey: MailNodeKey | null,
+): { value: string; label: string }[] {
+  const all = lookup?.all ?? [];
+  return [...all]
+    .filter((candidate) => candidate.key !== selfKey)
+    .sort(compareCandidates)
+    .reverse()
+    .map((candidate) => ({ value: candidate.key, label: parentOptionLabel(candidate) }));
 }
 
 /**

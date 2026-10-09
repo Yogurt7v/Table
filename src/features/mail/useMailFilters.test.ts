@@ -10,7 +10,7 @@ import {
   toggleInList,
 } from './useMailFilters';
 import { MAIL_NO_ACCOUNTING_OBJECT_LABEL } from './mail-labels';
-import { MAIL_DELIVERY_METHOD_LABELS } from '@/shared/types';
+import { MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import type { MailFilterChip, MailFilterState } from './useMailFilters';
 
 function withOverrides(overrides: Partial<MailFilterState>): MailFilterState {
@@ -24,7 +24,7 @@ const CHIP_CONTEXT = {
     ['obj-2', 'Офис'],
   ]),
   responsibleNames: new Map([['user-1', 'Иванова И. И.']]),
-  deliveryLabels: MAIL_DELIVERY_METHOD_LABELS,
+  deliveryLabels: MAIL_DELIVERY_METHOD_NAMES,
 };
 
 describe('buildMailListQuery', () => {
@@ -183,7 +183,7 @@ describe('buildFilterChips', () => {
 
   it('способ доставки печатается подписью, но снимается по значению', () => {
     const chips = buildFilterChips(withOverrides({ deliveryMethods: ['email'] }), CHIP_CONTEXT);
-    expect(chips[0]?.label).toBe(MAIL_DELIVERY_METHOD_LABELS.email);
+    expect(chips[0]?.label).toBe(MAIL_DELIVERY_METHOD_NAMES.email);
     expect(chips[0]?.value).toBe('email');
   });
 
@@ -193,11 +193,6 @@ describe('buildFilterChips', () => {
     expect(buildFilterChips(state, { ...CHIP_CONTEXT, mailType: 'outgoing' })[0]?.label).toContain(
       'Получатель',
     );
-  });
-
-  it('предустановка периода остаётся своей подписью', () => {
-    const chips = buildFilterChips(withOverrides({ period: 'month' }), CHIP_CONTEXT);
-    expect(chips).toEqual([{ group: 'period', label: 'Месяц', value: 'month' }]);
   });
 
   it('вложения и связи дают по чипу', () => {

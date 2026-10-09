@@ -71,11 +71,28 @@ function outgoingToForm(mail: IOutgoingMail): MailFormState {
 export function toMailForm(
   mailType: MailType,
   mail: IIncomingMail | IOutgoingMail | null,
+  options?: { clearNumber?: boolean },
 ): MailFormState {
   if (!mail) return createEmptyMailForm();
-  return mailType === 'incoming'
-    ? incomingToForm(mail as IIncomingMail)
-    : outgoingToForm(mail as IOutgoingMail);
+  const form =
+    mailType === 'incoming'
+      ? incomingToForm(mail as IIncomingMail)
+      : outgoingToForm(mail as IOutgoingMail);
+  // Номер письма в реестре — зачастую уникальный (и для исходящих обязателен),
+  // поэтому копия оставляет его пустым: так задвоиться невозможно в принципе.
+  return options?.clearNumber ? { ...form, number: '' } : form;
+}
+
+/**
+ * Продолжение формы при смене регистра во время копирования. Реквизиты письма
+ * (дата, контрагент, тема, ответственный, объект учёта, способ доставки,
+ * комментарий) в обоих реестрах значат одно и то же, поэтому переносятся как
+ * есть. Номер — единственное исключение: у входящего это номер контрагента, а у
+ * исходящего наш собственный исходящий номер, то есть в другом регистре прежнее
+ * значение занимало бы не то же самое поле.
+ */
+export function carryOverForRegisterSwitch(form: MailFormState): MailFormState {
+  return { ...form, number: '' };
 }
 
 export function validateMailForm(form: MailFormState, mailType: MailType): MailFormErrors {

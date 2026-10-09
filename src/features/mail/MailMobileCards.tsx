@@ -27,6 +27,7 @@ interface MailMobileCardsProps {
   onResetFilters: () => void;
   onOpenFiles: (mailId: string) => void;
   onEdit: (mailId: string) => void;
+  onCopy: (mailId: string) => void;
   onDelete: (mailId: string) => void;
   onHistory: (mailId: string) => void;
   onRelations: (mailId: string) => void;
@@ -57,6 +58,7 @@ export function MailMobileCards({
   onResetFilters,
   onOpenFiles,
   onEdit,
+  onCopy,
   onDelete,
   onHistory,
   onRelations,
@@ -74,17 +76,17 @@ export function MailMobileCards({
   return (
     <Stack hiddenFrom="sm" gap="sm">
       {rows.map((row) => (
-<Paper
-            key={row.id}
-            withBorder
-            radius="sm"
-            p="xs"
-            style={{
-              boxShadow: 'var(--mantine-shadow-sm)',
-              borderLeft: '3px solid var(--org-color, #228be6)',
-            }}
-            data-highlight-id={row.id}
-          >
+        <Paper
+          key={row.id}
+          withBorder
+          radius="sm"
+          p="xs"
+          style={{
+            boxShadow: 'var(--mantine-shadow-sm)',
+            borderLeft: '3px solid var(--org-color, #228be6)',
+          }}
+          data-highlight-id={row.id}
+        >
           <Group justify="space-between" wrap="nowrap" gap={4} align="flex-start">
             <Group gap={6} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
               {showsSeq && (
@@ -118,6 +120,7 @@ export function MailMobileCards({
                 compact
                 permissions={permissions}
                 onEdit={onEdit}
+                onCopy={onCopy}
                 onDelete={onDelete}
                 onHistory={onHistory}
               />

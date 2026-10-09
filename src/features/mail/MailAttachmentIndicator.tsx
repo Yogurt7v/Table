@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Group, Tooltip } from '@mantine/core';
 import { IconPaperclip } from '@tabler/icons-react';
 import type { MailRow } from './mail-row';
 

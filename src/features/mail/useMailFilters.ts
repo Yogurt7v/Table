@@ -6,7 +6,6 @@ import {
   MAIL_COUNTERPARTY_FIELD_LABELS,
   MAIL_NO_ACCOUNTING_OBJECT_LABEL,
   MAIL_NO_DELIVERY_METHOD_LABEL,
-  MAIL_PERIOD_PRESET_LABELS,
 } from './mail-labels';
 import { dateKeyToBound, formatPeriodBounds, resolvePeriodBounds } from './mail-date';
 import type { MailPeriodPreset } from './mail-date';

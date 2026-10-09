@@ -1,5 +1,5 @@
 import { ActionIcon, Menu } from '@mantine/core';
-import { IconHistory, IconPencil, IconSettings, IconTrash } from '@tabler/icons-react';
+import { IconCopy, IconHistory, IconPencil, IconSettings, IconTrash } from '@tabler/icons-react';
 import type { MailType } from '@/shared/types';
 import type { MailPermissions } from './mail-field-access';
 
@@ -9,6 +9,7 @@ interface MailActionsMenuProps {
   compact?: boolean;
   permissions: MailPermissions;
   onEdit: (mailId: string) => void;
+  onCopy: (mailId: string) => void;
   onDelete: (mailId: string) => void;
   onHistory: (mailId: string) => void;
 }
@@ -25,11 +26,16 @@ export function MailActionsMenu({
   compact,
   permissions,
   onEdit,
+  onCopy,
   onDelete,
   onHistory,
 }: MailActionsMenuProps) {
   const canEdit =
     mailType === 'incoming' ? permissions.canEditIncoming : permissions.canEditOutgoing;
+  // Копия — это создание нового письма, поэтому право тут создающее, а не
+  // редактирующее: скопировать исходящее может и тот, кому входящие править нельзя.
+  const canCopy =
+    mailType === 'incoming' ? permissions.canCreateIncoming : permissions.canCreateOutgoing;
   const canDelete =
     mailType === 'incoming' ? permissions.canDeleteIncoming : permissions.canDeleteOutgoing;
 
@@ -55,6 +61,11 @@ export function MailActionsMenu({
         {permissions.canViewHistory && (
           <Menu.Item leftSection={<IconHistory size={14} />} onClick={() => onHistory(mailId)}>
             История
+          </Menu.Item>
+        )}
+        {canCopy && (
+          <Menu.Item leftSection={<IconCopy size={14} />} onClick={() => onCopy(mailId)}>
+            Копировать
           </Menu.Item>
         )}
         {canDelete && (
