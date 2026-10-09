@@ -201,7 +201,7 @@ export function AdminPage() {
           <Tabs.Tab value="organizations">Организации</Tabs.Tab>
           <Tabs.Tab value="users">Пользователи</Tabs.Tab>
           <Tabs.Tab value="archive">Архив счетов</Tabs.Tab>
-          {canViewMailArchive && <Tabs.Tab value="mail-archive">Архив сообщений</Tabs.Tab>}
+          {canViewMailArchive && <Tabs.Tab value="mail-archive">Архив писем</Tabs.Tab>}
         </Tabs.List>
 
         <Tabs.Panel value="organizations" pt="md">

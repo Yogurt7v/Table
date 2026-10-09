@@ -133,7 +133,7 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
     <div>
       <Group justify="space-between" mb="xs" wrap="wrap" gap="xs" align="flex-start">
         <Group gap={8} align="center" wrap="wrap">
-          <Title order={4}>Архив сообщений</Title>
+          <Title order={4}>Архив удалённых писем</Title>
           <Text size="xs" c="dimmed">
             Удалённые входящие и исходящие письма с возможностью восстановления
           </Text>

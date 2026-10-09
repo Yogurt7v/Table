@@ -65,8 +65,8 @@ import { useOrgCounterparties } from './useOrgCounterparties';
 import { mailNodeKey } from './mail-thread';
 import type { MailNodeKey } from './mail-thread';
 import { MAIL_REGISTER_TAB_LABELS, MAIL_TYPE_LABELS } from './mail-labels';
-import { CSS } from '@dnd-kit/utilities';
 import { computeRegisterTarget } from './mail-register-target';
+import { MAIL_LETTER_NOT_FOUND_NOTE } from './mail-thread-labels';
 
 interface MailSectionProps {
   orgId: string;
@@ -117,6 +117,9 @@ export function MailSection({ orgId }: MailSectionProps) {
   const filters = useMailFilters();
   const isSearchMode = filters.filters.search.trim() !== '';
 
+  const [highlightedMailId, setHighlightedMailId] = useState<string | null>(null);
+  const [highlightRequestId, setHighlightRequestId] = useState(0);
+
   const requestHighlight = (mailId: string): void => {
     setHighlightedMailId(mailId);
     setHighlightRequestId((prev) => prev + 1);
@@ -126,28 +129,18 @@ export function MailSection({ orgId }: MailSectionProps) {
     setHighlightedMailId(null);
   }, []);
 
-  const handleGoToRegister = (
-    mailId: string,
-    mailType: MailType,
-    dateKey: string,
-  ): void => {
+  const handleGoToRegister = (mailId: string, mailType: MailType, dateKey: string): void => {
     setThreadTarget(null);
     filters.resetAll();
-        setPage(1);
-    if (dateKey) {
-      const target = computeRegisterTarget(mailType, dateKey, tab);
-      if (target.tab !== tab) {
-        setTab(target.tab);
-      }
-      if (target.customFrom && target.customTo) {
-        filters.setCustomRange(target.customFrom, target.customTo);
-      }
-      requestHighlight(mailId);
+    setPage(1);
+    if (!dateKey) return;
+    const target = computeRegisterTarget(mailType, dateKey, tab);
+    if (target.tab !== tab) setTab(target.tab);
+    if (target.customFrom && target.customTo) {
+      filters.setCustomRange(target.customFrom, target.customTo);
     }
+    requestHighlight(mailId);
   };
-
-  const [highlightedMailId, setHighlightedMailId] = useState<string | null>(null);
-  const [highlightRequestId, setHighlightRequestId] = useState(0);
 
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [formType, setFormType] = useState<MailType>('incoming');
@@ -192,9 +185,9 @@ export function MailSection({ orgId }: MailSectionProps) {
   // состояния достаточно — `handleSearchChange` ниже лишь сбрасывает страницу
   // раньше, чем дойдёт до эффекта.
 useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
-    clearHighlight();
-  }, [tab, filters.filters, clearHighlight]);
+  }, [tab, filters.filters]);
 
   // Страховка от «страницы за последней»: строки удаляются и с этой таблицы
   // (кнопка «Удалить»), и с другого устройства, поэтому общее число страниц
@@ -202,7 +195,8 @@ useEffect(() => {
   // поступает так же.
   useEffect(() => {
     if (pageCount > 0 && page > pageCount) {
-            setPage(pageCount);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPage(pageCount);
     }
   }, [page, pageCount]);
 
@@ -354,21 +348,48 @@ useEffect(() => {
   };
 
 
-  // Флеш-подсветка — аналог InvoiceSection.
+  // Флеш-подсветка — по образцу `AutoExpandOnHighlight` в реестре счетов.
+  // Первого прохода может не хватить: прыжок меняет фильтры, и строка появляется
+  // после перезапроса, поэтому через 120 мс селектор ищется ещё раз — как там.
   useEffect(() => {
     if (!highlightedMailId) return;
-    const target = document.querySelector(
-      `[data-highlight-id="${CSS.escape(highlightedMailId)}"]`,
-    );
-    if (!target || target.classList.contains('row-flash')) return;
-    if (getComputedStyle(target).display === 'none') return;
-    target.classList.add('row-flash');
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const timer = window.setTimeout(() => {
-      target.classList.remove('row-flash');
-    }, 2600);
-    return () => clearTimeout(timer);
-  }, [highlightedMailId, highlightRequestId]);
+    const selector = `[data-highlight-id="${CSS.escape(highlightedMailId)}"]`;
+
+    const flash = (el: Element) => {
+      if (!el.classList.contains('row-flash')) el.classList.add('row-flash');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    const find = (): Element | null => {
+      for (const el of document.querySelectorAll(selector)) {
+        // Таблица и карточки обе всегда в DOM и разведены `visibleFrom`
+        // только стилями, поэтому невидимую ветку подсветка не трогает.
+        if (getComputedStyle(el).display !== 'none') return el;
+      }
+      return null;
+    };
+
+    const el = find();
+    if (el) {
+      flash(el);
+      const release = window.setTimeout(() => {
+        el.classList.remove('row-flash');
+        clearHighlight();
+      }, 2600);
+      return () => window.clearTimeout(release);
+    }
+
+    const retry = window.setTimeout(() => {
+      const found = find();
+      if (found) flash(found);
+      else
+        notifications.show({
+          color: 'yellow',
+          message: MAIL_LETTER_NOT_FOUND_NOTE,
+        });
+    }, 120);
+    return () => window.clearTimeout(retry);
+  }, [highlightedMailId, highlightRequestId, clearHighlight]);
 
   const { data: savedColumns } = useUserSetting('mail_columns');
   const saveColumns = useUpsertUserSetting('mail_columns');

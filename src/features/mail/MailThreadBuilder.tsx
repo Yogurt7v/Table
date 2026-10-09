@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core';
 import type { DragOverEvent, DragStartEvent } from '@dnd-kit/core';
 import type { MailType } from '@/shared/types';
-import type { MailLetter, MailNodeKey } from './mail-thread';
+import type { MailNodeKey } from './mail-thread';
 import { buildMailThread, mailNodeKey, THREAD_MAX_DEPTH } from './mail-thread';
 import {
   buildThreadLine,
@@ -42,7 +42,7 @@ import {
   MAIL_THREAD_UNBUILT_TITLE,
 } from './mail-thread-labels';
 import type { MailOrderPlacement, ThreadDirection, ThreadOverState } from './mail-thread-builder';
-import { formatMailDate, toDateKey } from './mail-date';
+import { formatMailDate } from './mail-date';
 import { MAIL_EMPTY_CELL, MAIL_TYPE_LABELS } from './mail-labels';
 import type { MailPermissions } from './mail-field-access';
 
@@ -119,11 +119,7 @@ export function MailThreadBuilder({
     [rootMailType, rootMailId],
   );
 
-  const handleGoToRegister = (
-    letter: MailLetter,
-  ): void => onGoToRegister?.(letter.id, letter.type, toDateKey(letter.date) ?? '');
-
-  /**
+/**
    * Письмо, снятое с этой переписки последним сбросом, остаётся в линии.
    *
    * Сброс в начало или в конец делает письмо началом своей цепочки — связь с
@@ -360,7 +356,7 @@ export function MailThreadBuilder({
                       droppable={!!draggedKey}
                       overState={nodeOverState(node.key)}
                       stacked={!wide}
-                      onGoToRegister={onGoToRegister ? handleGoToRegister : undefined}
+                      onGoToRegister={onGoToRegister}
                     />
                   </div>
                 ))}

@@ -58,8 +58,8 @@ interface MailThreadNodeProps {
   overState: ThreadOverState;
   /** Узкий экран: дата и номер встают над письмом, линия остаётся слева. */
   stacked: boolean;
-  /** Вызывать при клике по иконке «Переписка» — переход к письму в реестре. */
-  onGoToRegister?: (letter: MailLetter, type: MailType) => void;
+  /** Вызывать при клике по иконке — переход к письму в реестре. */
+  onGoToRegister?: (mailId: string, mailType: MailType, dateKey: string) => void;
 }
 
 /**
@@ -76,6 +76,7 @@ export function MailThreadNode({
   droppable,
   overState,
   stacked,
+  onGoToRegister
 }: MailThreadNodeProps) {
   const letter = node.letter;
   const {
@@ -223,7 +224,7 @@ export function MailThreadNode({
                   aria-label={`Перейти к письму в реестре: ${letterLabel(letter)}`}
                   onClick={(event) => {
                     event.stopPropagation();
-                    onGoToRegister(letter.id, letter.type, toDateKey(letter.date) ?? '');
+                    onGoToRegister(node.id, node.type, toDateKey(letter.date) ?? '');
                   }}
                   style={{ flexShrink: 0 }}
                 >
