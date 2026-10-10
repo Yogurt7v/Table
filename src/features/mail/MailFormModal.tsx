@@ -228,7 +228,6 @@ export function MailFormModal({
   const wide = useMediaQuery(WIDE_QUERY, true, { getInitialValueInEffect: true }) !== false;
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     if (!opened) {
       registerSwitchedRef.current = false;
       return;
@@ -247,7 +246,6 @@ export function MailFormModal({
     // для неё намеренно пуст, иначе форма сразу предложит чужую цепочку.
     setIntent(initialIntent(parentEdges, mailType, copying ? null : mail));
     setDebouncedNumber(next.counterpartyNumber);
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [opened, mailType, mail, copying, parentEdges]);
 
   useEffect(() => {

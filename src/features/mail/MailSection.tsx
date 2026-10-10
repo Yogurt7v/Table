@@ -78,10 +78,16 @@ interface MailSectionProps {
   orgId: string;
 }
 
+/**
+ * Что открыто в форме. У копии запоминается регистр источника (`sourceType`):
+ * после переключения регистра письмо остаётся в прежней коллекции, и его id
+ * в новой не существует — без этого признака запрос деталей уходил бы в
+ * чужую коллекцию и получал 404.
+ */
 type FormTarget =
   | { mode: 'create' }
   | { mode: 'edit'; mailId: string }
-  | { mode: 'copy'; mailId: string };
+  | { mode: 'copy'; mailId: string; sourceType: MailType };
 
 /** Корень дерева переписки с указанием регистра: родитель может быть из другого. */
 type ThreadTarget = { mailId: string; mailType: MailType };
@@ -213,7 +219,19 @@ export function MailSection({ orgId }: MailSectionProps) {
   // требованию, а не при каждом открытии `/mail`.
   const { counterpartyOptions } = useOrgCounterparties(orgId, formTarget !== null);
 
-  const editId = formTarget && formTarget.mode !== 'create' ? formTarget.mailId : '';
+  /**
+   * Детали спрашиваются только пока активный регистр тот же, в котором письмо
+   * лежит. Переключение регистра в режиме копии оставляет `formType` не тем, что
+   * был при открытии, а `sourceType` — тем: письмо осталось в прежней
+   * коллекции, и его id в новой не существует. Создание не спрашивает ничего, а
+   * правка регистр не переключает, так что там id остаётся всегда.
+   */
+  const editId =
+    formTarget === null || formTarget.mode === 'create'
+      ? ''
+      : formTarget.mode === 'copy' && formType !== formTarget.sourceType
+        ? ''
+        : formTarget.mailId;
   const incomingDetail = useIncomingMail(formType === 'incoming' ? editId : '');
   const outgoingDetail = useOutgoingMail(formType === 'outgoing' ? editId : '');
   const editingMail = (formType === 'incoming' ? incomingDetail.data : outgoingDetail.data) as
@@ -649,7 +667,7 @@ export function MailSection({ orgId }: MailSectionProps) {
                   }}
                   onCopy={(mailId) => {
                     setFormType(tab);
-                    setFormTarget({ mode: 'copy', mailId });
+                    setFormTarget({ mode: 'copy', mailId, sourceType: tab });
                   }}
                   onDelete={setDeleteFor}
                   onHistory={setHistoryFor}

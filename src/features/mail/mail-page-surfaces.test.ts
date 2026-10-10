@@ -86,8 +86,8 @@ describe('период по-прежнему достижим целиком', (
 });
 
 describe('архив удалённых писем остался достижим из админки', () => {
-  it('вкладка «Архив сообщений» на месте и рендерит DeletedMailsSection', () => {
-    expect(ADMIN_PAGE).toMatch(/value="mail-archive"[^]*Архив сообщений/);
+  it('вкладка «Архив писем» на месте и рендерит DeletedMailsSection', () => {
+    expect(ADMIN_PAGE).toMatch(/value="mail-archive"[^]*Архив писем/);
     expect(ADMIN_PAGE).toMatch(/<DeletedMailsSection orgId=\{currentOrgId\} \/>/);
   });
 
