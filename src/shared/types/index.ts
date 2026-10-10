@@ -253,10 +253,10 @@ export type MailHistoryType =
 
   /** Эмодзи способов доставки для компактного отображения в таблице/карточках. */
   export const MAIL_DELIVERY_METHOD_EMOJI: Record<DeliveryMethod, string> = {
-    email: '🌍',
+    email: '🌐',
     post: '📨',
     courier: '🚚',
-    messenger: '📲',
+    messenger: '📱',
   };
 
   export const MAIL_DELIVERY_METHOD_NAMES: Record<DeliveryMethod, string> = {

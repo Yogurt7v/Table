@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { ActionIcon, Badge, Box, Group, Paper, Text } from '@mantine/core';
 import {
   IconAlertTriangle,
+  IconArrowBarToDown,
   IconArrowDownRight,
   IconArrowUpRight,
   IconGripVertical,
@@ -15,7 +16,7 @@ import type { MailLetter } from './mail-thread';
 import { MAIL_TREE_INDENT, mailNodeDropId } from './mail-thread-builder';
 import type { ThreadLineNode, ThreadDirection, ThreadOverState } from './mail-thread-builder';
 import { formatMailDate, toDateKey } from './mail-date';
-import { MAIL_CHAIN_DIRECTION_LABELS } from './mail-thread-labels';
+import { mailChainDirectionLabel } from './mail-thread-labels';
 import { MAIL_EMPTY_CELL, MAIL_REGISTER_BADGE_LABELS, MAIL_REGISTER_COLORS } from './mail-labels';
 
 /**
@@ -33,6 +34,13 @@ const DIRECTION_ICONS: Record<ThreadDirection, ReactNode> = {
   up: <IconArrowUpRight size={13} />,
   down: <IconArrowDownRight size={13} />,
 };
+
+/**
+ * Иконка начала цепочки. Стрелка вверх обещала бы письмо выше, которого нет:
+ * здесь линия, наоборот, уходит вниз, и этот изгиб читается честно. Размер и
+ * вес те же, что у соседних стрелок, поэтому шапка не «прыгает».
+ */
+const CHAIN_ROOT_ICON: ReactNode = <IconArrowBarToDown size={13} />;
 
 const MISSING_LETTER_LABEL = 'Письмо недоступно — связь ссылается на удалённое письмо';
 
@@ -98,6 +106,15 @@ export function MailThreadNode({
   const columns = stacked
     ? `${SPINE_WIDTH}px minmax(0, 1fr)`
     : `${GUTTER_WIDTH}px ${SPINE_WIDTH}px minmax(0, 1fr)`;
+
+  /**
+   * Начало цепочки — по родителю, а не по номеру строки: цепочек в линии может
+   * быть несколько, и второе начало стоит в середине списка, где «первое
+   * письмо» уже неверно. Направление входит в условие обязательно — письмо,
+   * снятое с переписки, рисуется последним корнем, но в граф не входит и
+   * направления не имеет, так что шапка у него остаётся прежней.
+   */
+  const startsChain = direction === 'up' && node.parentKey === null;
 
   return (
     <Box ref={setDropRef} data-mail-node={node.key} style={{ minWidth: 0 }}>
@@ -174,9 +191,9 @@ export function MailThreadNode({
               <Box style={{ flex: 1, minWidth: 0 }}>
                 <Group gap={6} wrap="wrap" style={{ rowGap: 2 }}>
                   <Group gap={4} wrap="nowrap">
-                    {DIRECTION_ICONS[direction]}
+                    {startsChain ? CHAIN_ROOT_ICON : DIRECTION_ICONS[direction]}
                     <Text size="xs" c="dimmed">
-                      {MAIL_CHAIN_DIRECTION_LABELS[direction]}
+                      {mailChainDirectionLabel(direction, startsChain)}
                     </Text>
                   </Group>
                   <Badge size="xs" variant="light" color={MAIL_REGISTER_COLORS[node.type]}>

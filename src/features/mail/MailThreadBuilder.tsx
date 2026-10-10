@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Loader, Modal, Stack, Text } from '@mantine/core';
+import { Alert, Box, Button, Group, Loader, Modal, Stack, Text } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconAlertTriangle, IconLinkPlus } from '@tabler/icons-react';
+import { IconAlertTriangle, IconLinkPlus, IconPrinter } from '@tabler/icons-react';
 import {
   DndContext,
   KeyboardSensor,
@@ -29,8 +29,15 @@ import { useMailThreadOrder } from './mail-thread-order';
 import { candidateByKey, parentEdgesOf, planLinkChange } from './mail-parent';
 import { useMailLinkChange } from './useMailLinkChange';
 import { useOrgMailThread } from './useOrgMailThread';
+import { useOrgMailFiles } from './useOrgMailFiles';
 import { MailParentPicker } from './MailParentPicker';
 import { MailThreadGap, MailThreadNode } from './MailThreadNode';
+import { MailThreadPrintModal } from './MailThreadPrintModal';
+import {
+  buildThreadPrintLetters,
+  countPrintFiles,
+  groupPrintFilesByLetter,
+} from './mail-thread-print';
 import {
   MAIL_CHAIN_CYCLE_NOTE,
   MAIL_CHAIN_TRUNCATION_NOTE,
@@ -104,10 +111,12 @@ export function MailThreadBuilder({
     useOrgMailThread(activeOrgId);
   const { ranks, place } = useMailThreadOrder();
   const linkChange = useMailLinkChange(orgId);
+  const { data: orgFiles } = useOrgMailFiles(activeOrgId);
 
   const [draggedKey, setDraggedKey] = useState<MailNodeKey | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
   const [detached, setDetached] = useState<DetachedLetter | null>(null);
 
   // Ширина решается один раз и в остальном коде не участвует: раскладка строки
@@ -119,7 +128,7 @@ export function MailThreadBuilder({
     [rootMailType, rootMailId],
   );
 
-/**
+  /**
    * Письмо, снятое с этой переписки последним сбросом, остаётся в линии.
    *
    * Сброс в начало или в конец делает письмо началом своей цепочки — связь с
@@ -262,13 +271,50 @@ export function MailThreadBuilder({
 
   const hasCycle = layout ? layout.nodes.some((node) => cyclicKeys?.has(node.key)) : false;
   const canMoveRoot = canEditType(permissions, rootMailType);
+
+  /**
+   * Сколько файлов печать сможет предложить — по тем же правилам, по которым
+   * модалка их перечислит. При нуле кнопка не появляется: открывать окно, в
+   * котором нечего выбирать, незачем.
+   */
+  const printFileCount = useMemo(
+    () =>
+      layout
+        ? countPrintFiles(
+            buildThreadPrintLetters(layout.nodes, groupPrintFilesByLetter(orgFiles ?? [])),
+          )
+        : 0,
+    [layout, orgFiles],
+  );
   /** Подсказка про перетаскивание обещана только тем, кто правом имеет. */
   const canDragSomething =
     layout?.nodes.some((node) => canEditType(permissions, node.type)) ?? false;
 
   return (
     <>
-      <Modal opened={opened} onClose={onClose} title={title} size="xl">
+      <Modal
+        opened={opened}
+        onClose={onClose}
+        title={
+          <Group gap="sm" justify="space-between" wrap="wrap">
+            <Text size="md" fw={600} style={{ overflowWrap: 'anywhere' }}>
+              {title}
+            </Text>
+            {printFileCount > 0 && (
+              <Button
+                size="compact-xs"
+                variant="light"
+                leftSection={<IconPrinter size={14} />}
+                onClick={() => setPrintOpen(true)}
+                style={{ flexShrink: 0 }}
+              >
+                {`Печать вложений (${printFileCount})`}
+              </Button>
+            )}
+          </Group>
+        }
+        size="xl"
+      >
         {isLoading && <Loader size="sm" />}
 
         {!isLoading && isError && (
@@ -396,6 +442,15 @@ export function MailThreadBuilder({
           </Stack>
         )}
       </Modal>
+
+      <MailThreadPrintModal
+        key={printOpen ? 'open' : 'closed'}
+        opened={printOpen}
+        onClose={() => setPrintOpen(false)}
+        orgId={orgId}
+        nodes={layout?.nodes ?? []}
+        wide={wide}
+      />
 
       <MailParentPicker
         opened={pickerOpen}
