@@ -1,6 +1,7 @@
 import { pb } from './client.ts';
 import { normalizeInvoice } from '@/shared/utils/normalize-invoice';
 import { appendDeletionReason, stripDeletionReason } from '@/shared/utils/deletion-reason';
+import { getLastKnownUser } from '@/shared/auth/last-known-user';
 import type {
   IOrganization,
   IBankAccount,
@@ -382,8 +383,13 @@ export async function deleteInvoice(id: string, reason: string) {
     source_paid_amount: invoice.source_paid_amount,
     source_paid_date: invoice.source_paid_date,
     source_created: invoice.source_created,
-    deleted_by: pb.authStore.model?.id ?? '',
-    deleted_by_name: pb.authStore.model?.name || pb.authStore.model?.email || '',
+    deleted_by: getCurrentActorId(),
+    deleted_by_name:
+      pb.authStore.model?.name ||
+      pb.authStore.model?.email ||
+      getLastKnownUser()?.name ||
+      getLastKnownUser()?.email ||
+      '',
     deleted_at: new Date().toISOString(),
   });
 
@@ -451,7 +457,20 @@ export async function getInvoiceHistoryChain(invoiceId: string) {
 }
 
 function getCurrentAuthor(): string {
-  return pb.authStore.model?.name || pb.authStore.model?.email || 'unknown';
+  const model = pb.authStore.model ?? getLastKnownUser();
+  return model?.name || model?.email || 'unknown';
+}
+
+/**
+ * id актора для relation-полей (`payment_marks.created_by`, `deleted_by`).
+ *
+ * Тот же фолбэк, что у `getCurrentAuthor`: при просроченном токене
+ * `afterSend` чистит `authStore` мгновенно, а редирект на /login асинхронный.
+ * В это окно прямой `pb.authStore.model?.id` даёт `undefined`, и в запись
+ * уезжает пустой автор. Реестр last-known-user переживает чистку store.
+ */
+function getCurrentActorId(): string {
+  return pb.authStore.model?.id ?? getLastKnownUser()?.id ?? '';
 }
 
 export function createInvoiceHistoryRecord(
@@ -497,7 +516,7 @@ export async function createPaymentMark(data: {
     amount: data.amount ?? null,
     comment: data.comment ?? '',
     status: data.status,
-    created_by: pb.authStore.model?.id,
+    created_by: getCurrentActorId(),
   });
 
   await createPaymentMarkHistory(data.invoice_id, 'mark_created', {
@@ -538,7 +557,7 @@ export async function approvePaymentMark(id: string) {
     amount: mark.amount,
     comment: mark.comment,
     status: 'approved',
-    created_by: pb.authStore.model?.id,
+    created_by: getCurrentActorId(),
   });
 
   await createPaymentMarkHistory(mark.invoice_id, 'mark_created', {
@@ -694,10 +713,7 @@ export function getInvoiceFileDownloadUrl(data: { file_id: string; file: string 
 
 export const ARCHIVE_PAGE_SIZE = 15;
 
-async function archiveDeletedInvoiceHistory(
-  deletedInvoiceId: string,
-  history: IInvoiceHistory[],
-) {
+async function archiveDeletedInvoiceHistory(deletedInvoiceId: string, history: IInvoiceHistory[]) {
   for (const h of history) {
     try {
       await pb.collection('deleted_invoice_history').create<IDeletedInvoiceHistory>({
@@ -780,14 +796,22 @@ export function getDeletedInvoiceFileUrl(record: IDeletedInvoiceFile) {
   return pb.files.getURL(record, record.file);
 }
 
-export async function restoreDeletedInvoice(
-  deletedInvoiceId: string,
-): Promise<IInvoice> {
-  const deleted = await pb
-    .collection('deleted_invoices')
-    .getOne<IDeletedInvoice>(deletedInvoiceId);
+export async function restoreDeletedInvoice(deletedInvoiceId: string): Promise<IInvoice> {
+  const deleted = await pb.collection('deleted_invoices').getOne<IDeletedInvoice>(deletedInvoiceId);
 
   // 1. Create new invoice (seq will be auto-numbered)
+  //
+  // Автора счёта НЕ шлём: серверный хук `onRecordCreateRequest(..., 'invoices')`
+  // в `pb_hooks/notify.pb.js` и так перезаписывает `created_by` на того, кто
+  // создаёт, — клиентское значение всё равно проигнорировалось бы. Вместо этого
+  // шлём ссылку на архивную запись: хук достаёт из неё ИСХОДНОГО автора, и
+  // возвращённый из архива счёт показывает в «Инициаторе» того, кто его завёл,
+  // а не того, кто его восстановил.
+  //
+  // Ссылка, а не готовый `created_by`, — принципиально: доверять клиенту в
+  // назначении автора нельзя, иначе любой пользователь создал бы счёт от чужого
+  // имени. Хук сам берёт автора из архива, а если там пусто (счёт, созданный
+  // анонимно) — откатывается на автора восстановителя.
   const newInvoice = await pb
     .collection('invoices')
     .create<IInvoice>({
@@ -806,6 +830,7 @@ export async function restoreDeletedInvoice(
       source_paid_amount: deleted.source_paid_amount,
       source_paid_date: deleted.source_paid_date,
       source_created: deleted.source_created || undefined,
+      restored_from_invoice_id: deletedInvoiceId,
     })
     .then(normalizeInvoice);
 
@@ -864,9 +889,7 @@ export async function restoreDeletedInvoice(
   const archiveFiles = await pb
     .collection('deleted_invoice_files')
     .getFullList({ filter: `deleted_invoice_id = "${deletedInvoiceId}"` });
-  await Promise.all(
-    archiveFiles.map((r) => pb.collection('deleted_invoice_files').delete(r.id)),
-  );
+  await Promise.all(archiveFiles.map((r) => pb.collection('deleted_invoice_files').delete(r.id)));
   await pb.collection('deleted_invoices').delete(deletedInvoiceId);
 
   return newInvoice;

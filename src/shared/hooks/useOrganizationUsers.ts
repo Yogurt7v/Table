@@ -37,8 +37,13 @@ export function useCreateOrganizationUser() {
 export function useUpdateOrganizationUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { role?: IOrganizationUser['role']; objects?: string[] } }) =>
-      updateOrganizationUser(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { role?: IOrganizationUser['role']; objects?: string[] };
+    }) => updateOrganizationUser(id, data),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organization_users'] }),
     onError: () => notifications.show({ color: 'red', message: 'Не удалось сохранить доступы' }),
   });

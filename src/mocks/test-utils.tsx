@@ -28,9 +28,7 @@ export function renderWithProviders(
     return (
       <QueryClientProvider client={queryClient}>
         <MantineProvider defaultColorScheme="light">
-          <MemoryRouter initialEntries={initialEntries}>
-            {children}
-          </MemoryRouter>
+          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
         </MantineProvider>
       </QueryClientProvider>
     );
@@ -45,13 +43,21 @@ export function createMockAuthStore(user: Record<string, unknown> | null = null)
   let currentToken = user ? 'mock-token' : '';
 
   return {
-    get model() { return currentUser; },
-    get token() { return currentToken; },
-    get isValid() { return !!currentUser; },
+    get model() {
+      return currentUser;
+    },
+    get token() {
+      return currentToken;
+    },
+    get isValid() {
+      return !!currentUser;
+    },
     onChange: (cb: (...args: unknown[]) => void, fireImmediately?: boolean) => {
       listeners.push(cb);
       if (fireImmediately) {
-        setTimeout(() => { cb(currentToken, currentUser); }, 0);
+        setTimeout(() => {
+          cb(currentToken, currentUser);
+        }, 0);
       }
       return () => {
         const idx = listeners.indexOf(cb);
@@ -61,12 +67,16 @@ export function createMockAuthStore(user: Record<string, unknown> | null = null)
     clear: () => {
       currentUser = null;
       currentToken = '';
-      listeners.forEach(cb => { cb('', null); });
+      listeners.forEach((cb) => {
+        cb('', null);
+      });
     },
     save: (token: string, model: Record<string, unknown>) => {
       currentToken = token;
       currentUser = model;
-      listeners.forEach(cb => { cb(token, model); });
+      listeners.forEach((cb) => {
+        cb(token, model);
+      });
     },
   };
 }
@@ -79,7 +89,7 @@ export function createMockApiModule() {
       getFullList: async () => {
         const res = await fetch(`http://127.0.0.1:8090/api/collections/${name}/records`);
         if (!res.ok) return [];
-        const data = await res.json() as { items: unknown[] };
+        const data = (await res.json()) as { items: unknown[] };
         return data.items;
       },
       getList: async (page = 1, perPage = 50, options?: Record<string, unknown>) => {
@@ -95,8 +105,10 @@ export function createMockApiModule() {
         return res.json();
       },
       getFirstListItem: async (filter: string) => {
-        const res = await fetch(`http://127.0.0.1:8090/api/collections/${name}/records?filter=${encodeURIComponent(filter)}&perPage=1`);
-        const data = await res.json() as { items: unknown[] };
+        const res = await fetch(
+          `http://127.0.0.1:8090/api/collections/${name}/records?filter=${encodeURIComponent(filter)}&perPage=1`,
+        );
+        const data = (await res.json()) as { items: unknown[] };
         if (!data.items?.length) throw { status: 404, message: 'Not found.' };
         return data.items[0];
       },
@@ -117,7 +129,9 @@ export function createMockApiModule() {
         return res.json();
       },
       delete: async (id: string) => {
-        const res = await fetch(`http://127.0.0.1:8090/api/collections/${name}/records/${id}`, { method: 'DELETE' });
+        const res = await fetch(`http://127.0.0.1:8090/api/collections/${name}/records/${id}`, {
+          method: 'DELETE',
+        });
         return res.ok;
       },
       authWithPassword: async (login: string, password: string) => {
@@ -126,7 +140,11 @@ export function createMockApiModule() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ identity: login, password }),
         });
-        const data = await res.json() as { token: string; record: Record<string, unknown>; message?: string };
+        const data = (await res.json()) as {
+          token: string;
+          record: Record<string, unknown>;
+          message?: string;
+        };
         if (!res.ok) throw new Error(data.message || 'Auth failed');
         authStore.save(data.token, data.record);
         return data;

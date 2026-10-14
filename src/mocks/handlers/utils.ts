@@ -8,7 +8,12 @@ type Entity = { id: string };
 function getStore(db: DB, name: string) {
   const store = db.collections[name as CollectionName];
   if (!store) throw new Error(`Unknown collection: ${name}`);
-  return store as unknown as { all: () => Entity[]; get: (id: string) => Entity | undefined; set: (item: Entity) => Entity; delete: (id: string) => boolean };
+  return store as unknown as {
+    all: () => Entity[];
+    get: (id: string) => Entity | undefined;
+    set: (item: Entity) => Entity;
+    delete: (id: string) => boolean;
+  };
 }
 
 export function buildRecordUrl(collection: string) {
@@ -21,10 +26,10 @@ export function buildRecordIdUrl(collection: string) {
 
 function applyFilter<T extends Entity>(items: T[], filter: string): T[] {
   if (!filter) return items;
-  const conditions = filter.split('&&').map(s => s.trim());
+  const conditions = filter.split('&&').map((s) => s.trim());
 
-  return items.filter(item => {
-    return conditions.every(cond => {
+  return items.filter((item) => {
+    return conditions.every((cond) => {
       const eqMatch = cond.match(/^(\w+)\s*=\s*"([^"]*)"$/);
       if (eqMatch) {
         const [, field, value] = eqMatch;
@@ -38,7 +43,9 @@ function applyFilter<T extends Entity>(items: T[], filter: string): T[] {
       const tildeMatch = cond.match(/^(\w+)\s*~\s*"([^"]*)"$/);
       if (tildeMatch) {
         const [, field, value] = tildeMatch;
-        return String((item as Record<string, unknown>)[field!] || '').toLowerCase().includes(value!.toLowerCase());
+        return String((item as Record<string, unknown>)[field!] || '')
+          .toLowerCase()
+          .includes(value!.toLowerCase());
       }
       const lteMatch = cond.match(/^(\w+)\s*<=\s*"([^"]*)"$/);
       if (lteMatch) {
@@ -53,7 +60,7 @@ function applyFilter<T extends Entity>(items: T[], filter: string): T[] {
 
 function applySort<T extends Entity>(items: T[], sort: string): T[] {
   if (!sort) return items;
-  const fields = sort.split(',').map(s => s.trim());
+  const fields = sort.split(',').map((s) => s.trim());
   return [...items].sort((a, b) => {
     for (const field of fields) {
       const desc = field.startsWith('-');
@@ -82,8 +89,8 @@ export function createListHandler(db: DB, collection: CollectionName) {
     items = applySort(items, sort);
 
     if (fields) {
-      const fieldList = fields.split(',').map(f => f.trim());
-      items = items.map(item => {
+      const fieldList = fields.split(',').map((f) => f.trim());
+      items = items.map((item) => {
         const partial: Record<string, unknown> = {};
         for (const f of fieldList) {
           if (f in item) partial[f] = (item as Record<string, unknown>)[f];
@@ -98,8 +105,11 @@ export function createListHandler(db: DB, collection: CollectionName) {
     const paged = items.slice(start, start + perPage);
 
     return HttpResponse.json({
-      page, perPage, totalItems, totalPages,
-      items: paged.map(item => enrich(item, collection as string)),
+      page,
+      perPage,
+      totalItems,
+      totalPages,
+      items: paged.map((item) => enrich(item, collection as string)),
     });
   });
 }
@@ -159,7 +169,10 @@ export function createDeleteHandler(db: DB, collection: CollectionName) {
   });
 }
 
-function enrich(item: Entity, collectionName: string): Entity & {
+function enrich(
+  item: Entity,
+  collectionName: string,
+): Entity & {
   collectionId: string;
   collectionName: string;
 } {

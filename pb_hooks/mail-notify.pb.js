@@ -34,10 +34,78 @@
 
 // ── Fill actor fields on request ──
 
+// Восстановление письма из архива возвращает ПРЕЖНЕГО автора, а не того, кто
+// нажал «восстановить»: клиент шлёт ссылку `restored_from_*mail_id`, сервер
+// достаёт автора из самой архивной копии.
+//
+// Почему сервер: хук перезаписывает присланное клиентом `created_by`
+// безусловно, и если бы он перестал это делать, любой аутентифицированный
+// пользователь создал бы письмо от чужого имени. Клиенту нельзя доверять в
+// назначении автора — доверять можно только архивной записи.
+//
+// Именно поэтому `created_by: deleted.created_by || currentActorId()` в
+// `restoreDeletedIncomingMail` был мёртвым кодом: клиент слал автора из архива,
+// а хук всё равно подставлял восстановителя.
+//
+// Фолбэк на `e.auth` обязателен: `created_by` в коллекциях писем `required`
+// (1815000013), поэтому архив с пустым автором (письмо, созданное анонимно ДО
+// той миграции) без фолбэка превратил бы восстановление в 400.
 function fillMailActorsOnCreateRequest(e) {
+  var archiveCreatedBy = '';
+  var archiveCreatedByName = '';
+  var markerField = '';
+  var archiveCollection = '';
+
+  // Только реестры писем умеют восстанавливаться из архива. `mail_files` и
+  // `mail_relations` этой хендлер-функцией тоже пользуются, поэтому для них
+  // метка и архив остаются пустыми — и общий код ниже штатно проставит им
+  // автора из токена. Раньше ветви не было вовсе, и ранний return здесь отрезал
+  // бы им `created_by` совсем (проверено: `validation_required` на создании).
+  if (e.collection.name === 'incoming_mails') {
+    markerField = 'restored_from_inmail_id';
+    archiveCollection = 'deleted_incoming_mails';
+  } else if (e.collection.name === 'outgoing_mails') {
+    markerField = 'restored_from_outmail_id';
+    archiveCollection = 'deleted_outgoing_mails';
+  }
+
+  if (markerField) {
+    var restoredFromId = e.record.get(markerField);
+    if (restoredFromId) {
+      try {
+        var archiveRec = $app.findRecordById(archiveCollection, String(restoredFromId));
+        if (archiveRec) {
+          archiveCreatedBy = String(archiveRec.get('created_by') || '');
+          archiveCreatedByName = String(archiveRec.get('created_by_name') || '');
+        }
+      } catch (err) {
+        console.error('[mail:restore-archive]', String(err));
+      }
+
+      if (archiveCreatedBy && !archiveCreatedByName) {
+        try {
+          archiveCreatedByName = require(__hooks + '/lib-actor.js').resolveActorName($app, [
+            archiveCreatedBy,
+          ]);
+        } catch (err) {
+          console.error('[mail:restore-actor-name]', String(err));
+        }
+      }
+    }
+  }
+
   if (e.auth) {
-    e.record.set('created_by', e.auth.id);
-    e.record.set('created_by_name', String(e.auth.get('name') || e.auth.get('login') || e.auth.get('email') || '').slice(0, 200));
+    e.record.set('created_by', archiveCreatedBy || e.auth.id);
+    e.record.set(
+      'created_by_name',
+      String(
+        archiveCreatedByName ||
+          e.auth.get('name') ||
+          e.auth.get('login') ||
+          e.auth.get('email') ||
+          '',
+      ).slice(0, 200),
+    );
   }
   e.next();
 }
@@ -50,7 +118,10 @@ onRecordCreateRequest(fillMailActorsOnCreateRequest, 'mail_relations');
 function fillMailActorsOnUpdateRequest(e) {
   if (e.auth) {
     e.record.set('updated_by', e.auth.id);
-    e.record.set('updated_by_name', String(e.auth.get('name') || e.auth.get('login') || e.auth.get('email') || '').slice(0, 200));
+    e.record.set(
+      'updated_by_name',
+      String(e.auth.get('name') || e.auth.get('login') || e.auth.get('email') || '').slice(0, 200),
+    );
   }
   e.next();
 }
@@ -90,13 +161,17 @@ function mailActorsAndSeqOnCreateIncoming(e) {
     if (!actorRec.get('created_by_name') && actorRec.get('created_by')) {
       actorRec.set(
         'created_by_name',
-        String(require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('created_by')])).slice(0, 200),
+        String(
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('created_by')]),
+        ).slice(0, 200),
       );
     }
     if (actorRec.get('updated_by') && !actorRec.get('updated_by_name')) {
       actorRec.set(
         'updated_by_name',
-        String(require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('updated_by')])).slice(0, 200),
+        String(
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('updated_by')]),
+        ).slice(0, 200),
       );
     }
   } catch (err) {
@@ -134,13 +209,17 @@ function mailActorsAndSeqOnCreateOutgoing(e) {
     if (!actorRec.get('created_by_name') && actorRec.get('created_by')) {
       actorRec.set(
         'created_by_name',
-        String(require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('created_by')])).slice(0, 200),
+        String(
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('created_by')]),
+        ).slice(0, 200),
       );
     }
     if (actorRec.get('updated_by') && !actorRec.get('updated_by_name')) {
       actorRec.set(
         'updated_by_name',
-        String(require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('updated_by')])).slice(0, 200),
+        String(
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('updated_by')]),
+        ).slice(0, 200),
       );
     }
   } catch (err) {
@@ -164,13 +243,17 @@ function mailActorsOnCreate(e) {
     if (!actorRec.get('created_by_name') && actorRec.get('created_by')) {
       actorRec.set(
         'created_by_name',
-        String(require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('created_by')])).slice(0, 200),
+        String(
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('created_by')]),
+        ).slice(0, 200),
       );
     }
     if (actorRec.get('updated_by') && !actorRec.get('updated_by_name')) {
       actorRec.set(
         'updated_by_name',
-        String(require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('updated_by')])).slice(0, 200),
+        String(
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('updated_by')]),
+        ).slice(0, 200),
       );
     }
   } catch (err) {
@@ -191,13 +274,17 @@ function mailActorsOnUpdate(e) {
     if (rec.get('updated_by') && !rec.get('updated_by_name')) {
       rec.set(
         'updated_by_name',
-        String(require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('updated_by')])).slice(0, 200),
+        String(
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('updated_by')]),
+        ).slice(0, 200),
       );
     }
     if (rec.get('created_by') && !rec.get('created_by_name')) {
       rec.set(
         'created_by_name',
-        String(require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('created_by')])).slice(0, 200),
+        String(
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('created_by')]),
+        ).slice(0, 200),
       );
     }
   } catch (err) {

@@ -14,13 +14,21 @@ const mockApi = vi.hoisted(() => {
   let currentToken = '';
 
   const authStore = {
-    get model() { return currentUser; },
-    get token() { return currentToken; },
-    get isValid() { return !!currentUser; },
+    get model() {
+      return currentUser;
+    },
+    get token() {
+      return currentToken;
+    },
+    get isValid() {
+      return !!currentUser;
+    },
     onChange: (cb: (...args: unknown[]) => void, fireImmediately?: boolean) => {
       listeners.push(cb);
       if (fireImmediately) {
-        setTimeout(() => { cb(currentToken, currentUser); }, 0);
+        setTimeout(() => {
+          cb(currentToken, currentUser);
+        }, 0);
       }
       return () => {
         const idx = listeners.indexOf(cb);
@@ -30,12 +38,16 @@ const mockApi = vi.hoisted(() => {
     clear: () => {
       currentUser = null;
       currentToken = '';
-      listeners.forEach(cb => { cb('', null); });
+      listeners.forEach((cb) => {
+        cb('', null);
+      });
     },
     save: (token: string, model: Record<string, unknown>) => {
       currentToken = token;
       currentUser = model;
-      listeners.forEach(cb => { cb(token, model); });
+      listeners.forEach((cb) => {
+        cb(token, model);
+      });
     },
   };
 
@@ -46,11 +58,13 @@ const mockApi = vi.hoisted(() => {
       collection: (name: string) => ({
         getFullList: async () => {
           const res = await fetch(`http://127.0.0.1:8090/api/collections/${name}/records`);
-          const data = await res.json() as { items: unknown[] };
+          const data = (await res.json()) as { items: unknown[] };
           return data.items;
         },
         getList: async (page = 1, perPage = 50) => {
-          const res = await fetch(`http://127.0.0.1:8090/api/collections/${name}/records?page=${page}&perPage=${perPage}`);
+          const res = await fetch(
+            `http://127.0.0.1:8090/api/collections/${name}/records?page=${page}&perPage=${perPage}`,
+          );
           return res.json();
         },
         getOne: async (id: string) => {
@@ -58,8 +72,10 @@ const mockApi = vi.hoisted(() => {
           return res.json();
         },
         getFirstListItem: async (filter: string) => {
-          const res = await fetch(`http://127.0.0.1:8090/api/collections/${name}/records?filter=${encodeURIComponent(filter)}&perPage=1`);
-          const data = await res.json() as { items: unknown[] };
+          const res = await fetch(
+            `http://127.0.0.1:8090/api/collections/${name}/records?filter=${encodeURIComponent(filter)}&perPage=1`,
+          );
+          const data = (await res.json()) as { items: unknown[] };
           return data.items?.[0];
         },
         create: async (data: unknown) => {
@@ -79,16 +95,25 @@ const mockApi = vi.hoisted(() => {
           return res.json();
         },
         delete: async (id: string) => {
-          const res = await fetch(`http://127.0.0.1:8090/api/collections/${name}/records/${id}`, { method: 'DELETE' });
+          const res = await fetch(`http://127.0.0.1:8090/api/collections/${name}/records/${id}`, {
+            method: 'DELETE',
+          });
           return res.ok;
         },
         authWithPassword: async (login: string, password: string) => {
-          const res = await fetch('http://127.0.0.1:8090/api/collections/users/auth-with-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ identity: login, password }),
-          });
-          const data = await res.json() as { token: string; record: Record<string, unknown>; message?: string };
+          const res = await fetch(
+            'http://127.0.0.1:8090/api/collections/users/auth-with-password',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ identity: login, password }),
+            },
+          );
+          const data = (await res.json()) as {
+            token: string;
+            record: Record<string, unknown>;
+            message?: string;
+          };
           if (!res.ok) throw new Error(data.message || 'Auth failed');
           authStore.save(data.token, data.record);
           return data;

@@ -7,10 +7,68 @@
 // `*_by_name` fields snapshot the display name alongside the id so the
 // "Инициатор" column survives both cases.
 
+// ── Восстановление из архива возвращает ПРЕЖНЕГО автора ──
+//
+// Счёт, вернувшийся из архива, не создан заново — у него есть прежний автор,
+// и колонка «Инициатор» обязана показывать именно его, а не того, кто нажал
+// «восстановить». Но клиент присылает в `create` только ссылку
+// `restored_from_invoice_id`, а сервер достаёт автора из самой архивной копии.
+//
+// Почему автор резолвит сервер, а не клиент: хук не может просто не трогать
+// присланное клиентом `created_by` — тогда любой аутентифицированный
+// пользователь создал бы счёт от чужого имени. Единственный источник, которому
+// можно верить, — архивная запись, а её id клиент тоже не выдумывает.
+//
+// `if (e.auth)` сохранён: без аутентификации `created_by` остаётся пустым и
+// запрос отсекает `createRule` из миграции 1815000013.
+//
+// ФОЛБЭК НА `e.auth` ОБЯЗАТЕЛ, а не подстраховка: `created_by` в `invoices`
+// `required` (1815000013), поэтому архивная строка с пустым автором (счёт,
+// созданный анонимно ДО той миграции) без фолбэка превратила бы восстановление
+// в 400 `validation_required` — то есть восстановить такой счёт было бы уже
+// невозможно.
 onRecordCreateRequest((e) => {
+  var archiveCreatedBy = '';
+  var archiveCreatedByName = '';
+
+  var restoredFromId = e.record.get('restored_from_invoice_id');
+  if (restoredFromId) {
+    try {
+      var archiveRec = $app.findRecordById('deleted_invoices', String(restoredFromId));
+      if (archiveRec) {
+        archiveCreatedBy = String(archiveRec.get('created_by') || '');
+        archiveCreatedByName = String(archiveRec.get('created_by_name') || '');
+      }
+    } catch (err) {
+      // Битая ссылка не должна ломать восстановление — уходим на автора
+      // восстановителя, как будто маркера не было вовсе.
+      console.error('[notify:restore-archive]', String(err));
+    }
+
+    // В архиве `created_by_name` чаще пустая строка (см. 1814000000): там счёт
+    // мог быть создан анонимно либо полем не успели заполнить. Имя резолвим по
+    // id тем же хелпером, что и остальные места в этом файле.
+    if (archiveCreatedBy && !archiveCreatedByName) {
+      try {
+        archiveCreatedByName = require(__hooks + '/lib-actor.js').resolveActorName($app, [
+          archiveCreatedBy,
+        ]);
+      } catch (err) {
+        console.error('[notify:restore-actor-name]', String(err));
+      }
+    }
+  }
+
   if (e.auth) {
-    e.record.set('created_by', e.auth.id);
-    e.record.set('created_by_name', e.auth.get('name') || e.auth.get('login') || e.auth.get('email') || '');
+    e.record.set('created_by', archiveCreatedBy || e.auth.id);
+    e.record.set(
+      'created_by_name',
+      archiveCreatedByName ||
+        e.auth.get('name') ||
+        e.auth.get('login') ||
+        e.auth.get('email') ||
+        '',
+    );
   }
   e.next();
 }, 'invoices');
@@ -18,7 +76,10 @@ onRecordCreateRequest((e) => {
 onRecordUpdateRequest((e) => {
   if (e.auth) {
     e.record.set('updated_by', e.auth.id);
-    e.record.set('updated_by_name', e.auth.get('name') || e.auth.get('login') || e.auth.get('email') || '');
+    e.record.set(
+      'updated_by_name',
+      e.auth.get('name') || e.auth.get('login') || e.auth.get('email') || '',
+    );
   }
   e.next();
 }, 'invoices');
@@ -52,10 +113,16 @@ onRecordCreate((e) => {
   try {
     var actorRec = e.record;
     if (!actorRec.get('created_by_name') && actorRec.get('created_by')) {
-      actorRec.set('created_by_name', require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('created_by')]));
+      actorRec.set(
+        'created_by_name',
+        require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('created_by')]),
+      );
     }
     if (actorRec.get('updated_by') && !actorRec.get('updated_by_name')) {
-      actorRec.set('updated_by_name', require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('updated_by')]));
+      actorRec.set(
+        'updated_by_name',
+        require(__hooks + '/lib-actor.js').resolveActorName($app, [actorRec.get('updated_by')]),
+      );
     }
   } catch (err) {
     console.error('[notify:actor-name]', String(err));
@@ -64,14 +131,18 @@ onRecordCreate((e) => {
   // --- Notification ---
   try {
     var rec = e.record;
-    if (rec.get('original_invoice_id')) { e.next(); return; }
+    if (rec.get('original_invoice_id')) {
+      e.next();
+      return;
+    }
     var invOrgId = rec.get('organization_id');
     var invId = rec.id;
     var actorId = rec.get('created_by') || (e.auth ? e.auth.id : '');
-    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [
-      actorId,
-      e.auth ? e.auth.id : '',
-    ]) || 'Пользователь';
+    var actorName =
+      require(__hooks + '/lib-actor.js').resolveActorName($app, [
+        actorId,
+        e.auth ? e.auth.id : '',
+      ]) || 'Пользователь';
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
@@ -80,7 +151,7 @@ onRecordCreate((e) => {
     var objName = '';
     try {
       var obj = $app.findRecordById('accounting_objects', rec.get('accounting_object_id'));
-      objName = obj ? (obj.get('name') || '') : '';
+      objName = obj ? obj.get('name') || '' : '';
     } catch (_) {
       objName = '';
     }
@@ -126,17 +197,29 @@ onRecordCreate((e) => {
 onRecordUpdate((e) => {
   try {
     var rec = e.record;
-    if (rec.get('original_invoice_id')) { e.next(); return; }
+    if (rec.get('original_invoice_id')) {
+      e.next();
+      return;
+    }
     var oldRec = rec.original();
-    if (!oldRec) { e.next(); return; }
+    if (!oldRec) {
+      e.next();
+      return;
+    }
 
     // --- Actor name snapshot (internal saves bypass the request hook) ---
     try {
       if (rec.get('updated_by') && !rec.get('updated_by_name')) {
-        rec.set('updated_by_name', require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('updated_by')]));
+        rec.set(
+          'updated_by_name',
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('updated_by')]),
+        );
       }
       if (rec.get('created_by') && !rec.get('created_by_name')) {
-        rec.set('created_by_name', require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('created_by')]));
+        rec.set(
+          'created_by_name',
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('created_by')]),
+        );
       }
     } catch (err) {
       console.error('[notify:actor-name]', String(err));
@@ -145,9 +228,10 @@ onRecordUpdate((e) => {
     var invOrgId = rec.get('organization_id');
     var invId = rec.id;
     var actorId = rec.get('updated_by');
-    var actorName = rec.get('updated_by_name')
-      || require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId])
-      || 'Пользователь';
+    var actorName =
+      rec.get('updated_by_name') ||
+      require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) ||
+      'Пользователь';
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
@@ -155,7 +239,7 @@ onRecordUpdate((e) => {
     var objName = '';
     try {
       var obj = $app.findRecordById('accounting_objects', rec.get('accounting_object_id'));
-      objName = obj ? (obj.get('name') || '') : '';
+      objName = obj ? obj.get('name') || '' : '';
     } catch (_) {
       objName = '';
     }
@@ -169,13 +253,16 @@ onRecordUpdate((e) => {
 
     if (initiatorChanged) {
       notifType = 'invoice_updated';
-      var oldInitiator = oldRec.get('created_by_name')
-        || require(__hooks + '/lib-actor.js').resolveActorName($app, [oldRec.get('created_by')])
-        || '—';
-      var newInitiator = rec.get('created_by_name')
-        || require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('created_by')])
-        || '—';
-      eventText = 'Изменён инициатор счёта: ' + counterparty + ' — ' + oldInitiator + ' → ' + newInitiator;
+      var oldInitiator =
+        oldRec.get('created_by_name') ||
+        require(__hooks + '/lib-actor.js').resolveActorName($app, [oldRec.get('created_by')]) ||
+        '—';
+      var newInitiator =
+        rec.get('created_by_name') ||
+        require(__hooks + '/lib-actor.js').resolveActorName($app, [rec.get('created_by')]) ||
+        '—';
+      eventText =
+        'Изменён инициатор счёта: ' + counterparty + ' — ' + oldInitiator + ' → ' + newInitiator;
     } else if (paidChanged) {
       notifType = 'payment_marked';
       if (rec.get('paid')) {
@@ -235,7 +322,8 @@ onRecordCreateRequest((e) => {
 
     var invOrgId = rec.get('organization_id');
     var actorId = e.auth.id;
-    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || 'Пользователь';
+    var actorName =
+      require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || 'Пользователь';
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
     var amtStr = amount !== null && amount !== undefined ? String(Math.round(Number(amount))) : '0';
@@ -244,7 +332,7 @@ onRecordCreateRequest((e) => {
     var objName = '';
     try {
       var obj = $app.findRecordById('accounting_objects', rec.get('accounting_object_id'));
-      objName = obj ? (obj.get('name') || '') : '';
+      objName = obj ? obj.get('name') || '' : '';
     } catch (_) {
       objName = '';
     }
@@ -290,11 +378,15 @@ onRecordCreate((e) => {
     var pm = e.record;
     var pmInvId = pm.get('invoice_id');
     var inv = $app.findRecordById('invoices', pmInvId);
-    if (!inv) { e.next(); return; }
+    if (!inv) {
+      e.next();
+      return;
+    }
 
     var invOrgId = inv.get('organization_id');
     var actorId = pm.get('created_by');
-    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || 'Пользователь';
+    var actorName =
+      require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || 'Пользователь';
     var counterparty = inv.get('counterparty');
     var pmAmount = pm.get('amount');
     var pmComment = pm.get('comment');
@@ -302,7 +394,7 @@ onRecordCreate((e) => {
     var objName = '';
     try {
       var obj = $app.findRecordById('accounting_objects', inv.get('accounting_object_id'));
-      objName = obj ? (obj.get('name') || '') : '';
+      objName = obj ? obj.get('name') || '' : '';
     } catch (_) {
       objName = '';
     }
@@ -316,15 +408,12 @@ onRecordCreate((e) => {
     } else if (pmComment) {
       eventText = 'Отметка об оплате: ' + counterparty + ', ' + pmComment;
     } else {
-      var fallbackAmt = invAmount !== null && invAmount !== undefined
-        ? String(Math.round(Number(invAmount)))
-        : '0';
+      var fallbackAmt =
+        invAmount !== null && invAmount !== undefined ? String(Math.round(Number(invAmount))) : '0';
       eventText = 'Отметка об оплате: ' + counterparty + ', ' + fallbackAmt + ' \u20BD';
     }
     var notifAmount =
-      pmAmount !== null && pmAmount !== undefined && pmAmount !== 0
-        ? pmAmount
-        : invAmount;
+      pmAmount !== null && pmAmount !== undefined && pmAmount !== 0 ? pmAmount : invAmount;
 
     var orgUsers = $app.findRecordsByFilter(
       'organization_users',
@@ -367,11 +456,12 @@ onRecordDeleteRequest((e) => {
     var invOrgId = rec.get('organization_id');
     var invId = rec.id;
     var actorId = (e.auth ? e.auth.id : '') || rec.get('updated_by') || rec.get('created_by');
-    var actorName = require(__hooks + '/lib-actor.js').resolveActorName($app, [
-      actorId,
-      rec.get('updated_by'),
-      rec.get('created_by'),
-    ]) || 'Пользователь';
+    var actorName =
+      require(__hooks + '/lib-actor.js').resolveActorName($app, [
+        actorId,
+        rec.get('updated_by'),
+        rec.get('created_by'),
+      ]) || 'Пользователь';
 
     var counterparty = rec.get('counterparty');
     var amount = rec.get('amount');
@@ -382,7 +472,7 @@ onRecordDeleteRequest((e) => {
     var objName = '';
     try {
       var obj = $app.findRecordById('accounting_objects', rec.get('accounting_object_id'));
-      objName = obj ? (obj.get('name') || '') : '';
+      objName = obj ? obj.get('name') || '' : '';
     } catch (_) {
       objName = '';
     }

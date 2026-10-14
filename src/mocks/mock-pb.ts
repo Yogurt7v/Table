@@ -5,13 +5,21 @@ let currentToken = '';
 const listeners: Array<(...args: unknown[]) => void> = [];
 
 export const authStore = {
-  get model() { return currentUser; },
-  get token() { return currentToken; },
-  get isValid() { return !!currentUser; },
+  get model() {
+    return currentUser;
+  },
+  get token() {
+    return currentToken;
+  },
+  get isValid() {
+    return !!currentUser;
+  },
   onChange: vi.fn((cb: (...args: unknown[]) => void, fireImmediately?: boolean) => {
     listeners.push(cb);
     if (fireImmediately) {
-      setTimeout(() => { cb(currentToken, currentUser); }, 0);
+      setTimeout(() => {
+        cb(currentToken, currentUser);
+      }, 0);
     }
     return () => {
       const idx = listeners.indexOf(cb);
@@ -21,19 +29,25 @@ export const authStore = {
   clear: vi.fn(() => {
     currentUser = null;
     currentToken = '';
-    listeners.forEach(cb => { cb('', null); });
+    listeners.forEach((cb) => {
+      cb('', null);
+    });
   }),
   save: vi.fn((token: string, model: Record<string, unknown>) => {
     currentToken = token;
     currentUser = model;
-    listeners.forEach(cb => { cb(token, model); });
+    listeners.forEach((cb) => {
+      cb(token, model);
+    });
   }),
 };
 
 export function setAuthUser(user: Record<string, unknown> | null, token?: string) {
   currentUser = user;
   currentToken = token || (user ? 'mock-token' : '');
-  listeners.forEach(cb => { cb(currentToken, currentUser); });
+  listeners.forEach((cb) => {
+    cb(currentToken, currentUser);
+  });
 }
 
 export function resetAuth() {
@@ -58,7 +72,7 @@ export function createMockPbModule(authUser?: Record<string, unknown> | null) {
           if (options?.sort) params.set('sort', options.sort as string);
           const url = `http://127.0.0.1:8090/api/collections/${name}/records?${params}`;
           const res = await fetch(url);
-          const data = await res.json() as { items: unknown[] };
+          const data = (await res.json()) as { items: unknown[] };
           return data.items;
         },
         getList: async (page: number, perPage: number, options?: Record<string, unknown>) => {
@@ -80,7 +94,7 @@ export function createMockPbModule(authUser?: Record<string, unknown> | null) {
         getFirstListItem: async (filter: string) => {
           const url = `http://127.0.0.1:8090/api/collections/${name}/records?filter=${encodeURIComponent(filter)}&perPage=1`;
           const res = await fetch(url);
-          const data = await res.json() as { items: unknown[] };
+          const data = (await res.json()) as { items: unknown[] };
           return data.items[0];
         },
         create: async (data: unknown) => {
@@ -114,7 +128,11 @@ export function createMockPbModule(authUser?: Record<string, unknown> | null) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ identity: login, password }),
           });
-          const data = await res.json() as { token: string; record: Record<string, unknown>; message?: string };
+          const data = (await res.json()) as {
+            token: string;
+            record: Record<string, unknown>;
+            message?: string;
+          };
           if (!res.ok) throw new Error((data as { message?: string }).message || 'Auth failed');
           authStore.save(data.token, data.record);
           return data;

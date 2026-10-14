@@ -90,7 +90,12 @@ export function InvoiceHistoryModal({
   opened,
   onClose,
 }: InvoiceHistoryModalProps) {
-  const { data: saga, isLoading: historyLoading, isError, error } = useQuery({
+  const {
+    data: saga,
+    isLoading: historyLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ['invoice_history', invoiceId],
     queryFn: () => getInvoiceHistoryChain(invoiceId!),
     enabled: opened && !!invoiceId,
@@ -125,13 +130,12 @@ export function InvoiceHistoryModal({
 
       {!isLoading && isError && (
         <Text c="red" size="sm">
-          Не удалось загрузить историю: {error instanceof Error ? error.message : 'неизвестная ошибка'}
+          Не удалось загрузить историю:{' '}
+          {error instanceof Error ? error.message : 'неизвестная ошибка'}
         </Text>
       )}
 
-      {!isLoading && !isError && entries.length === 0 && (
-        <Text c="dimmed">Изменений пока нет</Text>
-      )}
+      {!isLoading && !isError && entries.length === 0 && <Text c="dimmed">Изменений пока нет</Text>}
 
       {!isLoading && !isError && entries.length > 0 && (
         <>
@@ -335,7 +339,7 @@ function computeHistoryDiffs(
         const removed =
           typeof prev['removed_amount'] === 'number'
             ? prev['removed_amount']
-            : thisPayment ?? totalFrom;
+            : (thisPayment ?? totalFrom);
         results.push({
           entryId: entry.id,
           changedAt: entry.changed_at,
@@ -421,7 +425,8 @@ function buildMarkEntry(
   isCopy: boolean,
 ): HistoryEntryDiffs {
   const status = (prev['status'] as PaymentMarkStatus | undefined) ?? null;
-  const rawAmount = typeof prev['amount'] === 'number' ? prev['amount'] : (Number(prev['amount'] ?? 0) || null);
+  const rawAmount =
+    typeof prev['amount'] === 'number' ? prev['amount'] : Number(prev['amount'] ?? 0) || null;
   const amount = typeof rawAmount === 'number' && !Number.isNaN(rawAmount) ? rawAmount : null;
   const comment = typeof prev['comment'] === 'string' ? prev['comment'] : '';
   const amountText = amount != null ? ` ${formatAmountRub(amount)}` : '';
@@ -433,9 +438,7 @@ function buildMarkEntry(
   if (status === 'approved') {
     actionText = deleted ? 'Утверждение оплаты отменено' : `Утверждена оплата${amountText}`;
   } else if (status === 'proposed') {
-    actionText = deleted
-      ? 'Запрос на согласование отменён'
-      : `Запрос на согласование${amountText}`;
+    actionText = deleted ? 'Запрос на согласование отменён' : `Запрос на согласование${amountText}`;
   } else {
     actionText = deleted
       ? 'Отметка частичной оплаты снята'
@@ -459,7 +462,7 @@ function buildCopyEntry(
   isCopy: boolean,
 ): HistoryEntryDiffs {
   const amount =
-    typeof prev['amount'] === 'number' ? prev['amount'] : (Number(prev['amount'] ?? 0) || null);
+    typeof prev['amount'] === 'number' ? prev['amount'] : Number(prev['amount'] ?? 0) || null;
 
   const text = `Создана копия-остаток${amount != null ? ` ${formatAmountRub(amount)}` : ''}`;
 

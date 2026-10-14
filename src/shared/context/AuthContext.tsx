@@ -1,13 +1,7 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { pb } from '@/api/client';
 import type { IUser } from '@/shared/types';
+import { setLastKnownUser } from '@/shared/auth/last-known-user';
 
 interface AuthContextValue {
   user: IUser | null;
@@ -26,7 +20,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsub = pb.authStore.onChange((_token, model) => {
       if (model) {
-        setUser(model as unknown as IUser);
+        const u = model as unknown as IUser;
+        setUser(u);
+        setLastKnownUser(u);
       } else {
         setUser(null);
       }
@@ -36,9 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (loginValue: string, password: string) => {
-    const result = await pb
-      .collection('users')
-      .authWithPassword<IUser>(loginValue, password);
+    const result = await pb.collection('users').authWithPassword<IUser>(loginValue, password);
     setUser(result.record);
   }, []);
 

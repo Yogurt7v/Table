@@ -20,6 +20,7 @@ import type {
 } from '@/shared/types';
 import { appendDeletionReason, stripDeletionReason } from '@/shared/utils/deletion-reason';
 import { foldSearchText } from '@/shared/utils/search-text';
+import { getLastKnownUser } from '@/shared/auth/last-known-user';
 
 export const MAIL_INCOMING_COLLECTION = 'incoming_mails';
 export const MAIL_OUTGOING_COLLECTION = 'outgoing_mails';
@@ -179,11 +180,12 @@ function buildDeletedOutgoingMailFilter(params: MailListParams): string {
 }
 
 function currentActorId(): string {
-  return pb.authStore.model?.id ?? '';
+  return pb.authStore.model?.id ?? getLastKnownUser()?.id ?? '';
 }
 
 function currentActorName(): string {
-  return pb.authStore.model?.name || pb.authStore.model?.login || pb.authStore.model?.email || '';
+  const model = pb.authStore.model ?? getLastKnownUser();
+  return model?.name || model?.login || model?.email || '';
 }
 
 function relationSideFields(side: MailRelationSide): {
@@ -805,6 +807,22 @@ export function getDeletedOutgoingMail(id: string) {
  *
  * `stripDeletionReason` снимает дописанную при удалении строку причины: письмо,
  * вернувшееся в реестр, не должно нести пометку об архивации.
+ *
+ * `created_by` клиент НЕ шлёт — ни `deleted.created_by`, ни `currentActorId()`.
+ * Раньше здесь стояло `deleted.created_by || currentActorId()`, и `||` был не
+ * стилистикой: миграция `1815000013_close_anonymous_create_hole` сделала поле
+ * обязательным, а письмо, созданное анонимно ДО неё (при `createRule = ""` это
+ * был штатный, а не вырожденный случай), лежит в архиве с `created_by: ''` —
+ * пустой строкой, а не `null`, и `??` такую строку пропускает насквозь. Но весь
+ * этот `||` был МЁРТВЫМ КОДОМ: хук `fillMailActorsOnCreateRequest` в
+ * `pb_hooks/mail-notify.pb.js` перезаписывает `created_by` безусловно, поэтому
+ * письмо всё равно показывало восстановителя автором, а фолбэк на
+ * `currentActorId()` просто не выполнялся.
+ *
+ * Теперь клиент шлёт ссылку `restored_from_inmail_id`, и хук достаёт из архива
+ * ПРЕЖНЕГО автора; фолбэк на восстановителя переехал в хук, где он и должен
+ * быть. Доверять клиенту назначение автора нельзя — иначе любой пользователь
+ * создал бы письмо от чужого имени.
  */
 export async function restoreDeletedIncomingMail(deletedMailId: string): Promise<IIncomingMail> {
   const deleted = await pb
@@ -825,8 +843,8 @@ export async function restoreDeletedIncomingMail(deletedMailId: string): Promise
     responsible_name: deleted.responsible_name ?? '',
     delivery_method: deleted.delivery_method,
     comment: stripDeletionReason(deleted.comment),
-    created_by: deleted.created_by ?? '',
-    created_by_name: deleted.created_by_name ?? '',
+    // Автора шлёт сервер, из архива — см. докблок функции.
+    restored_from_inmail_id: deletedMailId,
     updated_by: currentActorId(),
     updated_by_name: currentActorName(),
   });
@@ -865,6 +883,11 @@ export async function restoreDeletedIncomingMail(deletedMailId: string): Promise
 /**
  * Outgoing twin of `restoreDeletedIncomingMail` — same original-id rule, same
  * reason: attachments reference the mail by plain text id.
+ *
+ * Причину, по которой `created_by` здесь не отправляется вовсе, см. в докблоке
+ * входящего восстановления выше: автор резолвит серверный хук из архивной
+ * копии, а клиентский `deleted.created_by || currentActorId()` был мёртвым
+ * кодом, который хук всё равно перезаписывал.
  */
 export async function restoreDeletedOutgoingMail(deletedMailId: string): Promise<IOutgoingMail> {
   const deleted = await pb
@@ -885,8 +908,8 @@ export async function restoreDeletedOutgoingMail(deletedMailId: string): Promise
     responsible_name: deleted.responsible_name ?? '',
     delivery_method: deleted.delivery_method,
     comment: stripDeletionReason(deleted.comment),
-    created_by: deleted.created_by ?? '',
-    created_by_name: deleted.created_by_name ?? '',
+    // Автора шлёт сервер, из архива — см. докблок функции.
+    restored_from_outmail_id: deletedMailId,
     updated_by: currentActorId(),
     updated_by_name: currentActorName(),
   });

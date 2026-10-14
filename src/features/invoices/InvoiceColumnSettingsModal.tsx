@@ -37,13 +37,7 @@ interface ColumnItem {
   visible: boolean;
 }
 
-function SortableColumn({
-  item,
-  onToggle,
-}: {
-  item: ColumnItem;
-  onToggle: () => void;
-}) {
+function SortableColumn({ item, onToggle }: { item: ColumnItem; onToggle: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -55,16 +49,12 @@ function SortableColumn({
   };
 
   return (
-    <Paper
-      ref={setNodeRef}
-      style={style}
-      withBorder
-      p="xs"
-      {...attributes}
-      {...listeners}
-    >
+    <Paper ref={setNodeRef} style={style} withBorder p="xs" {...attributes} {...listeners}>
       <Group gap="sm" wrap="nowrap">
-        <IconGripVertical size={16} style={{ cursor: 'grab', color: 'var(--mantine-color-gray-5)' }} />
+        <IconGripVertical
+          size={16}
+          style={{ cursor: 'grab', color: 'var(--mantine-color-gray-5)' }}
+        />
         <Checkbox
           label={item.label}
           checked={item.visible}
@@ -142,18 +132,10 @@ export function InvoiceColumnSettingsModal({
         <Text size="sm" c="dimmed">
           Перетащите колонки для изменения порядка, отметьте видимые
         </Text>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
             {items.map((item) => (
-              <SortableColumn
-                key={item.id}
-                item={item}
-                onToggle={() => handleToggle(item.id)}
-              />
+              <SortableColumn key={item.id} item={item} onToggle={() => handleToggle(item.id)} />
             ))}
           </SortableContext>
         </DndContext>

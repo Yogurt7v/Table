@@ -1,6 +1,32 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { Affix, Paper, Title, Group, Skeleton, Stack, Text, ActionIcon, Tooltip, Menu, Box, Button, Loader, Center, useMantineTheme, Anchor } from '@mantine/core';
-import { IconPrinter, IconSettings, IconFileExport, IconChevronsDown, IconChevronsUp, IconX, IconFilter, IconCheck } from '@tabler/icons-react';
+import {
+  Affix,
+  Paper,
+  Title,
+  Group,
+  Skeleton,
+  Stack,
+  Text,
+  ActionIcon,
+  Tooltip,
+  Menu,
+  Box,
+  Button,
+  Loader,
+  Center,
+  useMantineTheme,
+  Anchor,
+} from '@mantine/core';
+import {
+  IconPrinter,
+  IconSettings,
+  IconFileExport,
+  IconChevronsDown,
+  IconChevronsUp,
+  IconX,
+  IconFilter,
+  IconCheck,
+} from '@tabler/icons-react';
 import { useInvoices } from '@/shared/hooks/useInvoices';
 import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
 import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
@@ -16,7 +42,10 @@ import { SearchResultsView } from '@/features/invoices/components/SearchResultsV
 import { InvoiceObjectBlock } from '@/features/invoices/components/InvoiceObjectBlock';
 import { DEFAULT_VISIBLE_COLUMNS } from '@/features/invoices/invoice-columns';
 import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
-import { CollapsedObjectsProvider, useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
+import {
+  CollapsedObjectsProvider,
+  useCollapsedObjects,
+} from '@/shared/context/CollapsedObjectsContext';
 
 import { useOrg } from '@/shared/context/OrgContext';
 import { useSearch } from '@/shared/context/SearchContext';
@@ -29,7 +58,13 @@ import {
   INVOICE_FILTER_LABELS,
   filterInvoices,
 } from '@/features/invoices/utils/invoice-filter';
-import type { IInvoice, IInvoiceFile, IAccountingObject, IPaymentMark, InvoiceColumnId } from '@/shared/types';
+import type {
+  IInvoice,
+  IInvoiceFile,
+  IAccountingObject,
+  IPaymentMark,
+  InvoiceColumnId,
+} from '@/shared/types';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { normalizeInvoiceForDate } from '@/shared/utils/invoice-utils';
 import { useMediaQuery } from '@mantine/hooks';
@@ -124,7 +159,8 @@ function ObjectsList({
 }: ObjectsListProps) {
   const { collapsedIds, collapseAll, expandAll } = useCollapsedObjects();
   const allCollapsed = objects.length > 0 && objects.every((o) => collapsedIds.has(o.id));
-  const isFullAccess = permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
+  const isFullAccess =
+    permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
 
   const { currentOrgId } = useOrg();
   const mailPermissions = useMailPermissions(currentOrgId);
@@ -158,14 +194,16 @@ function ObjectsList({
             <Menu.Item
               key={filter}
               leftSection={
-                isActive ? <IconCheck size={16} color="var(--mantine-color-blue-filled)" /> : <Box w={16} />
+                isActive ? (
+                  <IconCheck size={16} color="var(--mantine-color-blue-filled)" />
+                ) : (
+                  <Box w={16} />
+                )
               }
               color={isActive ? 'blue' : undefined}
               onClick={() =>
                 onActiveFiltersChange(
-                  isActive
-                    ? activeFilters.filter((f) => f !== filter)
-                    : [...activeFilters, filter],
+                  isActive ? activeFilters.filter((f) => f !== filter) : [...activeFilters, filter],
                 )
               }
             >
@@ -219,7 +257,8 @@ function ObjectsList({
                 >
                   <IconSettings size={20} />
                 </ActionIcon>
-              </Tooltip>)}
+              </Tooltip>
+            )}
             {!isMobile && (
               <Tooltip label="Печать">
                 <ActionIcon
@@ -231,7 +270,8 @@ function ObjectsList({
                 >
                   <IconPrinter size={20} />
                 </ActionIcon>
-              </Tooltip>)}
+              </Tooltip>
+            )}
             <Tooltip label="Экспорт в Excel">
               <ActionIcon
                 size="md"
@@ -258,7 +298,6 @@ function ObjectsList({
       <Box visibleFrom="sm">
         <Group justify="space-between" mb="sm" wrap="wrap">
           <Group gap={8} justify="flex-start" flex="1">
-
             {mailPermissions.canView && (
               <Group gap={6} wrap="nowrap">
                 <Anchor
@@ -269,15 +308,16 @@ function ObjectsList({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
-                    color: "black",
-                    fontWeight: "bolder",
-                    fontSize: "16px"
+                    color: 'black',
+                    fontWeight: 'bolder',
+                    fontSize: '16px',
                   }}
                 >
                   Почта
                   {/*<IconMail size={16} aria-hidden /> */}
                 </Anchor>
-                / </Group>
+                /{' '}
+              </Group>
             )}
 
             <Title order={5}>Счета</Title>
@@ -320,11 +360,7 @@ function ObjectsList({
 
             {collapseButton}
           </Group>
-          {paidTodayTotal > 0 && (
-            <Text size="lg">
-              Оплачено: {formatAmountRub(paidTodayTotal)}
-            </Text>
-          )}
+          {paidTodayTotal > 0 && <Text size="lg">Оплачено: {formatAmountRub(paidTodayTotal)}</Text>}
         </Group>
       </Box>
       {objects.map((obj) => (
@@ -354,9 +390,7 @@ function ObjectsList({
 }
 
 function flashHighlightRow(invoiceId: string) {
-  const el = document.querySelector(
-    `[data-highlight-id="${CSS.escape(invoiceId)}"]`,
-  );
+  const el = document.querySelector(`[data-highlight-id="${CSS.escape(invoiceId)}"]`);
   if (!el || el.classList.contains('row-flash')) return;
   el.classList.add('row-flash');
   window.setTimeout(() => {
@@ -390,9 +424,7 @@ function AutoExpandOnHighlight({
     const hasObject = objects.some((o) => o.id === objectId);
     if (hasObject) expand([objectId]);
 
-    const el = document.querySelector(
-      `[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`,
-    );
+    const el = document.querySelector(`[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`);
     if (el) {
       flashHighlightRow(highlightedInvoiceId);
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -422,11 +454,7 @@ export function InvoiceSection({
   bankTotal,
 }: InvoiceSectionProps) {
   const { debouncedSearchText } = useSearch();
-  const {
-    highlightedInvoiceId,
-    highlightRequestId,
-    clearHighlight,
-  } = useInvoiceNavigation();
+  const { highlightedInvoiceId, highlightRequestId, clearHighlight } = useInvoiceNavigation();
   const objects = useAccessibleObjects(orgId);
   const { data: invoices } = useInvoices(orgId, date);
   const displayInvoices = useMemo(
@@ -491,7 +519,12 @@ export function InvoiceSection({
   const highlightedIds = useMemo(
     () =>
       highlightedInvoiceId
-        ? Array.from(new Set([...computeHighlightedIds(debouncedSearchText, searchResults, displayInvoices), highlightedInvoiceId]))
+        ? Array.from(
+            new Set([
+              ...computeHighlightedIds(debouncedSearchText, searchResults, displayInvoices),
+              highlightedInvoiceId,
+            ]),
+          )
         : computeHighlightedIds(debouncedSearchText, searchResults, displayInvoices),
     [debouncedSearchText, searchResults, displayInvoices, highlightedInvoiceId],
   );
@@ -533,9 +566,7 @@ export function InvoiceSection({
 
   const handleExportExcel = (objectId?: string) => {
     if (!currentOrg || !displayInvoices || !objects) return;
-    const targetObjects = objectId
-      ? objects.filter((obj) => obj.id === objectId)
-      : objects;
+    const targetObjects = objectId ? objects.filter((obj) => obj.id === objectId) : objects;
     const targetInvoices = objectId
       ? printInvoices.filter((inv) => normalizeRelationId(inv.accounting_object_id) === objectId)
       : printInvoices;
@@ -672,12 +703,7 @@ export function InvoiceSection({
       {permissions.canViewPaymentMarks && markedTotal > 0 && (
         <Affix position={{ bottom: 20, right: 20 }} zIndex={100}>
           <Paper withBorder p="sm" shadow="lg">
-            <Text
-              ta="right"
-              fw={700}
-              size="md"
-              c={isOverBalance ? 'red' : undefined}
-            >
+            <Text ta="right" fw={700} size="md" c={isOverBalance ? 'red' : undefined}>
               Итого к оплате: {formatAmountRub(markedTotal)}
             </Text>
           </Paper>
