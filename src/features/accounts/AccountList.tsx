@@ -1,5 +1,15 @@
 import { useState, useRef } from 'react';
-import { Box, Paper, Title, Table, Loader, Text, Group, TextInput, ActionIcon } from '@mantine/core';
+import {
+  Box,
+  Paper,
+  Title,
+  Table,
+  Loader,
+  Text,
+  Group,
+  TextInput,
+  ActionIcon,
+} from '@mantine/core';
 import { IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import sumBy from 'lodash/sumBy';
 // import dayjs from 'dayjs';
@@ -64,7 +74,12 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
         <AccountListMobile accounts={accounts} loading={loading} date={date} canEdit={canEdit} />
       </Box>
       <Box visibleFrom="sm">
-        <Paper withBorder p="sm" w={{ base: '100%', md: '50%' }} style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
+        <Paper
+          withBorder
+          p="sm"
+          w={{ base: '100%', md: '50%' }}
+          style={{ boxShadow: 'var(--mantine-shadow-sm)' }}
+        >
           <Title order={6} mb="xs">
             Расчётные счета
           </Title>
@@ -117,7 +132,10 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
                                 let newPos = newFormatted.length;
                                 for (let i = 0; i < newFormatted.length; i++) {
                                   if (newFormatted[i] !== ' ') count++;
-                                  if (count > nonSpace) { newPos = i; break; }
+                                  if (count > nonSpace) {
+                                    newPos = i;
+                                    break;
+                                  }
                                 }
                                 inputRef.current.setSelectionRange(newPos, newPos);
                               });

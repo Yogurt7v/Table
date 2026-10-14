@@ -137,10 +137,7 @@ describe('groupInvoicesByCounterparty', () => {
 
     const groups = groupInvoicesByCounterparty(visible, all);
     expect(groups.map((g) => g.counterparty)).toEqual(['Ромашка', 'Петров']);
-    expect(groups.map((g) => g.invoices.map((i) => i.id))).toEqual([
-      ['a'],
-      ['c'],
-    ]);
+    expect(groups.map((g) => g.invoices.map((i) => i.id))).toEqual([['a'], ['c']]);
   });
 
   it('counterpartyOrder определяет порядок групп, новые контрагенты — в конец', () => {
@@ -151,16 +148,8 @@ describe('groupInvoicesByCounterparty', () => {
       inv({ id: 'd', counterparty: 'Сидоров', created: '2026-09-01 11:00:00' }),
     ];
 
-    const groups = groupInvoicesByCounterparty(invoices, undefined, [
-      'Петров',
-      'Ромашка',
-    ]);
-    expect(groups.map((g) => g.counterparty)).toEqual([
-      'Петров',
-      'Ромашка',
-      'Иванов',
-      'Сидоров',
-    ]);
+    const groups = groupInvoicesByCounterparty(invoices, undefined, ['Петров', 'Ромашка']);
+    expect(groups.map((g) => g.counterparty)).toEqual(['Петров', 'Ромашка', 'Иванов', 'Сидоров']);
   });
 
   it('counterpartyOrder не ломает порядок внутри группы', () => {

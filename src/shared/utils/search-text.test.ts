@@ -26,7 +26,9 @@ describe('matchesFolded', () => {
   });
 
   it('ищет по любому из полей', () => {
-    expect(matchesFolded(['ООО Ромашка', 'Оплата по договору'], foldSearchText('оплат'))).toBe(true);
+    expect(matchesFolded(['ООО Ромашка', 'Оплата по договору'], foldSearchText('оплат'))).toBe(
+      true,
+    );
     expect(matchesFolded([null, undefined, 'ПТ-12'], foldSearchText('пт-12'))).toBe(true);
   });
 

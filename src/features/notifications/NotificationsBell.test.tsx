@@ -26,13 +26,23 @@ const mockHooks = vi.hoisted(() => {
       mockNotifications = items;
       mockUnreadCount = unread;
     },
-    setLoading: (v: boolean) => { mockLoading = v; },
-    setHasMore: (v: boolean) => { mockHasMore = v; },
-    setError: (v: string | null) => { mockError = v; },
+    setLoading: (v: boolean) => {
+      mockLoading = v;
+    },
+    setHasMore: (v: boolean) => {
+      mockHasMore = v;
+    },
+    setError: (v: string | null) => {
+      mockError = v;
+    },
     loadMore: mockLoadMore,
     retryNow: mockRetryNow,
     markAsRead: mockMarkAsRead,
-    useAuth: () => ({ user: { id: 'user1', login: 'admin' }, isAuthenticated: true, isLoading: false }),
+    useAuth: () => ({
+      user: { id: 'user1', login: 'admin' },
+      isAuthenticated: true,
+      isLoading: false,
+    }),
     useNotifications: () => ({
       notifications: mockNotifications,
       isLoading: mockLoading,
@@ -65,7 +75,10 @@ vi.mock('@/shared/context/AuthContext', () => ({
 
 vi.mock('@/shared/hooks/useNotifications', () => ({
   useNotifications: mockHooks.useNotifications,
-  useNotificationsByDate: () => ({ data: undefined as INotification[] | undefined, isLoading: false }),
+  useNotificationsByDate: () => ({
+    data: undefined as INotification[] | undefined,
+    isLoading: false,
+  }),
 }));
 
 vi.mock('@/shared/context/OrgContext', () => ({
@@ -83,7 +96,9 @@ vi.mock('@/shared/context/InvoiceNavigationContext', () => ({
 }));
 
 const getDeletedInvoiceByOriginalId = vi.hoisted(() => vi.fn());
-const getInvoice = vi.hoisted(() => vi.fn(() => Promise.resolve({ id: 'inv1', date: '2026-06-02' })));
+const getInvoice = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve({ id: 'inv1', date: '2026-06-02' })),
+);
 
 vi.mock('@/api/collections', () => ({
   getInvoice,
@@ -142,10 +157,16 @@ describe('NotificationsBell', () => {
     mockHooks.setNotifications(
       [
         {
-          id: 'n1', organization_id: 'org1', user_id: 'user1',
-          invoice_id: 'inv1', type: 'invoice_created', event: 'created',
-          message: 'Создан счёт №1', actor_name: 'Админ',
-          read: false, created: '2026-06-02T10:00:00Z',
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_created',
+          event: 'created',
+          message: 'Создан счёт №1',
+          actor_name: 'Админ',
+          read: false,
+          created: '2026-06-02T10:00:00Z',
         } as INotification,
       ],
       1,
@@ -167,14 +188,28 @@ describe('NotificationsBell', () => {
     mockHooks.setNotifications(
       [
         {
-          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
-          type: 'invoice_created', event: 'Создан счёт', message: 'Создан счёт',
-          actor_name: 'Админ', read: false, created: '2026-06-02T10:00:00Z',
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_created',
+          event: 'Создан счёт',
+          message: 'Создан счёт',
+          actor_name: 'Админ',
+          read: false,
+          created: '2026-06-02T10:00:00Z',
         } as INotification,
         {
-          id: 'n2', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv2',
-          type: 'payment_marked', event: 'Счёт оплачен', message: 'Счёт оплачен',
-          actor_name: 'Модератор', read: true, created: '2026-06-02T11:00:00Z',
+          id: 'n2',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv2',
+          type: 'payment_marked',
+          event: 'Счёт оплачен',
+          message: 'Счёт оплачен',
+          actor_name: 'Модератор',
+          read: true,
+          created: '2026-06-02T11:00:00Z',
         } as INotification,
       ],
       1,
@@ -196,9 +231,16 @@ describe('NotificationsBell', () => {
     mockHooks.setNotifications(
       [
         {
-          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
-          type: 'invoice_created', event: 'Создан счёт', message: 'Создан счёт',
-          actor_name: 'Админ', read: false, created: '2026-06-02T10:00:00Z',
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_created',
+          event: 'Создан счёт',
+          message: 'Создан счёт',
+          actor_name: 'Админ',
+          read: false,
+          created: '2026-06-02T10:00:00Z',
         } as INotification,
       ],
       1,
@@ -224,10 +266,16 @@ describe('NotificationsBell', () => {
     mockHooks.setNotifications(
       [
         {
-          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
-          type: 'invoice_deleted', event: 'Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр',
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_deleted',
+          event: 'Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр',
           message: 'Счёт удалён: ООО Ромашка, 5000 ₽\nУдалил(а): Пётр',
-          actor_name: 'Пётр', object_name: 'Основной', read: false,
+          actor_name: 'Пётр',
+          object_name: 'Основной',
+          read: false,
           created: '2026-06-02T10:00:00Z',
         } as INotification,
       ],
@@ -239,9 +287,7 @@ describe('NotificationsBell', () => {
     await user.click(bell);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр')).toBeInTheDocument();
     });
     expect(screen.getAllByText('Пётр').length).toBeGreaterThan(0);
 
@@ -256,10 +302,16 @@ describe('NotificationsBell', () => {
     mockHooks.setNotifications(
       [
         {
-          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
-          type: 'invoice_deleted', event: 'Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр',
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_deleted',
+          event: 'Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр',
           message: 'Счёт удалён: ООО Ромашка, 5000 ₽\nУдалил(а): Пётр',
-          actor_name: 'Пётр', read: false, created: '2026-06-02T10:00:00Z',
+          actor_name: 'Пётр',
+          read: false,
+          created: '2026-06-02T10:00:00Z',
         } as INotification,
       ],
       1,
@@ -270,9 +322,7 @@ describe('NotificationsBell', () => {
     await user.click(bell);
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр')).toBeInTheDocument();
     });
 
     await user.click(screen.getByText('Счёт удалён: ООО Ромашка, 5000 ₽ · Пётр'));
@@ -290,9 +340,16 @@ describe('NotificationsBell', () => {
     mockHooks.setNotifications(
       [
         {
-          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
-          type: 'invoice_deleted', event: 'Счёт удалён', message: 'Счёт удалён',
-          actor_name: 'Пётр', read: false, created: '2026-06-02T10:00:00Z',
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_deleted',
+          event: 'Счёт удалён',
+          message: 'Счёт удалён',
+          actor_name: 'Пётр',
+          read: false,
+          created: '2026-06-02T10:00:00Z',
         } as INotification,
       ],
       1,
@@ -318,9 +375,16 @@ describe('NotificationsBell', () => {
     mockHooks.setNotifications(
       [
         {
-          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
-          type: 'invoice_created', event: 'Создан счёт', message: 'Создан счёт',
-          actor_name: 'Админ', read: false, created: '2026-06-02T10:00:00Z',
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_created',
+          event: 'Создан счёт',
+          message: 'Создан счёт',
+          actor_name: 'Админ',
+          read: false,
+          created: '2026-06-02T10:00:00Z',
         } as INotification,
       ],
       1,
@@ -378,9 +442,16 @@ describe('NotificationsBell', () => {
   it('the badge renders the hook-supplied unreadCount', () => {
     const loaded = [
       {
-        id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
-        type: 'invoice_created', event: 'Создан счёт', message: 'Создан счёт',
-        actor_name: 'Админ', read: false, created: '2026-06-02T10:00:00Z',
+        id: 'n1',
+        organization_id: 'org1',
+        user_id: 'user1',
+        invoice_id: 'inv1',
+        type: 'invoice_created',
+        event: 'Создан счёт',
+        message: 'Создан счёт',
+        actor_name: 'Админ',
+        read: false,
+        created: '2026-06-02T10:00:00Z',
       } as INotification,
     ];
 
@@ -405,9 +476,16 @@ describe('NotificationsBell', () => {
     mockHooks.setNotifications(
       [
         {
-          id: 'n1', organization_id: 'org1', user_id: 'user1', invoice_id: 'inv1',
-          type: 'invoice_created', event: 'Создан счёт', message: 'Создан счёт',
-          actor_name: 'Админ', read: false, created: '2026-06-02T10:00:00Z',
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_created',
+          event: 'Создан счёт',
+          message: 'Создан счёт',
+          actor_name: 'Админ',
+          read: false,
+          created: '2026-06-02T10:00:00Z',
         } as INotification,
       ],
       1,

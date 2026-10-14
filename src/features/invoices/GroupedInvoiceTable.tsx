@@ -124,7 +124,11 @@ function StaticGroupBody({
     isOver: boolean;
   }) => React.ReactNode;
 }) {
-  return <Table.Tbody>{children({ listeners: undefined, isDragging: false, isOver: false })}</Table.Tbody>;
+  return (
+    <Table.Tbody>
+      {children({ listeners: undefined, isDragging: false, isOver: false })}
+    </Table.Tbody>
+  );
 }
 
 interface GroupedInvoiceTableProps {
@@ -693,7 +697,9 @@ export function GroupedInvoiceTable({
     initiator: {
       width: 120,
       header: 'Инициатор',
-      renderCell: (invoice) => <>{getInitiatorDisplayName(invoice.created_by, invoice.created_by_name, userMap)}</>,
+      renderCell: (invoice) => (
+        <>{getInitiatorDisplayName(invoice.created_by, invoice.created_by_name, userMap)}</>
+      ),
       renderDraft: () => null,
     },
   };
@@ -912,7 +918,6 @@ export function GroupedInvoiceTable({
                                     style={{ flexShrink: 0, color: 'var(--mantine-color-gray-5)' }}
                                   />
                                   {invoiceNumber})
-
                                 </div>
                               </Table.Td>
                               {filteredColumns.map((colId) => {
@@ -1272,7 +1277,6 @@ export function GroupedInvoiceTable({
                                   }}
                                 >
                                   {invoiceNumber})
-
                                 </div>
                               </Table.Td>
                               {filteredColumns.map((colId) => {

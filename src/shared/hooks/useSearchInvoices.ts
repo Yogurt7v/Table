@@ -36,7 +36,10 @@ export function useSearchInvoices(orgId: string) {
   const data = useMemo(() => {
     if (!enabled || !allInvoices) return undefined;
     return allInvoices.filter((inv) =>
-      matchesFolded([inv.counterparty, inv.purpose, inv.contract_no, inv.invoice_no, inv.comment], query),
+      matchesFolded(
+        [inv.counterparty, inv.purpose, inv.contract_no, inv.invoice_no, inv.comment],
+        query,
+      ),
     );
   }, [allInvoices, enabled, query]);
 

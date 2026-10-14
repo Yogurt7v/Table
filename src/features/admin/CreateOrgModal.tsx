@@ -1,14 +1,5 @@
 import { useState } from 'react';
-import {
-  Modal,
-  Stack,
-  TextInput,
-  Select,
-  Group,
-  ActionIcon,
-  Button,
-  Text,
-} from '@mantine/core';
+import { Modal, Stack, TextInput, Select, Group, ActionIcon, Button, Text } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
 import { ORG_COLORS } from '@/shared/utils/org-colors';
 
@@ -34,14 +25,16 @@ export function CreateOrgModal({ opened, onClose, onSave }: CreateOrgModalProps)
 
   return (
     <Modal opened={opened} onClose={handleClose} title="Добавить организацию" size="md">
-      <Stack onKeyDown={async (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          if (!orgName.trim()) return;
-          await onSave({ name: orgName.trim(), color: orgColor, accountNames });
-          handleClose();
-        }
-      }}>
+      <Stack
+        onKeyDown={async (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!orgName.trim()) return;
+            await onSave({ name: orgName.trim(), color: orgColor, accountNames });
+            handleClose();
+          }
+        }}
+      >
         <TextInput
           label="Название"
           value={orgName}

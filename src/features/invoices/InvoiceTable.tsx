@@ -27,7 +27,11 @@ import { useMoveInvoice } from '@/shared/hooks/useMoveInvoice';
 import { useReorderCounterparties } from '@/shared/hooks/useReorderCounterparties';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
-import { useCreatePaymentMark, useDeletePaymentMark, useApprovePaymentMark } from '@/shared/hooks/usePaymentMarks';
+import {
+  useCreatePaymentMark,
+  useDeletePaymentMark,
+  useApprovePaymentMark,
+} from '@/shared/hooks/usePaymentMarks';
 import { APPROVAL_MARK_STATUS, PARTIAL_MARK_STATUS, PAID_MARK_STATUS } from './payment-mark-status';
 import { useCreateInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
 import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
@@ -115,7 +119,9 @@ export function InvoiceTable({
   const createInvoiceFile = useCreateInvoiceFile(orgId);
   const reorderCounterparties = useReorderCounterparties(orgId);
 
-  const counterpartyOrder = accountingObjects.find((obj) => obj.id === objectId)?.counterparty_order;
+  const counterpartyOrder = accountingObjects.find(
+    (obj) => obj.id === objectId,
+  )?.counterparty_order;
 
   const handleReorderGroups = (newOrder: string[]) => {
     const stored = counterpartyOrder ?? [];
@@ -297,7 +303,8 @@ export function InvoiceTable({
     const invoice = invoices.find((i) => i.id === invoiceId);
     if (!invoice) return;
     const newAmounts = [...(invoice.payment_amounts ?? []), amount];
-    const remaining = (Number(invoice.amount) || 0) - newAmounts.reduce((s, a) => s + (Number(a) || 0), 0);
+    const remaining =
+      (Number(invoice.amount) || 0) - newAmounts.reduce((s, a) => s + (Number(a) || 0), 0);
     const existingMark = paymentMarks?.find((m) => m.invoice_id === invoiceId);
     const previousData: Record<string, unknown> = {
       paid: invoice.paid,
@@ -316,7 +323,11 @@ export function InvoiceTable({
         paid_amount: amount,
         paid_date: date.slice(0, 10),
         last_deleted_mark: existingMark
-          ? { amount: existingMark.amount ?? null, comment: existingMark.comment ?? '', status: existingMark.status ?? 'proposed' }
+          ? {
+              amount: existingMark.amount ?? null,
+              comment: existingMark.comment ?? '',
+              status: existingMark.status ?? 'proposed',
+            }
           : undefined,
       },
       {
@@ -355,7 +366,8 @@ export function InvoiceTable({
       payment_amounts: invoice.payment_amounts,
       paid_amount: invoice.paid_amount,
       paid_date: invoice.paid_date,
-      remaining: (Number(invoice.amount) || 0) - newAmounts.reduce((s, a) => s + (Number(a) || 0), 0),
+      remaining:
+        (Number(invoice.amount) || 0) - newAmounts.reduce((s, a) => s + (Number(a) || 0), 0),
       removed_amount: invoice.paid_amount ?? null,
     };
     updateInvoice.mutate(
@@ -378,7 +390,12 @@ export function InvoiceTable({
               status: savedMark.status,
             });
           }
-          void syncInvoiceCopy(invoice, newAmounts, newAmounts.length > 0, invoice.paid_date || date.slice(0, 10)).then(() => {
+          void syncInvoiceCopy(
+            invoice,
+            newAmounts,
+            newAmounts.length > 0,
+            invoice.paid_date || date.slice(0, 10),
+          ).then(() => {
             queryClient.invalidateQueries({ queryKey: ['invoices', orgId] });
             queryClient.invalidateQueries({ queryKey: ['invoice_files', orgId] });
           });

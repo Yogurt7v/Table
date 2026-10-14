@@ -6,8 +6,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DeletedInvoicesSection } from './DeletedInvoicesSection';
 import type { IDeletedInvoice } from '@/shared/types';
 
-const { getDeletedInvoices, getAllDeletedInvoices, restoreDeletedInvoice,
-  getDeletedInvoiceHistory, getDeletedInvoiceFiles, getDeletedInvoiceById, getUsers } = vi.hoisted(() => ({
+const {
+  getDeletedInvoices,
+  getAllDeletedInvoices,
+  restoreDeletedInvoice,
+  getDeletedInvoiceHistory,
+  getDeletedInvoiceFiles,
+  getDeletedInvoiceById,
+  getUsers,
+} = vi.hoisted(() => ({
   getDeletedInvoices: vi.fn(),
   getAllDeletedInvoices: vi.fn(),
   restoreDeletedInvoice: vi.fn(),
@@ -77,18 +84,16 @@ function makeArchiveItem(i: number): IDeletedInvoice {
 const archiveData = Array.from({ length: 60 }, (_, idx) => makeArchiveItem(idx + 1));
 
 function setupMocks() {
-  getDeletedInvoices.mockImplementation(
-    (_orgId: string, page: number, perPage: number) => {
-      const start = (page - 1) * perPage;
-      return Promise.resolve({
-        items: archiveData.slice(start, start + perPage),
-        page,
-        perPage,
-        totalItems: archiveData.length,
-        totalPages: Math.ceil(archiveData.length / perPage),
-      });
-    },
-  );
+  getDeletedInvoices.mockImplementation((_orgId: string, page: number, perPage: number) => {
+    const start = (page - 1) * perPage;
+    return Promise.resolve({
+      items: archiveData.slice(start, start + perPage),
+      page,
+      perPage,
+      totalItems: archiveData.length,
+      totalPages: Math.ceil(archiveData.length / perPage),
+    });
+  });
   getAllDeletedInvoices.mockResolvedValue(archiveData);
 }
 

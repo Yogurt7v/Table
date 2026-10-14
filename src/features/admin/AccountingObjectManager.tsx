@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { Group, Stack, Button, TextInput, Text, ActionIcon } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconTrash, IconPencil, IconCheck, IconX, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
+import {
+  IconTrash,
+  IconPencil,
+  IconCheck,
+  IconX,
+  IconArrowUp,
+  IconArrowDown,
+} from '@tabler/icons-react';
 import {
   createAccountingObject,
   deleteAccountingObject,

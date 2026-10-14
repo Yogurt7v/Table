@@ -27,12 +27,15 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
           fontWeight: 700,
           fontSize: (isHeader
             ? 'var(--mantine-font-size-md)'
-            : { base: 'var(--mantine-font-size-md)', sm: 'var(--mantine-font-size-lg)' }) as unknown as string,
+            : {
+                base: 'var(--mantine-font-size-md)',
+                sm: 'var(--mantine-font-size-lg)',
+              }) as unknown as string,
           whiteSpace: 'nowrap',
           textOverflow: 'ellipsis',
           overflow: 'hidden',
           ...(isPage ? { boxShadow: 'var(--mantine-shadow-sm)' } : {}),
-        }
+        },
       }}
       popoverProps={{
         styles: {
@@ -56,7 +59,6 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-
             }}
           >
             {dayjs(renderDate).date()}

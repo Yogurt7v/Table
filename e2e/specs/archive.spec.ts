@@ -1,5 +1,11 @@
 import { test, expect, loginViaUi, uniqueMarker } from '../fixtures';
-import { authAs, resolveTestOrgId, firstObjectId, createInvoice, deleteInvoiceSoft } from '../utils/pb';
+import {
+  authAs,
+  resolveTestOrgId,
+  firstObjectId,
+  createInvoice,
+  deleteInvoiceSoft,
+} from '../utils/pb';
 
 test.describe('Архив счетов', () => {
   test('удалённый счёт появляется в архиве и восстанавливается', async ({ page }) => {
@@ -16,4 +22,3 @@ test.describe('Архив счетов', () => {
     await expect(page.locator('tr').filter({ hasText: marker })).toBeVisible();
   });
 });
-

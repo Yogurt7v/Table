@@ -18,53 +18,56 @@
 //   'partial'   — оплачено частично
 
 const HISTORY_TYPE_FIELD = {
-  'help': '',
-  'hidden': false,
-  'id': 'select_mark_type_001',
-  'maxSelect': 1,
-  'name': 'type',
-  'presentable': false,
-  'required': false,
-  'system': false,
-  'type': 'select',
-  'values': ['mark_created', 'mark_deleted', 'file_added', 'file_removed', 'copy_created'],
-}
+  help: '',
+  hidden: false,
+  id: 'select_mark_type_001',
+  maxSelect: 1,
+  name: 'type',
+  presentable: false,
+  required: false,
+  system: false,
+  type: 'select',
+  values: ['mark_created', 'mark_deleted', 'file_added', 'file_removed', 'copy_created'],
+};
 
 const PAYMENT_STATUS_FIELD = {
-  'help': '',
-  'hidden': false,
-  'id': 'select9876543210',
-  'maxSelect': 1,
-  'name': 'status',
-  'presentable': false,
-  'required': false,
-  'system': false,
-  'type': 'select',
-  'values': ['proposed', 'approved', 'partial'],
-}
+  help: '',
+  hidden: false,
+  id: 'select9876543210',
+  maxSelect: 1,
+  name: 'status',
+  presentable: false,
+  required: false,
+  system: false,
+  type: 'select',
+  values: ['proposed', 'approved', 'partial'],
+};
 
 function recreateSelectField(app, collectionId, fieldConfig) {
-  const collection = app.findCollectionByNameOrId(collectionId)
-  const existing = collection.fields.getByName(fieldConfig.name)
+  const collection = app.findCollectionByNameOrId(collectionId);
+  const existing = collection.fields.getByName(fieldConfig.name);
 
   if (existing) {
-    collection.fields.removeById(existing.id)
+    collection.fields.removeById(existing.id);
   }
-  collection.fields.add(new Field(fieldConfig))
+  collection.fields.add(new Field(fieldConfig));
 
-  return app.save(collection)
+  return app.save(collection);
 }
 
-migrate((app) => {
-  recreateSelectField(app, 'pbc_3140463370', HISTORY_TYPE_FIELD)
-  recreateSelectField(app, 'pbc_4198132678', PAYMENT_STATUS_FIELD)
-}, (app) => {
-  recreateSelectField(app, 'pbc_3140463370', {
-    ...HISTORY_TYPE_FIELD,
-    values: ['mark_created', 'mark_deleted'],
-  })
-  recreateSelectField(app, 'pbc_4198132678', {
-    ...PAYMENT_STATUS_FIELD,
-    values: ['proposed', 'approved'],
-  })
-})
+migrate(
+  (app) => {
+    recreateSelectField(app, 'pbc_3140463370', HISTORY_TYPE_FIELD);
+    recreateSelectField(app, 'pbc_4198132678', PAYMENT_STATUS_FIELD);
+  },
+  (app) => {
+    recreateSelectField(app, 'pbc_3140463370', {
+      ...HISTORY_TYPE_FIELD,
+      values: ['mark_created', 'mark_deleted'],
+    });
+    recreateSelectField(app, 'pbc_4198132678', {
+      ...PAYMENT_STATUS_FIELD,
+      values: ['proposed', 'approved'],
+    });
+  },
+);

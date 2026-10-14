@@ -26,6 +26,24 @@ test.describe('Аутентификация', () => {
   test('guest читает реестр без кнопок изменения', async ({ page }) => {
     await loginViaUi(page, 'guest');
     await expect(page.getByRole('heading', { name: 'Счета' }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Добавить счёт' }).first().first().first().first().first().first().first().first().first().first().first().first().first().first().first()).toHaveCount(0);
+    await expect(
+      page
+        .getByRole('button', { name: 'Добавить счёт' })
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first()
+        .first(),
+    ).toHaveCount(0);
   });
 });

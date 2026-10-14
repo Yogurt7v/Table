@@ -15,7 +15,11 @@ test.describe('Счета: создание', () => {
     await page.locator('input[placeholder="Назначение"]:visible').fill('Оплата по договору');
     await page.locator('input[placeholder="Счет"]:visible').fill(uniqueMarker('№'));
     await page.locator('input[placeholder="Сумма"]:visible').fill('125000');
-    await page.getByRole('button', { name: 'Сохранить счёт' }).filter({ visible: true }).first().click();
+    await page
+      .getByRole('button', { name: 'Сохранить счёт' })
+      .filter({ visible: true })
+      .first()
+      .click();
     await expect(page.getByText('Счёт добавлен').first()).toBeVisible();
     await expect(page.locator('table').getByText(marker).first()).toBeVisible();
 
@@ -26,4 +30,3 @@ test.describe('Счета: создание', () => {
     expect(inv.organization_id).toBe(orgId);
   });
 });
-

@@ -58,8 +58,8 @@ export function DeletedInvoicesSection({
           searchQuery,
         ),
       )
-    : listQuery.data?.items ?? [];
-  const totalPages = isSearchMode ? 0 : listQuery.data?.totalPages ?? 0;
+    : (listQuery.data?.items ?? []);
+  const totalPages = isSearchMode ? 0 : (listQuery.data?.totalPages ?? 0);
   const isLoading = isSearchMode ? allDeletedQuery.isLoading : listQuery.isLoading;
 
   if (!isSearchMode && totalPages > 0 && page > totalPages) {
@@ -191,29 +191,47 @@ export function DeletedInvoicesSection({
                     }
                   >
                     <Table.Td>
-                      <Text lineClamp={1} title={inv.counterparty} aria-label={inv.counterparty}>{inv.counterparty || '—'}</Text>
+                      <Text lineClamp={1} title={inv.counterparty} aria-label={inv.counterparty}>
+                        {inv.counterparty || '—'}
+                      </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text lineClamp={1} title={inv.purpose} aria-label={inv.purpose}>{inv.purpose || '—'}</Text>
+                      <Text lineClamp={1} title={inv.purpose} aria-label={inv.purpose}>
+                        {inv.purpose || '—'}
+                      </Text>
                     </Table.Td>
-                    <Table.Td>
-                      {inv.date ? dayjs(inv.date).format('DD.MM.YYYY') : '—'}
+                    <Table.Td>{inv.date ? dayjs(inv.date).format('DD.MM.YYYY') : '—'}</Table.Td>
+                    <Table.Td title={inv.invoice_no} aria-label={inv.invoice_no}>
+                      {inv.invoice_no || '—'}
                     </Table.Td>
-                    <Table.Td title={inv.invoice_no} aria-label={inv.invoice_no}>{inv.invoice_no || '—'}</Table.Td>
                     <Table.Td ta="right" aria-label={String(inv.amount)} title={String(inv.amount)}>
                       {formatAmountRub(inv.amount || 0)}
                     </Table.Td>
-                    <Table.Td title={objectName} aria-label={objectName}>{objectName}</Table.Td>
+                    <Table.Td title={objectName} aria-label={objectName}>
+                      {objectName}
+                    </Table.Td>
                     <Table.Td>
-                      <Text size="xs" c="dimmed" aria-label={inv.deleted_by_name} title={inv.deleted_by_name}>
+                      <Text
+                        size="xs"
+                        c="dimmed"
+                        aria-label={inv.deleted_by_name}
+                        title={inv.deleted_by_name}
+                      >
                         {inv.deleted_by_name || '—'}
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="xs" c="dimmed" aria-label={inv.deleted_at ? dayjs(inv.deleted_at).format('DD.MM.YYYY HH:mm') : ''} title={inv.deleted_at ? dayjs(inv.deleted_at).format('DD.MM.YYYY HH:mm') : ''}>
-                        {inv.deleted_at
-                          ? dayjs(inv.deleted_at).format('DD.MM.YYYY HH:mm')
-                          : '—'}
+                      <Text
+                        size="xs"
+                        c="dimmed"
+                        aria-label={
+                          inv.deleted_at ? dayjs(inv.deleted_at).format('DD.MM.YYYY HH:mm') : ''
+                        }
+                        title={
+                          inv.deleted_at ? dayjs(inv.deleted_at).format('DD.MM.YYYY HH:mm') : ''
+                        }
+                      >
+                        {inv.deleted_at ? dayjs(inv.deleted_at).format('DD.MM.YYYY HH:mm') : '—'}
                       </Text>
                     </Table.Td>
                     <Table.Td>

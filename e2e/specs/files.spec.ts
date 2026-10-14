@@ -9,6 +9,9 @@ test.describe('Файлы счёта', () => {
     await loginViaUi(page, 'admin');
     await page.goto('http://localhost:5173');
     const row = page.locator('tr').filter({ hasText: marker });
-    await row.getByRole('button', { name: /Файлы|Действия/ }).first().click();
+    await row
+      .getByRole('button', { name: /Файлы|Действия/ })
+      .first()
+      .click();
   });
 });

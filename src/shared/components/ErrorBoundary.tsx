@@ -29,7 +29,10 @@ function TechnicalDetails({ stack }: { stack?: string }) {
         rightSection={
           <IconChevronDown
             size={14}
-            style={{ transform: opened ? 'rotate(180deg)' : undefined, transition: 'transform 150ms ease' }}
+            style={{
+              transform: opened ? 'rotate(180deg)' : undefined,
+              transition: 'transform 150ms ease',
+            }}
           />
         }
       >
@@ -87,7 +90,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 Произошла ошибка
               </Title>
               <Text c="dimmed" size="sm" ta="center">
-                Приложение не смогло продолжить работу. Попробуйте ещё раз или перезагрузите страницу.
+                Приложение не смогло продолжить работу. Попробуйте ещё раз или перезагрузите
+                страницу.
               </Text>
             </Stack>
             <TechnicalDetails stack={error.stack} />

@@ -201,11 +201,7 @@ function renderBells(mounted: readonly string[]) {
     return null;
   }
   const tree = (next: readonly string[]) =>
-    createElement(
-      Fragment,
-      null,
-      ...next.map((id) => createElement(Consumer, { key: id, id })),
-    );
+    createElement(Fragment, null, ...next.map((id) => createElement(Consumer, { key: id, id })));
   const view = render(tree(mounted));
   return {
     sink,

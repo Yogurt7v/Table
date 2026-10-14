@@ -16,10 +16,7 @@ export function useReorderCounterparties(orgId: string) {
 
     onMutate: async ({ objectId, counterpartyOrder }) => {
       await queryClient.cancelQueries({ queryKey: ['accounting_objects', orgId] });
-      const previous = queryClient.getQueryData<IAccountingObject[]>([
-        'accounting_objects',
-        orgId,
-      ]);
+      const previous = queryClient.getQueryData<IAccountingObject[]>(['accounting_objects', orgId]);
 
       queryClient.setQueryData<IAccountingObject[]>(['accounting_objects', orgId], (old) => {
         if (!old) return old;

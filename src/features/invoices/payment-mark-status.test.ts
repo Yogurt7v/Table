@@ -4,8 +4,14 @@ import type { IPaymentMark } from '@/shared/types';
 
 function mark(partial: Partial<IPaymentMark>): IPaymentMark {
   return {
-    id: 'pm1', invoice_id: 'inv1', organization_id: 'org1',
-    amount: null, comment: '', status: undefined, created_by: 'admin1', created: '2026-06-02',
+    id: 'pm1',
+    invoice_id: 'inv1',
+    organization_id: 'org1',
+    amount: null,
+    comment: '',
+    status: undefined,
+    created_by: 'admin1',
+    created: '2026-06-02',
     ...partial,
   };
 }

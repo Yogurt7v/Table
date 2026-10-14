@@ -15,7 +15,13 @@ cronAdd('balance-snapshot', '0 0 * * *', () => {
     );
     if (existing.length > 0) continue;
 
-    const lastRecord = $app.findRecordsByFilter('balance_history', `account_id = "${acc.getId()}"`, '-date', 1, 0);
+    const lastRecord = $app.findRecordsByFilter(
+      'balance_history',
+      `account_id = "${acc.getId()}"`,
+      '-date',
+      1,
+      0,
+    );
     const lastBalance = lastRecord.length > 0 ? lastRecord[0].get('balance') : 0;
 
     const record = $app.createRecord(collection, {

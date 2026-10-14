@@ -13,7 +13,14 @@ interface PayModalProps {
   onPay: (invoice: IInvoice, amount: number) => void;
 }
 
-export function PayModal({ opened, onClose, invoice, amount, onAmountChange, onPay }: PayModalProps) {
+export function PayModal({
+  opened,
+  onClose,
+  invoice,
+  amount,
+  onAmountChange,
+  onPay,
+}: PayModalProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
 
   if (!invoice) return null;
@@ -53,15 +60,21 @@ export function PayModal({ opened, onClose, invoice, amount, onAmountChange, onP
         }}
       >
         <Group gap={4}>
-          <Text size="sm" fw={600}>Контрагент:</Text>
+          <Text size="sm" fw={600}>
+            Контрагент:
+          </Text>
           <Text size="sm">{invoice.counterparty}</Text>
         </Group>
         <Group gap={4}>
-          <Text size="sm" fw={600}>Назначение:</Text>
+          <Text size="sm" fw={600}>
+            Назначение:
+          </Text>
           <Text size="sm">{invoice.purpose}</Text>
         </Group>
         <Group gap={4}>
-          <Text size="sm" fw={600}>Сумма счёта:</Text>
+          <Text size="sm" fw={600}>
+            Сумма счёта:
+          </Text>
           <Text size="sm">{formatAmountRub(invoice.amount)}</Text>
         </Group>
         <NumberInput

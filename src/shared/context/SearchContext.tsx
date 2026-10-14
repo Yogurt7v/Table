@@ -17,7 +17,9 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   const [searchAll, setSearchAll] = useState(false);
 
   return (
-    <SearchContext.Provider value={{ searchText, setSearchText, debouncedSearchText, searchAll, setSearchAll }}>
+    <SearchContext.Provider
+      value={{ searchText, setSearchText, debouncedSearchText, searchAll, setSearchAll }}
+    >
       {children}
     </SearchContext.Provider>
   );

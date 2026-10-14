@@ -13,13 +13,21 @@ const mockApi = vi.hoisted(() => {
   let currentToken = '';
 
   const authStore = {
-    get model() { return currentUser; },
-    get token() { return currentToken; },
-    get isValid() { return !!currentUser; },
+    get model() {
+      return currentUser;
+    },
+    get token() {
+      return currentToken;
+    },
+    get isValid() {
+      return !!currentUser;
+    },
     onChange: (cb: (...args: unknown[]) => void, fireImmediately?: boolean) => {
       listeners.push(cb);
       if (fireImmediately) {
-        setTimeout(() => { cb(currentToken, currentUser); }, 0);
+        setTimeout(() => {
+          cb(currentToken, currentUser);
+        }, 0);
       }
       return () => {
         const idx = listeners.indexOf(cb);
@@ -29,12 +37,16 @@ const mockApi = vi.hoisted(() => {
     clear: () => {
       currentUser = null;
       currentToken = '';
-      listeners.forEach(cb => { cb('', null); });
+      listeners.forEach((cb) => {
+        cb('', null);
+      });
     },
     save: (token: string, model: Record<string, unknown>) => {
       currentToken = token;
       currentUser = model;
-      listeners.forEach(cb => { cb(token, model); });
+      listeners.forEach((cb) => {
+        cb(token, model);
+      });
     },
   };
 

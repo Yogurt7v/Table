@@ -6,19 +6,31 @@ import { InvoiceEditModal } from './InvoiceEditModal';
 import type { IInvoice } from '@/shared/types';
 
 const mockInvoice: IInvoice = {
-  id: 'inv1', organization_id: 'org1', accounting_object_id: 'ao1',
-  date: '2026-06-01', seq: 1, counterparty: 'ООО "Тест"',
-  purpose: 'Оплата услуг', contract_no: 'Д-001', invoice_no: 'СФ-001',
-  amount: 50000, paid: false, paid_amount: null, payment_amounts: [],
-  paid_date: '', comment: 'Комментарий', created_by: 'admin1', updated_by: 'admin1',
-  copy_comments: {}, source_paid_amount: 0, source_paid_date: '',
+  id: 'inv1',
+  organization_id: 'org1',
+  accounting_object_id: 'ao1',
+  date: '2026-06-01',
+  seq: 1,
+  counterparty: 'ООО "Тест"',
+  purpose: 'Оплата услуг',
+  contract_no: 'Д-001',
+  invoice_no: 'СФ-001',
+  amount: 50000,
+  paid: false,
+  paid_amount: null,
+  payment_amounts: [],
+  paid_date: '',
+  comment: 'Комментарий',
+  created_by: 'admin1',
+  updated_by: 'admin1',
+  copy_comments: {},
+  source_paid_amount: 0,
+  source_paid_date: '',
 };
 
 describe('InvoiceEditModal', () => {
   it('renders create mode with empty form', () => {
-    renderWithProviders(
-      <InvoiceEditModal opened onClose={() => {}} onSave={() => {}} />,
-    );
+    renderWithProviders(<InvoiceEditModal opened onClose={() => {}} onSave={() => {}} />);
 
     expect(screen.getByText('Добавление нового счёта')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Введите имя контрагента')).toBeInTheDocument();
@@ -39,9 +51,7 @@ describe('InvoiceEditModal', () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
 
-    renderWithProviders(
-      <InvoiceEditModal opened onClose={() => {}} onSave={onSave} />,
-    );
+    renderWithProviders(<InvoiceEditModal opened onClose={() => {}} onSave={onSave} />);
 
     await user.click(screen.getByRole('button', { name: 'Добавить' }));
 
@@ -53,9 +63,7 @@ describe('InvoiceEditModal', () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
 
-    renderWithProviders(
-      <InvoiceEditModal opened onClose={() => {}} onSave={onSave} />,
-    );
+    renderWithProviders(<InvoiceEditModal opened onClose={() => {}} onSave={onSave} />);
 
     await user.type(screen.getByPlaceholderText('Введите имя контрагента'), 'Новый контрагент');
     await user.type(screen.getByPlaceholderText('Введите назначение платежа'), 'Оплата');
@@ -73,15 +81,15 @@ describe('InvoiceEditModal', () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
 
-    renderWithProviders(
-      <InvoiceEditModal opened onClose={onClose} onSave={() => {}} />,
-    );
+    renderWithProviders(<InvoiceEditModal opened onClose={onClose} onSave={() => {}} />);
 
     await user.type(screen.getByPlaceholderText('Введите имя контрагента'), 'ООО Черновик');
 
     await user.click(screen.getByRole('button', { name: 'Отмена' }));
 
-    expect(await screen.findByText('Закрыть без сохранения? Введённые данные будут потеряны.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Закрыть без сохранения? Введённые данные будут потеряны.'),
+    ).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'Закрыть без сохранения' }));
@@ -99,7 +107,9 @@ describe('InvoiceEditModal', () => {
     await user.click(screen.getByRole('button', { name: 'Отмена' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('Закрыть без сохранения? Введённые данные будут потеряны.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Закрыть без сохранения? Введённые данные будут потеряны.'),
+    ).not.toBeInTheDocument();
   });
 
   it('does not render initiator select in create mode', () => {

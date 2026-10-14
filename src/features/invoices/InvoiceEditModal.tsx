@@ -107,12 +107,15 @@ export function InvoiceEditModal({
       title={isEditMode ? 'Редактирование счёта' : 'Добавление нового счёта'}
       size="lg"
     >
-      <Stack gap="md" onKeyDown={(e) => {
-        if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
-          e.preventDefault();
-          handleConfirm();
-        }
-      }}>
+      <Stack
+        gap="md"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            handleConfirm();
+          }
+        }}
+      >
         <Autocomplete
           label="Контрагент"
           placeholder="Введите имя контрагента"

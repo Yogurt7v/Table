@@ -387,82 +387,82 @@ export function MailFormModal({
       </FormSection>
 
       {/*<FormSection title="Когда и под каким номером">*/}
-        <Group grow align="flex-start" wrap="nowrap">
-          <DatePickerInput
-            label="Дата письма"
-            placeholder="Выберите дату"
-            valueFormat="DD.MM.YYYY"
-            required
-            value={dateKeyToLocalDate(form.date)}
-            onChange={(value) => patch({ date: localDateToDateKey(value) })}
-            error={errors.date}
-          />
-          <TextInput
-            label={MAIL_NUMBER_FIELD_LABELS[mailType]}
-            placeholder="Например, 12/25"
-            required={mailType === 'outgoing'}
-            value={form.number}
-            onChange={(e) => patch({ number: e.currentTarget.value })}
-            error={errors.number}
-          />
-        </Group>
-
+      <Group grow align="flex-start" wrap="nowrap">
+        <DatePickerInput
+          label="Дата письма"
+          placeholder="Выберите дату"
+          valueFormat="DD.MM.YYYY"
+          required
+          value={dateKeyToLocalDate(form.date)}
+          onChange={(value) => patch({ date: localDateToDateKey(value) })}
+          error={errors.date}
+        />
         <TextInput
-          label={MAIL_COUNTERPARTY_NUMBER_FIELD_LABELS[mailType]}
-          placeholder="Номер письма контрагента"
-          value={form.counterpartyNumber}
-          onChange={(e) => patch({ counterpartyNumber: e.currentTarget.value })}
+          label={MAIL_NUMBER_FIELD_LABELS[mailType]}
+          placeholder="Например, 12/25"
+          required={mailType === 'outgoing'}
+          value={form.number}
+          onChange={(e) => patch({ number: e.currentTarget.value })}
+          error={errors.number}
         />
+      </Group>
 
-        <MailParentHint
-          mailType={mailType}
-          counterpartyNumber={debouncedNumber}
-          suggestion={suggestion}
-          intent={intent}
-          parent={namedParent}
-          canLink={canLink}
-          onConfirm={pickParent}
-          onDecline={declineParent}
-        />
+      <TextInput
+        label={MAIL_COUNTERPARTY_NUMBER_FIELD_LABELS[mailType]}
+        placeholder="Номер письма контрагента"
+        value={form.counterpartyNumber}
+        onChange={(e) => patch({ counterpartyNumber: e.currentTarget.value })}
+      />
 
-        {canLink && (
-          <Box>
-            <Select
-              label="Ответ на"
-              placeholder="Письмо, на которое это ответ"
-              searchable
-              clearable
-              limit={8}
-              maxDropdownHeight={DROPDOWN_MAX_HEIGHT}
-              data={parentOptions}
-              value={namedParent?.key ?? null}
-              onChange={(value) => {
-                if (!value) {
-                  declineParent();
-                  return;
-                }
-                // Ключ приходит из наших же опций, поэтому и письмо ищется в
-                // том же `all`: разбирать `MailNodeKey` обратно на регистр и id
-                // ради одного клика не нужно, а приведения типов — тем более.
-                const picked = candidates?.all.find((candidate) => candidate.key === value);
-                if (picked) pickParent(picked);
-              }}
-            />
-            {namedParent && (
-              <Button
-                size="compact-xs"
-                variant="subtle"
-                color="gray"
-                mt={4}
-                px={0}
-                leftSection={<IconHistory size={14} />}
-                onClick={() => onOpenThread(namedParent.type, namedParent.id)}
-              >
-                Открыть переписку
-              </Button>
-            )}
-          </Box>
-        )}
+      <MailParentHint
+        mailType={mailType}
+        counterpartyNumber={debouncedNumber}
+        suggestion={suggestion}
+        intent={intent}
+        parent={namedParent}
+        canLink={canLink}
+        onConfirm={pickParent}
+        onDecline={declineParent}
+      />
+
+      {canLink && (
+        <Box>
+          <Select
+            label="Ответ на"
+            placeholder="Письмо, на которое это ответ"
+            searchable
+            clearable
+            limit={8}
+            maxDropdownHeight={DROPDOWN_MAX_HEIGHT}
+            data={parentOptions}
+            value={namedParent?.key ?? null}
+            onChange={(value) => {
+              if (!value) {
+                declineParent();
+                return;
+              }
+              // Ключ приходит из наших же опций, поэтому и письмо ищется в
+              // том же `all`: разбирать `MailNodeKey` обратно на регистр и id
+              // ради одного клика не нужно, а приведения типов — тем более.
+              const picked = candidates?.all.find((candidate) => candidate.key === value);
+              if (picked) pickParent(picked);
+            }}
+          />
+          {namedParent && (
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              color="gray"
+              mt={4}
+              px={0}
+              leftSection={<IconHistory size={14} />}
+              onClick={() => onOpenThread(namedParent.type, namedParent.id)}
+            >
+              Открыть переписку
+            </Button>
+          )}
+        </Box>
+      )}
       {/*</FormSection>*/}
 
       <FormSection title="Дополнительно">

@@ -69,12 +69,7 @@ describe('InvoiceHistoryModal', () => {
 
   it('shows loading state when opened', () => {
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     expect(screen.getByText(/история/i)).toBeInTheDocument();
@@ -84,12 +79,7 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([]));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -101,12 +91,7 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([mockEntry]));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -130,12 +115,7 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([mockPaymentEntry]));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -163,21 +143,24 @@ describe('InvoiceHistoryModal', () => {
       },
     };
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(
-      mockChain([paidEntry], { ...mockInvoice, paid: true, paid_date: '2026-06-01', payment_amounts: [5000], paid_amount: 5000 }),
+      mockChain([paidEntry], {
+        ...mockInvoice,
+        paid: true,
+        paid_date: '2026-06-01',
+        payment_amounts: [5000],
+        paid_amount: 5000,
+      }),
     );
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Оплачено 5[\s\u00a0]000,00 ₽ · 01\.06\.2026 · остаток 40[\s\u00a0]000,00 ₽/),
+        screen.getByText(
+          /Оплачено 5[\s\u00a0]000,00 ₽ · 01\.06\.2026 · остаток 40[\s\u00a0]000,00 ₽/,
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -209,12 +192,7 @@ describe('InvoiceHistoryModal', () => {
     );
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -228,17 +206,14 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([mockEntry]));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
       const struck = screen.getByText(/40[\s\u00a0]000,00 ₽/);
-      expect(struck.closest('[class*="mantine-Text-root"]')).toHaveStyle({ textDecoration: 'line-through' });
+      expect(struck.closest('[class*="mantine-Text-root"]')).toHaveStyle({
+        textDecoration: 'line-through',
+      });
     });
   });
 
@@ -246,12 +221,7 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([mockEntry]));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -271,12 +241,7 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([markEntry]));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -306,12 +271,7 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([markEntry]));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -323,12 +283,7 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockRejectedValue(new Error('401 Unauthorized'));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -354,12 +309,7 @@ describe('InvoiceHistoryModal', () => {
     );
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -383,12 +333,7 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([fileEntry]));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {
@@ -415,12 +360,7 @@ describe('InvoiceHistoryModal', () => {
     vi.mocked(getInvoiceHistoryChain).mockResolvedValue(mockChain([fileRemovedEntry]));
 
     renderWithProviders(
-      <InvoiceHistoryModal
-        opened
-        invoiceId="inv1"
-        invoiceLabel="Счёт №1"
-        onClose={() => {}}
-      />,
+      <InvoiceHistoryModal opened invoiceId="inv1" invoiceLabel="Счёт №1" onClose={() => {}} />,
     );
 
     await waitFor(() => {

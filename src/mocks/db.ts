@@ -46,7 +46,10 @@ function createStore<T extends { id: string }>(): Store<T> {
   return {
     all: () => Array.from(map.values()),
     get: (id: string) => map.get(id),
-    set: (item: T) => { map.set(item.id, item); return item; },
+    set: (item: T) => {
+      map.set(item.id, item);
+      return item;
+    },
     delete: (id: string) => map.delete(id),
     clear: () => map.clear(),
     entries: () => Array.from(map.entries()).map(([, v]) => v),
@@ -68,18 +71,18 @@ export function createDB(seed?: SeedCollections) {
   const notifications = createStore<INotification>();
 
   function init(data: SeedCollections) {
-    data.organizations?.forEach(o => organizations.set(o));
-    data.bank_accounts?.forEach(b => bank_accounts.set(b));
-    data.balance_history?.forEach(h => balance_history.set(h));
-    data.accounting_objects?.forEach(o => accounting_objects.set(o));
-    data.invoices?.forEach(i => invoices.set(i));
-    data.invoice_history?.forEach(h => invoice_history.set(h));
-    data.payment_marks?.forEach(p => payment_marks.set(p));
-    data.users?.forEach(u => users.set(u));
-    data.organization_users?.forEach(o => organization_users.set(o));
-    data.user_settings?.forEach(s => user_settings.set(s));
-    data.invoice_files?.forEach(f => invoice_files.set(f));
-    data.notifications?.forEach(n => notifications.set(n));
+    data.organizations?.forEach((o) => organizations.set(o));
+    data.bank_accounts?.forEach((b) => bank_accounts.set(b));
+    data.balance_history?.forEach((h) => balance_history.set(h));
+    data.accounting_objects?.forEach((o) => accounting_objects.set(o));
+    data.invoices?.forEach((i) => invoices.set(i));
+    data.invoice_history?.forEach((h) => invoice_history.set(h));
+    data.payment_marks?.forEach((p) => payment_marks.set(p));
+    data.users?.forEach((u) => users.set(u));
+    data.organization_users?.forEach((o) => organization_users.set(o));
+    data.user_settings?.forEach((s) => user_settings.set(s));
+    data.invoice_files?.forEach((f) => invoice_files.set(f));
+    data.notifications?.forEach((n) => notifications.set(n));
   }
 
   if (seed) init(seed);

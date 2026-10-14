@@ -414,8 +414,7 @@ export function useMailFilters(initial?: Partial<MailFilterState>): UseMailFilte
   );
 
   const toggleSortDirection = useCallback(
-    () =>
-      setFilters((prev) => ({ ...prev, sortDirection: nextSortDirection(prev.sortDirection) })),
+    () => setFilters((prev) => ({ ...prev, sortDirection: nextSortDirection(prev.sortDirection) })),
     [],
   );
 

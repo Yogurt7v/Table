@@ -25,7 +25,13 @@ import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
-import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
+import type {
+  IInvoice,
+  IAccountingObject,
+  IPaymentMark,
+  InvoiceColumnId,
+  IUser,
+} from '@/shared/types';
 import { getPaymentMarkKind } from './payment-mark-status';
 
 // ---------------------------------------------------------------------------
@@ -95,7 +101,8 @@ function cellText(
       const mark = marksByInvoice[invoice.id];
       if (!mark) return '—';
       const kind = getPaymentMarkKind(mark, invoice.amount);
-      const label = kind === 'approval' ? 'Согласование' : kind === 'partial' ? 'Частично' : 'К оплате';
+      const label =
+        kind === 'approval' ? 'Согласование' : kind === 'partial' ? 'Частично' : 'К оплате';
       if (mark.amount == null) return `${label}: ${formatAmountRub(invoice.amount)}`;
       const parts = [`${label}: ${formatAmountRub(mark.amount)}`];
       if (mark.comment) parts.push(`(${mark.comment})`);

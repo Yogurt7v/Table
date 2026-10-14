@@ -21,58 +21,52 @@
 // and role enforcement happens in the frontend.
 
 const ORG_USERS_FIELD = {
-  'hidden': false,
-  'id': 'bool_mail_07',
-  'name': 'can_view_mails',
-  'presentable': false,
-  'required': false,
-  'system': false,
-  'type': 'bool',
-}
+  hidden: false,
+  id: 'bool_mail_07',
+  name: 'can_view_mails',
+  presentable: false,
+  required: false,
+  system: false,
+  type: 'bool',
+};
 
 // Mail archives: create on delete, delete on restore, never update.
 const ARCHIVE_COLLECTIONS = [
   'deleted_incoming_mails',
   'deleted_outgoing_mails',
   'deleted_mail_history',
-]
+];
 
 migrate(
   (app) => {
     // ---------------------------------------------------------------- field ---
-    const orgUsers = app.findCollectionByNameOrId('organization_users')
+    const orgUsers = app.findCollectionByNameOrId('organization_users');
 
     if (!orgUsers.fields.getByName(ORG_USERS_FIELD.name)) {
-      orgUsers.fields.add(new Field(ORG_USERS_FIELD))
+      orgUsers.fields.add(new Field(ORG_USERS_FIELD));
     }
 
-    app.save(orgUsers)
+    app.save(orgUsers);
 
     // Backfill after the save so the column exists. Paginated on purpose:
     // `organization_users` can grow past any fixed page size, and a capped
     // single pass would leave rows below the cap stale.
-    const PAGE_SIZE = 500
-    let offset = 0
+    const PAGE_SIZE = 500;
+    let offset = 0;
 
     for (;;) {
-      const page = app.findRecordsByFilter(
-        'organization_users',
-        '',
-        'id',
-        PAGE_SIZE,
-        offset,
-      )
+      const page = app.findRecordsByFilter('organization_users', '', 'id', PAGE_SIZE, offset);
 
-      if (!page.length) break
+      if (!page.length) break;
 
       for (const record of page) {
-        record.set(ORG_USERS_FIELD.name, true)
-        app.save(record)
+        record.set(ORG_USERS_FIELD.name, true);
+        app.save(record);
       }
 
-      if (page.length < PAGE_SIZE) break
+      if (page.length < PAGE_SIZE) break;
 
-      offset += page.length
+      offset += page.length;
     }
 
     // ---------------------------------------------------------------- rules ---
@@ -90,35 +84,35 @@ migrate(
     // So `updateRule = null` next to `deleteRule = ""` is deliberate, not a typo:
     // immutable-to-edit, but removable by the restore flow.
     for (const name of ARCHIVE_COLLECTIONS) {
-      const col = app.findCollectionByNameOrId(name)
+      const col = app.findCollectionByNameOrId(name);
 
-      col.listRule = ''
-      col.viewRule = ''
-      col.createRule = ''
-      col.updateRule = null
-      col.deleteRule = ''
+      col.listRule = '';
+      col.viewRule = '';
+      col.createRule = '';
+      col.updateRule = null;
+      col.deleteRule = '';
 
-      app.save(col)
+      app.save(col);
     }
   },
   (app) => {
-    const orgUsers = app.findCollectionByNameOrId('organization_users')
-    const field = orgUsers.fields.getByName(ORG_USERS_FIELD.name)
+    const orgUsers = app.findCollectionByNameOrId('organization_users');
+    const field = orgUsers.fields.getByName(ORG_USERS_FIELD.name);
 
-    if (field) orgUsers.fields.removeById(field.id)
+    if (field) orgUsers.fields.removeById(field.id);
 
-    app.save(orgUsers)
+    app.save(orgUsers);
 
     for (const name of ARCHIVE_COLLECTIONS) {
-      const col = app.findCollectionByNameOrId(name)
+      const col = app.findCollectionByNameOrId(name);
 
-      col.listRule = null
-      col.viewRule = null
-      col.createRule = null
-      col.updateRule = null
-      col.deleteRule = null
+      col.listRule = null;
+      col.viewRule = null;
+      col.createRule = null;
+      col.updateRule = null;
+      col.deleteRule = null;
 
-      app.save(col)
+      app.save(col);
     }
   },
-)
+);

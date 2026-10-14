@@ -5,18 +5,21 @@
 // PocketBase enforces the max length, so notification creation failed with
 // "event: Must be no more than 50 character(s)". Raise it to match `message`.
 
-migrate((app) => {
-  const collection = app.findCollectionByNameOrId("pbc_9876543210")
+migrate(
+  (app) => {
+    const collection = app.findCollectionByNameOrId('pbc_9876543210');
 
-  const eventField = collection.fields.getByName("event")
-  eventField.max = 0
+    const eventField = collection.fields.getByName('event');
+    eventField.max = 0;
 
-  return app.save(collection)
-}, (app) => {
-  const collection = app.findCollectionByNameOrId("pbc_9876543210")
+    return app.save(collection);
+  },
+  (app) => {
+    const collection = app.findCollectionByNameOrId('pbc_9876543210');
 
-  const eventField = collection.fields.getByName("event")
-  eventField.max = 50
+    const eventField = collection.fields.getByName('event');
+    eventField.max = 50;
 
-  return app.save(collection)
-})
+    return app.save(collection);
+  },
+);

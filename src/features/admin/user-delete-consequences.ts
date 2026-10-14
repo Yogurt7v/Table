@@ -27,15 +27,14 @@ export function buildUserDeleteConsequences(
     .filter((ou) => ou.user_id === userId)
     .map((ou) => ({
       orgName:
-        organizations.find((org) => org.id === ou.organization_id)?.name ?? 'Неизвестная организация',
+        organizations.find((org) => org.id === ou.organization_id)?.name ??
+        'Неизвестная организация',
       roleLabel: ROLE_LABELS[ou.role] ?? ou.role,
     }));
 
   const soleAdminOf = organizations
     .filter((org) => {
-      const admins = orgUsers.filter(
-        (ou) => ou.organization_id === org.id && ou.role === 'admin',
-      );
+      const admins = orgUsers.filter((ou) => ou.organization_id === org.id && ou.role === 'admin');
       return admins.length === 1 && admins[0]?.user_id === userId;
     })
     .map((org) => org.name);

@@ -45,7 +45,13 @@ describe('DeleteOrgModal', () => {
     const onConfirm = vi.fn();
 
     renderWithProviders(
-      <DeleteOrgModal opened orgName="ООО" isPending={false} onClose={() => {}} onConfirm={onConfirm} />,
+      <DeleteOrgModal
+        opened
+        orgName="ООО"
+        isPending={false}
+        onClose={() => {}}
+        onConfirm={onConfirm}
+      />,
     );
 
     const deleteButton = screen.getByRole('button', { name: 'Удалить' });

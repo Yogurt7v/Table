@@ -26,6 +26,8 @@ builds/
 *.sln
 *.sw?
 .*
+# Must stay tracked: prettier --check uses .prettierignore to skip pnpm-lock.yaml
+!.prettierignore
 
 # PocketBase
 pocketbase.exe

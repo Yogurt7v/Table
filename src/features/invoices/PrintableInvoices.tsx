@@ -9,7 +9,13 @@ import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-
 import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
 import { paymentMarkLabel } from '@/features/invoices/payment-mark-status';
 import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
-import type { IInvoice, IAccountingObject, IPaymentMark, InvoiceColumnId, IUser } from '@/shared/types';
+import type {
+  IInvoice,
+  IAccountingObject,
+  IPaymentMark,
+  InvoiceColumnId,
+  IUser,
+} from '@/shared/types';
 import type { OrgRole } from '@/features/invoices/invoice-field-access';
 import dayjs from 'dayjs';
 
@@ -61,19 +67,16 @@ export function PrintableInvoices({
     return map;
   }, [paymentMarks]);
 
-  const printColumns = useMemo(
-    () => {
-      const allowedColumns = getVisibleColumnsForRole(role);
-      return visibleColumns.filter((colId) => {
-        if (!allowedColumns.includes(colId)) return false;
-        if (colId === 'actions' || colId === 'files') return false;
-        if (colId === 'payment_mark' && !canViewPaymentMarks) return false;
-        if (colId === 'paid_date' && !canViewPaidDate) return false;
-        return true;
-      });
-    },
-    [visibleColumns, canViewPaymentMarks, canViewPaidDate, role],
-  );
+  const printColumns = useMemo(() => {
+    const allowedColumns = getVisibleColumnsForRole(role);
+    return visibleColumns.filter((colId) => {
+      if (!allowedColumns.includes(colId)) return false;
+      if (colId === 'actions' || colId === 'files') return false;
+      if (colId === 'payment_mark' && !canViewPaymentMarks) return false;
+      if (colId === 'paid_date' && !canViewPaidDate) return false;
+      return true;
+    });
+  }, [visibleColumns, canViewPaymentMarks, canViewPaidDate, role]);
 
   const objBindings = useMemo(() => {
     return objects
@@ -120,7 +123,9 @@ export function PrintableInvoices({
         return formatAmountRub(getEffectiveAmount(invoice));
       case 'paid': {
         if (invoice.paid) {
-          return formatAmountRub(invoice.payment_amounts?.reduce((s, a) => s + a, 0) ?? invoice.amount);
+          return formatAmountRub(
+            invoice.payment_amounts?.reduce((s, a) => s + a, 0) ?? invoice.amount,
+          );
         }
         return 'Нет';
       }
@@ -246,7 +251,8 @@ export function PrintableInvoices({
                   return groups.map((group) => (
                     <Fragment key={group.counterparty}>
                       {group.invoices.flatMap((invoice) => {
-                        const { amounts, remaining, hasCopies, hasRemainder } = getInvoicePaymentInfo(invoice);
+                        const { amounts, remaining, hasCopies, hasRemainder } =
+                          getInvoicePaymentInfo(invoice);
 
                         const expandedRows: React.ReactNode[] = [];
 
@@ -270,13 +276,14 @@ export function PrintableInvoices({
                                 <td />
                                 {printColumns.map((colId) => {
                                   if (colId === 'paid') {
-                                    return (
-                                      <td key={colId}>{formatAmountRub(copyAmt)}</td>
-                                    );
+                                    return <td key={colId}>{formatAmountRub(copyAmt)}</td>;
                                   }
                                   if (colId === 'purpose') {
                                     return (
-                                      <td key={colId} style={{ fontStyle: 'italic', color: '#666' }}>
+                                      <td
+                                        key={colId}
+                                        style={{ fontStyle: 'italic', color: '#666' }}
+                                      >
                                         {invoice.purpose}
                                       </td>
                                     );
@@ -296,7 +303,9 @@ export function PrintableInvoices({
                               {printColumns.map((colId) => {
                                 if (colId === 'amount') {
                                   return (
-                                    <td key={colId}><b>Остаток:</b> {formatAmountRub(remaining)}</td>
+                                    <td key={colId}>
+                                      <b>Остаток:</b> {formatAmountRub(remaining)}
+                                    </td>
                                   );
                                 }
                                 if (colId === 'paid') {
@@ -329,9 +338,7 @@ export function PrintableInvoices({
           </div>
         ))}
 
-        <div className="print-grand-total">
-          ОБЩИЙ ИТОГО: {formatAmountRub(grandTotal)}
-        </div>
+        <div className="print-grand-total">ОБЩИЙ ИТОГО: {formatAmountRub(grandTotal)}</div>
       </div>
     </div>,
     document.body,

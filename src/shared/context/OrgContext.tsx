@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { useOrganizations } from '@/shared/hooks/useOrganizations';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useAuth } from '@/shared/context/AuthContext';
@@ -33,9 +41,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const organizations = useMemo(() => {
     if (!user || !orgUsers) return allOrganizations;
     const userOrgIds = new Set(
-      orgUsers
-        .filter((ou) => ou.user_id === user.id)
-        .map((ou) => ou.organization_id),
+      orgUsers.filter((ou) => ou.user_id === user.id).map((ou) => ou.organization_id),
     );
     return allOrganizations.filter((o) => userOrgIds.has(o.id));
   }, [allOrganizations, user, orgUsers]);

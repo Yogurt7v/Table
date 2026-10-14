@@ -238,7 +238,12 @@ describe('mailSearchFieldsOf', () => {
 
   it('returns the six searchable fields for incoming mail', () => {
     const fields = mailSearchFieldsOf(
-      incomingMail({ number: '123', sender_outgoing_number: '456', comment: 'test', responsible_name: 'Иван' }),
+      incomingMail({
+        number: '123',
+        sender_outgoing_number: '456',
+        comment: 'test',
+        responsible_name: 'Иван',
+      }),
       'incoming',
     );
 
@@ -247,7 +252,12 @@ describe('mailSearchFieldsOf', () => {
 
   it('returns the six searchable fields for outgoing mail', () => {
     const fields = mailSearchFieldsOf(
-      outgoingMail({ outgoing_number: '789', counterparty_incoming_number: '012', comment: 'note', responsible_name: 'Пётр' }),
+      outgoingMail({
+        outgoing_number: '789',
+        counterparty_incoming_number: '012',
+        comment: 'note',
+        responsible_name: 'Пётр',
+      }),
       'outgoing',
     );
 

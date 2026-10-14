@@ -20,6 +20,4 @@ export const ALL_INVOICE_COLUMNS: InvoiceColumnDef[] = [
   { id: 'initiator', label: 'Инициатор' },
 ];
 
-export const DEFAULT_VISIBLE_COLUMNS: InvoiceColumnId[] = ALL_INVOICE_COLUMNS.map(
-  (c) => c.id,
-);
+export const DEFAULT_VISIBLE_COLUMNS: InvoiceColumnId[] = ALL_INVOICE_COLUMNS.map((c) => c.id);

@@ -63,16 +63,13 @@ export function InvoiceFilesModal({
   };
 
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title={`Файлы: ${invoiceLabel}`}
-      size="md"
-    >
+    <Modal opened={opened} onClose={onClose} title={`Файлы: ${invoiceLabel}`} size="md">
       {isLoading ? (
         <Loader size="sm" />
       ) : !files?.length ? (
-        <Text c="dimmed" mb="md">Файлов нет</Text>
+        <Text c="dimmed" mb="md">
+          Файлов нет
+        </Text>
       ) : (
         <Stack gap="sm" mb="md">
           {files.map((f) => (

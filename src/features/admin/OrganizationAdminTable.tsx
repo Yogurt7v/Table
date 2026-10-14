@@ -106,15 +106,17 @@ export function OrganizationAdminTable({
                     >
                       <IconPencil size={22} />
                     </ActionIcon>
-                    {canDelete && (<ActionIcon
-                      color="red"
-                      variant="subtle"
-                      size="lg"
-                      aria-label={`Удалить организацию «${org.name}»`}
-                      onClick={() => onDelete(org)}
-                    >
-                      <IconTrash size={22} />
-                    </ActionIcon>)}
+                    {canDelete && (
+                      <ActionIcon
+                        color="red"
+                        variant="subtle"
+                        size="lg"
+                        aria-label={`Удалить организацию «${org.name}»`}
+                        onClick={() => onDelete(org)}
+                      >
+                        <IconTrash size={22} />
+                      </ActionIcon>
+                    )}
                   </Group>
                 </Table.Td>
               </Table.Tr>

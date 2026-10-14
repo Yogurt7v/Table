@@ -10,7 +10,10 @@ export function foldSearchText(text: string): string {
 }
 
 /** Проверяет, что хотя бы одно из значений содержит фолднутый запрос. */
-export function matchesFolded(values: readonly (string | null | undefined)[], foldedQuery: string): boolean {
+export function matchesFolded(
+  values: readonly (string | null | undefined)[],
+  foldedQuery: string,
+): boolean {
   if (!foldedQuery) return true;
   for (const v of values) {
     if (v && v.toLowerCase().includes(foldedQuery)) return true;

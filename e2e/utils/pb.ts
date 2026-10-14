@@ -36,10 +36,7 @@ export async function resolveTestOrgId(_client: PocketBase): Promise<string> {
   return TEST_ORG.id;
 }
 
-export async function firstObjectId(
-  client: PocketBase,
-  orgId = TEST_ORG.id,
-): Promise<string> {
+export async function firstObjectId(client: PocketBase, orgId = TEST_ORG.id): Promise<string> {
   const list = await client
     .collection('accounting_objects')
     .getList(1, 1, { filter: `organization_id = "${orgId}"`, sort: 'created' });
@@ -108,9 +105,9 @@ export async function getInvoice(
   client: PocketBase,
   invoiceId: string,
 ): Promise<Record<string, unknown>> {
-  return client
-    .collection('invoices')
-    .getOne(invoiceId) as unknown as Promise<Record<string, unknown>>;
+  return client.collection('invoices').getOne(invoiceId) as unknown as Promise<
+    Record<string, unknown>
+  >;
 }
 
 export async function payInvoiceFull(invoiceId: string, dateIso: string, _actorName = 'Имя') {
@@ -194,4 +191,6 @@ export async function deleteInvoiceSoft(client: PocketBase, invoiceId: string): 
   await client.collection('invoices').delete(invoiceId);
 }
 
-export function todayIso(): string { return new Date().toISOString().slice(0,10); }
+export function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}

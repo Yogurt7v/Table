@@ -11,7 +11,9 @@ import type { IAccountWithBalance } from '@/shared/types';
 const mockHooks = vi.hoisted(() => {
   let mockRole: string | undefined = 'admin';
   return {
-    setRole: (r: string | undefined) => { mockRole = r; },
+    setRole: (r: string | undefined) => {
+      mockRole = r;
+    },
     useAuth: () => {
       const users: Record<string, { id: string; login: string }> = {
         user1: { id: 'user1', login: 'admin' },
@@ -20,12 +22,23 @@ const mockHooks = vi.hoisted(() => {
       const userId = mockRole === 'guest' ? 'user3' : 'user1';
       return { user: users[userId], isAuthenticated: true, isLoading: false };
     },
-    useOrg: () => ({ currentOrgId: 'org1', currentOrg: { id: 'org1', name: 'Test Org' }, organizations: [] }),
+    useOrg: () => ({
+      currentOrgId: 'org1',
+      currentOrg: { id: 'org1', name: 'Test Org' },
+      organizations: [],
+    }),
     useOrganizationUsers: () => {
       const roleVal = mockRole;
       return {
         data: roleVal
-          ? [{ id: 'ou_test', user_id: roleVal === 'guest' ? 'user3' : 'user1', organization_id: 'org1', role: roleVal }]
+          ? [
+              {
+                id: 'ou_test',
+                user_id: roleVal === 'guest' ? 'user3' : 'user1',
+                organization_id: 'org1',
+                role: roleVal,
+              },
+            ]
           : undefined,
       };
     },
@@ -53,14 +66,20 @@ vi.mock('@/shared/hooks/useBankAccounts', () => ({
 
 vi.mock('@/api/client', () => ({}));
 
-const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } });
+const qc = new QueryClient({
+  defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
+});
 
 const accounts: IAccountWithBalance[] = [
   { account: bankAcc1, balance: 150000 },
   { account: bankAcc2, balance: 85000 },
 ];
 
-function renderAccountList(accs: IAccountWithBalance[] | undefined, loading = false, date = '2026-06-03') {
+function renderAccountList(
+  accs: IAccountWithBalance[] | undefined,
+  loading = false,
+  date = '2026-06-03',
+) {
   return render(
     <QueryClientProvider client={qc}>
       <MantineProvider defaultColorScheme="light">

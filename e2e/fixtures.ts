@@ -10,12 +10,21 @@ export type { TestRole } from './types';
 export { uniqueMarker as dataUniqueMarker } from './data';
 
 export const test = base.extend<TestFixtures>({
-  marker: async ({}, use) => { await use(dataUniqueMarker('E2E')); },
-  client: async ({}, use) => { await use(await authAs('admin')); },
-  orgId: async ({}, use) => { const pb = await authAs('admin'); await use(await resolveTestOrgId(pb)); },
-  objectId: async ({ orgId }, use) => { const pb = await authAs('admin'); await use(await firstObjectId(pb, orgId)); },
-}
-);
+  marker: async ({}, use) => {
+    await use(dataUniqueMarker('E2E'));
+  },
+  client: async ({}, use) => {
+    await use(await authAs('admin'));
+  },
+  orgId: async ({}, use) => {
+    const pb = await authAs('admin');
+    await use(await resolveTestOrgId(pb));
+  },
+  objectId: async ({ orgId }, use) => {
+    const pb = await authAs('admin');
+    await use(await firstObjectId(pb, orgId));
+  },
+});
 
 export interface TestFixtures {
   client: PocketBase;

@@ -20,7 +20,11 @@ interface DeleteOrgModalProps {
 
 const INVOICE_FORMS: [string, string, string] = ['счёт', 'счёта', 'счетов'];
 const OBJECT_FORMS: [string, string, string] = ['объект учёта', 'объекта учёта', 'объектов учёта'];
-const ACCOUNT_FORMS: [string, string, string] = ['банковский счёт', 'банковских счёта', 'банковских счетов'];
+const ACCOUNT_FORMS: [string, string, string] = [
+  'банковский счёт',
+  'банковских счёта',
+  'банковских счетов',
+];
 const MEMBER_FORMS: [string, string, string] = ['участник', 'участника', 'участников'];
 
 export function DeleteOrgModal({
@@ -50,19 +54,21 @@ export function DeleteOrgModal({
       title={`Удаление организации «${orgName}»`}
       size="sm"
     >
-      <Stack onKeyDown={(e) => {
-        if (e.key === 'Enter' && confirmText === 'я осознаю последствия') {
-          e.preventDefault();
-          handleConfirm();
-        }
-      }}>
-        <Text size="sm">
-          Это действие необратимо. Будут удалены безвозвратно:
-        </Text>
+      <Stack
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && confirmText === 'я осознаю последствия') {
+            e.preventDefault();
+            handleConfirm();
+          }
+        }}
+      >
+        <Text size="sm">Это действие необратимо. Будут удалены безвозвратно:</Text>
         <List size="sm" spacing={4}>
           <List.Item>
             {stats?.invoicesCount == null ? (
-              <Text size="sm" c="dimmed">счета (подсчёт…)</Text>
+              <Text size="sm" c="dimmed">
+                счета (подсчёт…)
+              </Text>
             ) : (
               pluralCount(stats.invoicesCount, INVOICE_FORMS)
             )}

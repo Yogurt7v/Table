@@ -302,7 +302,7 @@ export function MailFilters({
                     ))}
                   </Box>
                 </FilterColumn>*/}
-  
+
                 <FilterColumn label={MAIL_FILTER_GROUP_LABELS.accountingObject}>
                   <Box className="mail-filters-column__body">
                     {accountingObjects.length === 0 && (
@@ -331,7 +331,7 @@ export function MailFilters({
                     </FilterOption>
                   </Box>
                 </FilterColumn>
-  
+
                 <FilterColumn label={MAIL_FILTER_GROUP_LABELS.deliveryMethod}>
                   <Box className="mail-filters-column__body">
                     {DELIVERY_METHODS.map((method) => (
@@ -355,7 +355,7 @@ export function MailFilters({
                     </FilterOption>
                   </Box>
                 </FilterColumn>
-  
+
                 <FilterColumn label={MAIL_FILTER_GROUP_LABELS.responsible}>
                   <Box className="mail-filters-column__body">
                     {responsibleOptions.length === 0 && (
@@ -376,8 +376,7 @@ export function MailFilters({
                     ))}
                   </Box>
                 </FilterColumn>
-  
-  
+
                 <FilterColumn label={MAIL_FILTER_GROUP_LABELS.attachments}>
                   <Box className="mail-filters-column__body">
                     <AttachmentFilterItem
@@ -394,7 +393,7 @@ export function MailFilters({
                     />
                   </Box>
                 </FilterColumn>
-  
+
                 <FilterColumn label={MAIL_FILTER_GROUP_LABELS.counterparty}>
                   <TextInput
                     size="xs"
@@ -404,7 +403,7 @@ export function MailFilters({
                     onChange={(e) => filters.setCounterparty(e.currentTarget.value)}
                   />
                 </FilterColumn>
-  
+
                 <FilterColumn label={MAIL_FILTER_GROUP_LABELS.relations}>
                   <Box className="mail-filters-column__body">
                     <FilterOption
@@ -418,7 +417,7 @@ export function MailFilters({
                   </Box>
                 </FilterColumn>
               </Box>
-  
+
               <Box className="mail-filters-footer">
                 <FilterOption
                   active={false}

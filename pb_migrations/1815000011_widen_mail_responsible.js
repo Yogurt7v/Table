@@ -49,39 +49,39 @@
 // loudly — deliberately no `if (!collection) continue`, which would hide a typo
 // in MAIL_COLLECTIONS behind a silently skipped collection.
 
-const RESPONSIBLE_MAX = 200
-const RESPONSIBLE_NAME_MAX = 1600
+const RESPONSIBLE_MAX = 200;
+const RESPONSIBLE_NAME_MAX = 1600;
 
 // Values before this migration, restored by the `down` half.
-const RESPONSIBLE_MAX_PREV = 15
-const RESPONSIBLE_NAME_MAX_PREV = 200
+const RESPONSIBLE_MAX_PREV = 15;
+const RESPONSIBLE_NAME_MAX_PREV = 200;
 
 const MAIL_COLLECTIONS = [
   'incoming_mails',
   'outgoing_mails',
   'deleted_incoming_mails',
   'deleted_outgoing_mails',
-]
+];
 
 migrate(
   (app) => {
     for (const name of MAIL_COLLECTIONS) {
-      const collection = app.findCollectionByNameOrId(name)
+      const collection = app.findCollectionByNameOrId(name);
 
-      collection.fields.getByName('responsible').max = RESPONSIBLE_MAX
-      collection.fields.getByName('responsible_name').max = RESPONSIBLE_NAME_MAX
+      collection.fields.getByName('responsible').max = RESPONSIBLE_MAX;
+      collection.fields.getByName('responsible_name').max = RESPONSIBLE_NAME_MAX;
 
-      app.save(collection)
+      app.save(collection);
     }
   },
   (app) => {
     for (const name of MAIL_COLLECTIONS) {
-      const collection = app.findCollectionByNameOrId(name)
+      const collection = app.findCollectionByNameOrId(name);
 
-      collection.fields.getByName('responsible').max = RESPONSIBLE_MAX_PREV
-      collection.fields.getByName('responsible_name').max = RESPONSIBLE_NAME_MAX_PREV
+      collection.fields.getByName('responsible').max = RESPONSIBLE_MAX_PREV;
+      collection.fields.getByName('responsible_name').max = RESPONSIBLE_NAME_MAX_PREV;
 
-      app.save(collection)
+      app.save(collection);
     }
   },
-)
+);

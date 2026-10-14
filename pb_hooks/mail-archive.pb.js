@@ -37,18 +37,41 @@ function archiveMailOnDelete(e) {
     if (srcName === 'incoming_mails') {
       archiveName = 'deleted_incoming_mails';
       fields = [
-        'organization_id', 'accounting_object_id', 'seq', 'number', 'date',
-        'sender_outgoing_number', 'subject', 'sender', 'responsible',
-        'responsible_name', 'delivery_method', 'comment', 'created_by',
-        'created_by_name', 'updated_by', 'updated_by_name',
+        'organization_id',
+        'accounting_object_id',
+        'seq',
+        'number',
+        'date',
+        'sender_outgoing_number',
+        'subject',
+        'sender',
+        'responsible',
+        'responsible_name',
+        'delivery_method',
+        'comment',
+        'created_by',
+        'created_by_name',
+        'updated_by',
+        'updated_by_name',
       ];
     } else if (srcName === 'outgoing_mails') {
       archiveName = 'deleted_outgoing_mails';
       fields = [
-        'organization_id', 'accounting_object_id', 'seq', 'date',
-        'outgoing_number', 'counterparty_incoming_number', 'subject',
-        'recipient', 'responsible', 'responsible_name', 'delivery_method',
-        'comment', 'created_by', 'created_by_name', 'updated_by',
+        'organization_id',
+        'accounting_object_id',
+        'seq',
+        'date',
+        'outgoing_number',
+        'counterparty_incoming_number',
+        'subject',
+        'recipient',
+        'responsible',
+        'responsible_name',
+        'delivery_method',
+        'comment',
+        'created_by',
+        'created_by_name',
+        'updated_by',
         'updated_by_name',
       ];
     } else {
@@ -89,7 +112,7 @@ function archiveMailOnDelete(e) {
         require(__hooks + '/lib-actor.js').resolveActorName($app, [authId]) ||
           e.auth.get('name') ||
           e.auth.get('email') ||
-          ''
+          '',
       ).slice(0, 200);
     }
     deletedRec.set('deleted_by_name', deletedByName);

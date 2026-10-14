@@ -56,7 +56,10 @@ export function AccountListMobile({ accounts, loading, date, canEdit }: AccountL
     <Paper
       radius="md"
       p="xs"
-      style={{ backgroundColor: 'var(--mantine-color-body)', boxShadow: 'var(--mantine-shadow-sm)' }}
+      style={{
+        backgroundColor: 'var(--mantine-color-body)',
+        boxShadow: 'var(--mantine-shadow-sm)',
+      }}
     >
       <Title order={6} mb="xs" px="xs">
         Расчётные счета
@@ -116,7 +119,10 @@ export function AccountListMobile({ accounts, loading, date, canEdit }: AccountL
                         let newPos = newFormatted.length;
                         for (let i = 0; i < newFormatted.length; i++) {
                           if (newFormatted[i] !== ' ') count++;
-                          if (count > nonSpace) { newPos = i; break; }
+                          if (count > nonSpace) {
+                            newPos = i;
+                            break;
+                          }
                         }
                         inputRef.current.setSelectionRange(newPos, newPos);
                       });

@@ -17,7 +17,9 @@ onRecordAfterCreateSuccess((e) => {
   try {
     var copy = e.record;
     var origId = copy.get('original_invoice_id');
-    if (!origId) { return; }
+    if (!origId) {
+      return;
+    }
 
     var invOrgId = copy.get('organization_id');
     var fCol = $app.findCollectionByNameOrId('invoice_files');
@@ -64,7 +66,9 @@ onRecordAfterCreateSuccess((e) => {
           fs.close();
         }
       } catch (err) {
-        console.error('[invoices:file-copy] copy ' + copy.id + ' from ' + srcFiles[i].id + ': ' + String(err));
+        console.error(
+          '[invoices:file-copy] copy ' + copy.id + ' from ' + srcFiles[i].id + ': ' + String(err),
+        );
       }
     }
   } catch (err) {
@@ -77,10 +81,14 @@ onRecordAfterCreateSuccess((e) => {
   try {
     var fileRec = e.record;
     var invId = fileRec.get('invoice_id');
-    if (!invId) { return; }
+    if (!invId) {
+      return;
+    }
 
     var invoice = $app.findRecordById('invoices', invId);
-    if (!invoice || invoice.get('original_invoice_id')) { return; } // сам счёт — копия
+    if (!invoice || invoice.get('original_invoice_id')) {
+      return;
+    } // сам счёт — копия
 
     var copies = $app.findRecordsByFilter(
       'invoices',
@@ -140,10 +148,14 @@ onRecordAfterUpdateSuccess((e) => {
   try {
     var fileRec = e.record;
     var invId = fileRec.get('invoice_id');
-    if (!invId) { return; }
+    if (!invId) {
+      return;
+    }
 
     var invoice = $app.findRecordById('invoices', invId);
-    if (!invoice || invoice.get('original_invoice_id')) { return; }
+    if (!invoice || invoice.get('original_invoice_id')) {
+      return;
+    }
 
     var copies = $app.findRecordsByFilter(
       'invoices',

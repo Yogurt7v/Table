@@ -37,7 +37,9 @@ describe('getUserDisplayName', () => {
 describe('getInitiatorDisplayName', () => {
   it('предпочитает снимок имени, даже когда пользователь удалён', () => {
     const userMap = new Map<string, IUser>();
-    expect(getInitiatorDisplayName('deleted-user-id', 'Анна Смирнова', userMap)).toBe('Анна Смирнова');
+    expect(getInitiatorDisplayName('deleted-user-id', 'Анна Смирнова', userMap)).toBe(
+      'Анна Смирнова',
+    );
   });
 
   it('берёт имя из userMap, когда снимка нет', () => {

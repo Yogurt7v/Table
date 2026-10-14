@@ -92,8 +92,6 @@ describe('архив удалённых писем остался достижи
   });
 
   it('секция архива не потеряла модалку истории при переезде', () => {
-    expect(read('../../features/admin/DeletedMailsSection.tsx')).toMatch(
-      /MailArchiveHistoryModal/,
-    );
+    expect(read('../../features/admin/DeletedMailsSection.tsx')).toMatch(/MailArchiveHistoryModal/);
   });
 });

@@ -7,7 +7,9 @@ import { AccountingObjectManager } from './AccountingObjectManager';
 import type { IAccountingObject } from '@/shared/types';
 
 vi.mock('@/api/collections', () => ({
-  createAccountingObject: vi.fn().mockResolvedValue({ id: 'new1', organization_id: 'org1', name: 'Новый объект' }),
+  createAccountingObject: vi
+    .fn()
+    .mockResolvedValue({ id: 'new1', organization_id: 'org1', name: 'Новый объект' }),
   updateAccountingObject: vi.fn().mockResolvedValue({}),
   deleteAccountingObject: vi.fn().mockResolvedValue({}),
 }));

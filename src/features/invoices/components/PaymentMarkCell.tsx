@@ -110,7 +110,9 @@ export function PaymentMarkCell({
 
     if (invoice.paid) {
       return (
-        <Text size="xs" c="dimmed">Уже оплачено</Text>
+        <Text size="xs" c="dimmed">
+          Уже оплачено
+        </Text>
       );
     }
 
@@ -119,14 +121,15 @@ export function PaymentMarkCell({
         <Button size="xs" onClick={() => onMarkForPayment?.(invoice)}>
           Оплатить
         </Button>
-        <Button
-          size="xs"
-          variant="light"
-          onClick={() => onOpenPartialModal?.(invoice)}
-        >
+        <Button size="xs" variant="light" onClick={() => onOpenPartialModal?.(invoice)}>
           Частично
         </Button>
-        <Button size="xs" style={{border: "1px solid var(--mantine-color-blue-light-color)"}} variant="subtle" onClick={() => onMarkForApproval?.(invoice)}>
+        <Button
+          size="xs"
+          style={{ border: '1px solid var(--mantine-color-blue-light-color)' }}
+          variant="subtle"
+          onClick={() => onMarkForApproval?.(invoice)}
+        >
           Согласование
         </Button>
       </Group>

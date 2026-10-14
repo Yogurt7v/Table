@@ -59,15 +59,12 @@ function DetailsTab({ invoice }: { invoice: IDeletedInvoice }) {
     <Stack gap="xs">
       <Row label="Номер" value={invoice.seq ? String(invoice.seq) : '—'} />
       <Row label="Дата" value={invoice.date ? dayjs(invoice.date).format('DD.MM.YYYY') : '—'} />
-      <Row label="Контрагент"    value={invoice.counterparty || '—'} />
+      <Row label="Контрагент" value={invoice.counterparty || '—'} />
       <Row label="Назначение" value={invoice.purpose || '—'} />
       <Row label="Договор" value={invoice.contract_no || '—'} />
       <Row label="Номер счёта" value={invoice.invoice_no || '—'} />
       <Row label="Сумма" value={formatAmountRub(invoice.amount || 0)} />
-      <Row
-        label="Оплачен"
-        value={invoice.paid ? 'Да' : 'Нет'}
-      />
+      <Row label="Оплачен" value={invoice.paid ? 'Да' : 'Нет'} />
       <Row label="Объект" value={objectName} />
       {invoice.paid && invoice.paid_date && (
         <Row label="Дата оплаты" value={dayjs(invoice.paid_date).format('DD.MM.YYYY')} />
@@ -100,9 +97,7 @@ function DetailsTab({ invoice }: { invoice: IDeletedInvoice }) {
           <Text size="xs" c="dimmed">
             Когда:{' '}
             <Text component="span" c="dark.6">
-              {invoice.deleted_at
-                ? dayjs(invoice.deleted_at).format('DD.MM.YYYY HH:mm')
-                : '—'}
+              {invoice.deleted_at ? dayjs(invoice.deleted_at).format('DD.MM.YYYY HH:mm') : '—'}
             </Text>
           </Text>
         </Stack>
@@ -128,7 +123,11 @@ function HistoryTab({ invoiceId }: { invoiceId: string }) {
   if (isLoading) return <Loader size="sm" />;
 
   if (!history || history.length === 0) {
-    return <Text c="dimmed" size="sm">История пуста</Text>;
+    return (
+      <Text c="dimmed" size="sm">
+        История пуста
+      </Text>
+    );
   }
 
   return (
@@ -161,7 +160,11 @@ function FilesTab({ invoiceId }: { invoiceId: string }) {
   if (isLoading) return <Loader size="sm" />;
 
   if (!files || files.length === 0) {
-    return <Text c="dimmed" size="sm">Нет файлов</Text>;
+    return (
+      <Text c="dimmed" size="sm">
+        Нет файлов
+      </Text>
+    );
   }
 
   return (
@@ -171,12 +174,7 @@ function FilesTab({ invoiceId }: { invoiceId: string }) {
         return (
           <Group key={f.id} gap="xs">
             <IconPaperclip size={14} />
-            <Anchor
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              size="sm"
-            >
+            <Anchor href={url} target="_blank" rel="noopener noreferrer" size="sm">
               {f.name}
             </Anchor>
           </Group>

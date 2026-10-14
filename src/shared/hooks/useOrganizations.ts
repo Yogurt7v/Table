@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
-import { getOrganizations, createOrganization, updateOrganization, deleteOrganization } from '@/api/collections';
+import {
+  getOrganizations,
+  createOrganization,
+  updateOrganization,
+  deleteOrganization,
+} from '@/api/collections';
 
 export function useOrganizations() {
   return useQuery({
@@ -25,7 +30,8 @@ export function useUpdateOrganization() {
     mutationFn: ({ id, name, color }: { id: string; name: string; color: string }) =>
       updateOrganization(id, name, color),
     onSettled: () => qc.invalidateQueries({ queryKey: ['organizations'] }),
-    onError: () => notifications.show({ color: 'red', message: 'Не удалось сохранить организацию' }),
+    onError: () =>
+      notifications.show({ color: 'red', message: 'Не удалось сохранить организацию' }),
   });
 }
 

@@ -36,19 +36,16 @@ export function EditOrgModal({
   onSave,
 }: EditOrgModalProps) {
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title={`Редактирование: ${orgName ?? ''}`}
-      size="md"
-    >
+    <Modal opened={opened} onClose={onClose} title={`Редактирование: ${orgName ?? ''}`} size="md">
       {editOrgId && editAccounts && (
-        <Stack onKeyDown={(e) => {
-          if (e.key === 'Enter' && editName.trim()) {
-            e.preventDefault();
-            onSave();
-          }
-        }}>
+        <Stack
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && editName.trim()) {
+              e.preventDefault();
+              onSave();
+            }
+          }}
+        >
           <TextInput
             label="Название"
             value={editName}
@@ -66,12 +63,7 @@ export function EditOrgModal({
             objects={editObjects}
             canEdit={canEditAccountingObjects}
           />
-          <Button
-            fullWidth
-            onClick={onSave}
-            loading={isPending}
-            disabled={!editName.trim()}
-          >
+          <Button fullWidth onClick={onSave} loading={isPending} disabled={!editName.trim()}>
             Сохранить
           </Button>
         </Stack>

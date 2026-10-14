@@ -42,12 +42,14 @@ export function InvoiceMoveModal({
       title="Перенести в другой объект"
       size="sm"
     >
-      <Stack onKeyDown={(e) => {
-        if (e.key === 'Enter' && targetId) {
-          e.preventDefault();
-          handleConfirm();
-        }
-      }}>
+      <Stack
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && targetId) {
+            e.preventDefault();
+            handleConfirm();
+          }
+        }}
+      >
         <Select
           label="Объект учёта"
           data={options}

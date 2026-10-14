@@ -1,7 +1,25 @@
 import { useMemo } from 'react';
-import { Paper, Title, Group, Button, Skeleton, Stack, Text, ActionIcon, Tooltip, Collapse, useMantineTheme } from '@mantine/core';
+import {
+  Paper,
+  Title,
+  Group,
+  Button,
+  Skeleton,
+  Stack,
+  Text,
+  ActionIcon,
+  Tooltip,
+  Collapse,
+  useMantineTheme,
+} from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import { IconPlus, IconPrinter, IconFileExport, IconChevronRight, IconChevronDown } from '@tabler/icons-react';
+import {
+  IconPlus,
+  IconPrinter,
+  IconFileExport,
+  IconChevronRight,
+  IconChevronDown,
+} from '@tabler/icons-react';
 import { useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
 import { useDatePinned } from '@/shared/context/DatePinnedContext';
 import { InvoiceTable } from '@/features/invoices/InvoiceTable';
@@ -9,8 +27,13 @@ import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { matchesInvoiceFilter } from '@/features/invoices/utils/invoice-filter';
 import type { InvoiceFilterType } from '@/features/invoices/utils/invoice-filter';
-import type { IInvoice, IAccountingObject, IPaymentMark, IInvoiceFile, InvoiceColumnId } from '@/shared/types';
-
+import type {
+  IInvoice,
+  IAccountingObject,
+  IPaymentMark,
+  IInvoiceFile,
+  InvoiceColumnId,
+} from '@/shared/types';
 
 interface InvoiceObjectBlockProps {
   obj: IAccountingObject;
@@ -58,7 +81,6 @@ export function InvoiceObjectBlock({
       .filter((i) => matchesInvoiceFilter(i, paymentMarks, activeFilters))
       .filter((i) => !hasSearch || highlightedIds.includes(i.id));
   }, [invoices, paymentMarks, activeFilters, obj.id, hasSearch, highlightedIds]);
-
 
   const { isCollapsed, toggle } = useCollapsedObjects();
   const collapsed = isCollapsed(obj.id);
@@ -110,7 +132,6 @@ export function InvoiceObjectBlock({
         {collapsed ? <IconChevronRight size={18} /> : <IconChevronDown size={18} />}
         <Title order={5}>{obj.name}</Title>
         {onPrint && !isMobile && (
-
           <Tooltip label="Печать">
             <ActionIcon
               size="sm"

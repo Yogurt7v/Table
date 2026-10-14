@@ -50,16 +50,16 @@ createRoot(document.getElementById('root')!).render(
           <BrowserRouter>
             <AuthProvider>
               <OrgProvider>
-              <OrgPrimaryProvider>
-                <SearchProvider>
-                  <InvoiceNavigationProvider>
-                    <ErrorBoundary>
-                      <App />
-                    </ErrorBoundary>
-                  </InvoiceNavigationProvider>
-                </SearchProvider>
-              </OrgPrimaryProvider>
-            </OrgProvider>
+                <OrgPrimaryProvider>
+                  <SearchProvider>
+                    <InvoiceNavigationProvider>
+                      <ErrorBoundary>
+                        <App />
+                      </ErrorBoundary>
+                    </InvoiceNavigationProvider>
+                  </SearchProvider>
+                </OrgPrimaryProvider>
+              </OrgProvider>
             </AuthProvider>
           </BrowserRouter>
         </DatesProvider>

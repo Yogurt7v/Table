@@ -19,9 +19,7 @@ describe('BankAccountManager', () => {
   });
 
   it('shows add input for new accounts', () => {
-    renderWithProviders(
-      <BankAccountManager organizationId="org1" accounts={[bankAcc1]} />,
-    );
+    renderWithProviders(<BankAccountManager organizationId="org1" accounts={[bankAcc1]} />);
 
     expect(screen.getByPlaceholderText('Название счёта')).toBeInTheDocument();
     expect(screen.getByText('Добавить')).toBeInTheDocument();

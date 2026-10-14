@@ -45,7 +45,9 @@ function formMatchingInvoice(invoice: IInvoice): DraftInvoiceForm {
 describe('buildInvoiceDelta initiator', () => {
   it('records created_by and created_by_name when initiator changes', () => {
     const data = { ...formMatchingInvoice(mockInvoice), initiator: 'u2' };
-    const delta = buildInvoiceDelta(data, mockInvoice, '2026-06-01', (id) => (id === 'u2' ? 'Анна' : ''));
+    const delta = buildInvoiceDelta(data, mockInvoice, '2026-06-01', (id) =>
+      id === 'u2' ? 'Анна' : '',
+    );
 
     expect(delta.changed).toBe(true);
     expect(delta.updates.created_by).toBe('u2');

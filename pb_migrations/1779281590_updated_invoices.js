@@ -1,26 +1,35 @@
 /// <reference path="../pb_data/types.d.ts" />
-migrate((app) => {
-  const collection = app.findCollectionByNameOrId("pbc_711030668")
+migrate(
+  (app) => {
+    const collection = app.findCollectionByNameOrId('pbc_711030668');
 
-  // update collection data
-  unmarshal({
-    "createRule": null,
-    "listRule": null,
-    "updateRule": null,
-    "viewRule": null
-  }, collection)
+    // update collection data
+    unmarshal(
+      {
+        createRule: null,
+        listRule: null,
+        updateRule: null,
+        viewRule: null,
+      },
+      collection,
+    );
 
-  return app.save(collection)
-}, (app) => {
-  const collection = app.findCollectionByNameOrId("pbc_711030668")
+    return app.save(collection);
+  },
+  (app) => {
+    const collection = app.findCollectionByNameOrId('pbc_711030668');
 
-  // update collection data
-  unmarshal({
-    "createRule": "",
-    "listRule": "",
-    "updateRule": "",
-    "viewRule": ""
-  }, collection)
+    // update collection data
+    unmarshal(
+      {
+        createRule: '',
+        listRule: '',
+        updateRule: '',
+        viewRule: '',
+      },
+      collection,
+    );
 
-  return app.save(collection)
-})
+    return app.save(collection);
+  },
+);

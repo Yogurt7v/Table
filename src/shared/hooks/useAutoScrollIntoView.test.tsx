@@ -10,7 +10,9 @@ function Target({ enabled }: { enabled: boolean }) {
 }
 
 function rAF(): Promise<void> {
-  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  return new Promise((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  );
 }
 
 beforeEach(() => {

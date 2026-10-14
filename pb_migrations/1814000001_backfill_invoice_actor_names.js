@@ -19,36 +19,39 @@ function resolveName(app, id) {
   return '';
 }
 
-migrate((app) => {
-  const invoices = app.findRecordsByFilter('invoices', '', '', 0, 0);
+migrate(
+  (app) => {
+    const invoices = app.findRecordsByFilter('invoices', '', '', 0, 0);
 
-  for (const invoice of invoices) {
-    let changed = false;
+    for (const invoice of invoices) {
+      let changed = false;
 
-    if (invoice.get('created_by') && !invoice.get('created_by_name')) {
-      const name = resolveName(app, invoice.get('created_by'));
-      if (name) {
-        invoice.set('created_by_name', name);
-        changed = true;
+      if (invoice.get('created_by') && !invoice.get('created_by_name')) {
+        const name = resolveName(app, invoice.get('created_by'));
+        if (name) {
+          invoice.set('created_by_name', name);
+          changed = true;
+        }
       }
-    }
 
-    if (invoice.get('updated_by') && !invoice.get('updated_by_name')) {
-      const name = resolveName(app, invoice.get('updated_by'));
-      if (name) {
-        invoice.set('updated_by_name', name);
-        changed = true;
+      if (invoice.get('updated_by') && !invoice.get('updated_by_name')) {
+        const name = resolveName(app, invoice.get('updated_by'));
+        if (name) {
+          invoice.set('updated_by_name', name);
+          changed = true;
+        }
       }
-    }
 
-    if (changed) app.save(invoice);
-  }
-}, (app) => {
-  // Обратной операции нет: исходные значения нигде не сохранялись.
-  const invoices = app.findRecordsByFilter('invoices', '', '', 0, 0);
-  for (const invoice of invoices) {
-    invoice.set('created_by_name', '');
-    invoice.set('updated_by_name', '');
-    app.save(invoice);
-  }
-});
+      if (changed) app.save(invoice);
+    }
+  },
+  (app) => {
+    // Обратной операции нет: исходные значения нигде не сохранялись.
+    const invoices = app.findRecordsByFilter('invoices', '', '', 0, 0);
+    for (const invoice of invoices) {
+      invoice.set('created_by_name', '');
+      invoice.set('updated_by_name', '');
+      app.save(invoice);
+    }
+  },
+);

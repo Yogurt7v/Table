@@ -52,5 +52,5 @@ export async function createInvoiceViaUi(
 
 /** Выход через шапку (админ-меню → «Выйти»). */
 export async function logoutViaUi(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Выйти" }).click();
+  await page.getByRole('button', { name: 'Выйти' }).click();
 }

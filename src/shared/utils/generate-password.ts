@@ -3,7 +3,8 @@ export function generatePassword(length = 8): string {
   const lower = 'abcdefghijklmnopqrstuvwxyz';
   const digits = '0123456789';
 
-  const rand = (chars: string) => chars[crypto.getRandomValues(new Uint32Array(1))[0]! % chars.length]!;
+  const rand = (chars: string) =>
+    chars[crypto.getRandomValues(new Uint32Array(1))[0]! % chars.length]!;
 
   let password = rand(upper) + rand(lower) + rand(digits);
   const all = upper + lower + digits;

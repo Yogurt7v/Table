@@ -170,7 +170,9 @@ export function useNotifications() {
           getUnreadNotificationsCount(user.id).catch(() => null),
         ]);
         apply(() => {
-          const merged = keepPagedIn ? mergePagedIn(res.items, notificationsRef.current) : res.items;
+          const merged = keepPagedIn
+            ? mergePagedIn(res.items, notificationsRef.current)
+            : res.items;
           loadedCountRef.current = merged.length;
           writeNotifications(merged);
           setTotalItems(res.totalItems);
@@ -364,9 +366,7 @@ export function useNotifications() {
     // total is null (never fetched / count request failed) or larger than the page.
     const pending = notifications.filter((n) => !n.read);
     if (pending.length === 0) return;
-    Promise.all(
-      pending.map((n) => pb.collection('notifications').update(n.id, { read: true })),
-    )
+    Promise.all(pending.map((n) => pb.collection('notifications').update(n.id, { read: true })))
       .then(() => {
         // Subtract exactly what was marked — never zero the total: unread rows outside this
         // page are still unread until they are loaded and marked. `settleAsRead` counts what

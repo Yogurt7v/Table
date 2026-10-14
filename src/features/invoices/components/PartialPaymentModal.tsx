@@ -68,32 +68,46 @@ export function PartialPaymentModal({
         }}
       >
         <Group gap={4}>
-          <Text size="sm" fw={600}>Контрагент:</Text>
+          <Text size="sm" fw={600}>
+            Контрагент:
+          </Text>
           <Text size="sm">{data.invoice.counterparty}</Text>
         </Group>
         <Group gap={4}>
-          <Text size="sm" fw={600}>Назначение:</Text>
+          <Text size="sm" fw={600}>
+            Назначение:
+          </Text>
           <Text size="sm">{data.invoice.purpose}</Text>
         </Group>
         <Group gap={4}>
-          <Text size="sm" fw={600}>Номер счёта:</Text>
+          <Text size="sm" fw={600}>
+            Номер счёта:
+          </Text>
           <Text size="sm">{data.invoice.invoice_no}</Text>
         </Group>
         <Group gap={4}>
-          <Text size="sm" fw={600}>Дата:</Text>
+          <Text size="sm" fw={600}>
+            Дата:
+          </Text>
           <Text size="sm">{data.invoice.date}</Text>
         </Group>
         <Group gap={4}>
-          <Text size="sm" fw={600}>Договор:</Text>
+          <Text size="sm" fw={600}>
+            Договор:
+          </Text>
           <Text size="sm">{data.invoice.contract_no}</Text>
         </Group>
         <Group gap={4}>
-          <Text size="sm" fw={600}>Сумма счёта:</Text>
+          <Text size="sm" fw={600}>
+            Сумма счёта:
+          </Text>
           <Text size="sm">{formatAmountRub(data.invoice.amount)}</Text>
         </Group>
         {data.invoice.comment && (
           <Group gap={4}>
-            <Text size="sm" fw={600}>Комментарий:</Text>
+            <Text size="sm" fw={600}>
+              Комментарий:
+            </Text>
             <Text size="sm">{data.invoice.comment}</Text>
           </Group>
         )}

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { getVisibleColumnsForRole, getColumnSettingsItems, COLUMNS_BY_ROLE } from './invoice-column-visibility';
+import {
+  getVisibleColumnsForRole,
+  getColumnSettingsItems,
+  COLUMNS_BY_ROLE,
+} from './invoice-column-visibility';
 
 describe('invoice-column-visibility', () => {
   it('returns correct columns for each role', () => {

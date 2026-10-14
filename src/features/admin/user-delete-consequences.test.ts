@@ -35,7 +35,11 @@ describe('buildUserDeleteConsequences', () => {
   it('flags organizations where the user is the only admin', () => {
     const result = buildUserDeleteConsequences(
       'u1',
-      [ou('a1', 'u1', 'org1', 'admin'), ou('a2', 'u1', 'org2', 'admin'), ou('a3', 'u2', 'org2', 'admin')],
+      [
+        ou('a1', 'u1', 'org1', 'admin'),
+        ou('a2', 'u1', 'org2', 'admin'),
+        ou('a3', 'u2', 'org2', 'admin'),
+      ],
       organizations,
     );
     expect(result.soleAdminOf).toEqual(['ООО Альфа']);
@@ -58,7 +62,11 @@ describe('buildUserDeleteConsequences', () => {
   });
 
   it('falls back to placeholder name for unknown organization', () => {
-    const result = buildUserDeleteConsequences('u1', [ou('a1', 'u1', 'ghost', 'user')], organizations);
+    const result = buildUserDeleteConsequences(
+      'u1',
+      [ou('a1', 'u1', 'ghost', 'user')],
+      organizations,
+    );
     expect(result.memberships[0]?.orgName).toBe('Неизвестная организация');
   });
 });

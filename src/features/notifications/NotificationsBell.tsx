@@ -74,9 +74,7 @@ function NotificationBlock({
         border: `1px solid ${
           isRead ? 'var(--mantine-color-gray-3)' : 'var(--mantine-color-blue-3)'
         }`,
-        backgroundColor: isRead
-          ? 'var(--mantine-color-gray-0)'
-          : 'var(--mantine-color-blue-0)',
+        backgroundColor: isRead ? 'var(--mantine-color-gray-0)' : 'var(--mantine-color-blue-0)',
         padding: 'var(--mantine-spacing-xs) var(--mantine-spacing-sm)',
         cursor: notification.invoice_id ? 'pointer' : 'default',
       }}
@@ -342,9 +340,7 @@ export function NotificationsBell() {
             variant="light"
             fullWidth
             mb="xs"
-            disabled={
-              calendarDate !== null && dayjs(calendarDate).isSame(dayjs(), 'day')
-            }
+            disabled={calendarDate !== null && dayjs(calendarDate).isSame(dayjs(), 'day')}
             onClick={() => {
               const today = dayjs().startOf('day').toDate();
               setCalendarDate(today);

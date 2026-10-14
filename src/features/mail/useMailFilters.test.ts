@@ -110,7 +110,11 @@ describe('buildMailListQuery', () => {
   it('порядок едет вместе с остальными фильтрами, а не вместо них', () => {
     expect(
       buildMailListQuery(
-        withOverrides({ sortDirection: 'asc', counterparty: 'ООО Ромашка', deliveryMethods: ['post'] }),
+        withOverrides({
+          sortDirection: 'asc',
+          counterparty: 'ООО Ромашка',
+          deliveryMethods: ['post'],
+        }),
       ),
     ).toEqual({ counterparty: 'ООО Ромашка', deliveryMethods: ['post'], sort: LIVE_MAIL_SORT_ASC });
   });

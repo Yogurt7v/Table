@@ -1,15 +1,11 @@
 import { useState } from 'react';
-import {
-  Group,
-  Select,
-  Button,
-  Text,
-  Badge,
-  ActionIcon,
-  Stack,
-} from '@mantine/core';
+import { Group, Select, Button, Text, Badge, ActionIcon, Stack } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
-import { useOrganizationUsers, useCreateOrganizationUser, useDeleteOrganizationUser } from '@/shared/hooks/useOrganizationUsers';
+import {
+  useOrganizationUsers,
+  useCreateOrganizationUser,
+  useDeleteOrganizationUser,
+} from '@/shared/hooks/useOrganizationUsers';
 import { useOrg } from '@/shared/context/OrgContext';
 import type { IOrganizationUser } from '@/shared/types';
 
@@ -61,7 +57,9 @@ export function RoleManager({ userId }: RoleManagerProps) {
   return (
     <Stack gap="xs">
       {userAssignments.length === 0 && (
-        <Text size="sm" c="dimmed">Нет назначений</Text>
+        <Text size="sm" c="dimmed">
+          Нет назначений
+        </Text>
       )}
       {userAssignments.map((assignment) => {
         const orgName =
