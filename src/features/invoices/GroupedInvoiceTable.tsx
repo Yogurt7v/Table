@@ -720,6 +720,7 @@ export function GroupedInvoiceTable({
         onApproveMark={onApproveMark}
         onClearPaymentConfirm={(id) => setClearConfirmInvoiceId(id)}
         onOpenPartialModal={(inv) => setPartialModal({ invoice: inv, amount: '', comment: '' })}
+        onDelete={onDelete}
       />
 
       {/* Desktop table */}

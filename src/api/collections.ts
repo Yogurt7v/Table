@@ -1,5 +1,6 @@
 import { pb } from './client.ts';
 import { normalizeInvoice } from '@/shared/utils/normalize-invoice';
+import { appendDeletionReason, stripDeletionReason } from '@/shared/utils/deletion-reason';
 import type {
   IOrganization,
   IBankAccount,
@@ -258,7 +259,7 @@ async function deleteInvoiceTree(invoiceId: string) {
   for (const child of children) {
     await deleteInvoiceTree(child.id);
   }
-  await deleteInvoice(invoiceId);
+  await deleteInvoice(invoiceId, 'заменено новой копией при синхронизации оплаты');
 }
 
 /**
@@ -344,7 +345,7 @@ export async function updateInvoiceWithHistory(
   return updateInvoice(id, data);
 }
 
-export async function deleteInvoice(id: string) {
+export async function deleteInvoice(id: string, reason: string) {
   const invoice = await pb.collection('invoices').getOne<IInvoice>(id);
 
   const historyRecords = await pb.collection('invoice_history').getFullList<IInvoiceHistory>({
@@ -371,7 +372,7 @@ export async function deleteInvoice(id: string) {
     paid_date: invoice.paid_date,
     paid_amount: invoice.paid_amount,
     payment_amounts: invoice.payment_amounts,
-    comment: invoice.comment,
+    comment: appendDeletionReason(invoice.comment, reason),
     copy_comments: invoice.copy_comments,
     created_by: invoice.created_by,
     updated_by: invoice.updated_by,
@@ -800,7 +801,7 @@ export async function restoreDeletedInvoice(
       amount: deleted.amount,
       paid: deleted.paid,
       paid_date: deleted.paid_date,
-      comment: deleted.comment,
+      comment: stripDeletionReason(deleted.comment),
       original_invoice_id: deleted.original_invoice_id || '',
       source_paid_amount: deleted.source_paid_amount,
       source_paid_date: deleted.source_paid_date,

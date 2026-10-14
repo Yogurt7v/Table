@@ -18,6 +18,7 @@ import type {
   MailRelationSide,
   MailType,
 } from '@/shared/types';
+import { appendDeletionReason, stripDeletionReason } from '@/shared/utils/deletion-reason';
 import { foldSearchText } from '@/shared/utils/search-text';
 
 export const MAIL_INCOMING_COLLECTION = 'incoming_mails';
@@ -59,8 +60,27 @@ const ARCHIVE_MAIL_PAGE_SIZE = 20;
  * способна попасть на две соседние страницы или пропасть между ними.
  * `created` заполняется всегда и монотонно растёт, поэтому он делает порядок
  * полностью детерминированным.
+ *
+ * Порядок живого реестра живёт ПАРОЙ, и это не украшение: направление
+ * переключает кнопка в панели фильтров, поэтому оба варианта обязаны нести
+ * один и тот же набор ключей в том же порядке. Меняется только знак у каждого
+ * ключа — `'-date,-seq,-created'` против `'date,seq,created'`. Потерять `-seq`
+ * или `-created` в одной из строк значит не «сортировать чуть иначе», а
+ * получить другой регистр: внутри дня порядок снова разъезжается, а равные
+ * строки снова начинают прыгать через границу страниц.
  */
-const LIVE_MAIL_SORT = '-date,-seq,-created';
+export const LIVE_MAIL_SORT = '-date,-seq,-created';
+
+/**
+ * Тот же порядок в обратную сторону — «старые сверху».
+ *
+ * Получен из `LIVE_MAIL_SORT` снятием всех префиксов `-` (в PocketBase это
+ * DESC), а не написан руками: переключатель направления физически не может
+ * выпустить строку, в которой ключ забыли перевернуть. Единственное, что при
+ * этом нужно не забыть, — новый ключ в убывании; на новые строки он не влияет.
+ */
+export const LIVE_MAIL_SORT_ASC = LIVE_MAIL_SORT.replace(/-/g, '');
+
 const ARCHIVE_SORT = '-deleted_at';
 
 /**
@@ -632,8 +652,13 @@ export function getDeletedOutgoingMailHistory(deletedMailId: string) {
  * the mail itself. `mail_files` rows are deliberately left in place — mail_id
  * is plain text, not a relation, so the attachments outlive the delete and stay
  * openable from the archive. That is the reason for the polymorphic pair.
+ *
+ * `reason` обязателен: строка причины дописывается последней строкой в `comment`
+ * архивной записи, потому что архив — единственное, что переживает удаление.
+ * Отдельного поля у причины нет (миграция `delete_reason` отклонена), поэтому
+ * `restoreDeletedIncomingMail` снимает эту строку обратно.
  */
-export async function deleteIncomingMail(id: string) {
+export async function deleteIncomingMail(id: string, reason: string) {
   const mail = await pb.collection(MAIL_INCOMING_COLLECTION).getOne<IIncomingMail>(id);
   const deletedBy = currentActorId();
   const deletedByName = currentActorName();
@@ -654,7 +679,7 @@ export async function deleteIncomingMail(id: string) {
       responsible: mail.responsible,
       responsible_name: mail.responsible_name ?? '',
       delivery_method: mail.delivery_method,
-      comment: mail.comment ?? '',
+      comment: appendDeletionReason(mail.comment, reason),
       created_by: mail.created_by ?? '',
       created_by_name: mail.created_by_name ?? '',
       updated_by: mail.updated_by ?? '',
@@ -682,7 +707,7 @@ export async function deleteIncomingMail(id: string) {
 }
 
 /** Outgoing twin of `deleteIncomingMail`. */
-export async function deleteOutgoingMail(id: string) {
+export async function deleteOutgoingMail(id: string, reason: string) {
   const mail = await pb.collection(MAIL_OUTGOING_COLLECTION).getOne<IOutgoingMail>(id);
   const deletedBy = currentActorId();
   const deletedByName = currentActorName();
@@ -703,7 +728,7 @@ export async function deleteOutgoingMail(id: string) {
       responsible: mail.responsible,
       responsible_name: mail.responsible_name ?? '',
       delivery_method: mail.delivery_method,
-      comment: mail.comment ?? '',
+      comment: appendDeletionReason(mail.comment, reason),
       created_by: mail.created_by ?? '',
       created_by_name: mail.created_by_name ?? '',
       updated_by: mail.updated_by ?? '',
@@ -777,6 +802,9 @@ export function getDeletedOutgoingMail(id: string) {
  * re-uploads them into the new invoice — mail has no file-archive collection and
  * deliberately needs none. Its `original_invoice_id`/`source_*` columns exist
  * only to preserve the copy chain, not the identity.
+ *
+ * `stripDeletionReason` снимает дописанную при удалении строку причины: письмо,
+ * вернувшееся в реестр, не должно нести пометку об архивации.
  */
 export async function restoreDeletedIncomingMail(deletedMailId: string): Promise<IIncomingMail> {
   const deleted = await pb
@@ -796,7 +824,7 @@ export async function restoreDeletedIncomingMail(deletedMailId: string): Promise
     sender_outgoing_number: deleted.sender_outgoing_number ?? '',
     responsible_name: deleted.responsible_name ?? '',
     delivery_method: deleted.delivery_method,
-    comment: deleted.comment ?? '',
+    comment: stripDeletionReason(deleted.comment),
     created_by: deleted.created_by ?? '',
     created_by_name: deleted.created_by_name ?? '',
     updated_by: currentActorId(),
@@ -856,7 +884,7 @@ export async function restoreDeletedOutgoingMail(deletedMailId: string): Promise
     counterparty_incoming_number: deleted.counterparty_incoming_number ?? '',
     responsible_name: deleted.responsible_name ?? '',
     delivery_method: deleted.delivery_method,
-    comment: deleted.comment ?? '',
+    comment: stripDeletionReason(deleted.comment),
     created_by: deleted.created_by ?? '',
     created_by_name: deleted.created_by_name ?? '',
     updated_by: currentActorId(),

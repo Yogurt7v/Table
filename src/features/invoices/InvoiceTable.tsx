@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Text, Stack } from '@mantine/core';
+import { Text, Stack, TextInput, Group, Paper } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconCircleCheckFilled } from '@tabler/icons-react';
+import { IconArchive, IconCircleCheckFilled } from '@tabler/icons-react';
 import type {
   IAccountingObject,
   IInvoice,
@@ -56,6 +56,12 @@ interface InvoiceTableProps {
   visibleColumns: InvoiceColumnId[];
   onAddClick?: () => void;
   allInvoices?: IInvoice[];
+}
+
+/** `expand-invoice-rows.ts` даёт копии частичных оплат синтетический id `abc123__p0`; в API есть только `abc123`. */
+function toRealInvoiceId(invoiceId: string): string {
+  const markerIndex = invoiceId.indexOf('__');
+  return markerIndex === -1 ? invoiceId : invoiceId.slice(0, markerIndex);
 }
 
 export function InvoiceTable({
@@ -122,6 +128,7 @@ export function InvoiceTable({
   const [duplicateInvoices, setDuplicateInvoices] = useState<IInvoice[]>([]);
   const [pendingDuplicateForm, setPendingDuplicateForm] = useState<DraftInvoiceForm | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<IInvoice | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
   const [clearMarkTarget, setClearMarkTarget] = useState<string | null>(null);
   const [historyInvoice, setHistoryInvoice] = useState<IInvoice | null>(null);
   const [moveInvoiceTarget, setMoveInvoiceTarget] = useState<IInvoice | null>(null);
@@ -453,6 +460,48 @@ export function InvoiceTable({
     setDraftForm((prev) => ({ ...prev, ...patch }));
   };
 
+  const closeDeleteModal = () => {
+    setDeleteTarget(null);
+    setDeleteReason('');
+  };
+
+  // Рядом в реестре лежат одноимённые контрагенты, строки частичных оплат и
+  // дубли по сумме, поэтому карточка собирает признаки, по которым строка
+  // ищется в самой таблице.
+  const deleteSubjectMeta = deleteTarget
+    ? [
+        deleteTarget.invoice_no ? `Счёт № ${deleteTarget.invoice_no}` : null,
+        deleteTarget.purpose || null,
+      ].filter((part): part is string => Boolean(part))
+    : [];
+
+  const deleteSubject = deleteTarget ? (
+    <Paper withBorder radius="md" p="sm">
+      <Group justify="space-between" align="baseline" gap="sm" wrap="nowrap">
+        <Text fw={600} lh={1.35} lineClamp={2} flex={1}>
+          {deleteTarget.counterparty || deleteTarget.invoice_no || 'Счёт без контрагента'}
+        </Text>
+        <Text fw={600} lh={1.35} fz="md" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {formatAmountRub(deleteTarget.amount)}
+        </Text>
+      </Group>
+      {deleteSubjectMeta.length > 0 && (
+        <Text size="xs" c="dimmed" mt={2} lineClamp={1}>
+          {deleteSubjectMeta.join(' · ')}
+        </Text>
+      )}
+    </Paper>
+  ) : null;
+
+  // Удаление обратимо: строка уезжает в «Архив счетов», откуда её восстанавливают
+  // вместе с историей. Формулировка говорит об этом прямо, чтобы действие не
+  // читалось как безвозвратная потеря данных.
+  const deleteNote = (
+    <Text size="sm" c="dimmed" lh={1.45}>
+      Счёт переместится в архив. Его можно восстановить вместе с историей изменений.
+    </Text>
+  );
+
   return (
     <>
       <GroupedInvoiceTable
@@ -470,10 +519,9 @@ export function InvoiceTable({
         onDraftCancel={onCancelDraft}
         highlightedIds={highlightedIds}
         onEdit={(inv) => {
-          const hasSuffix = inv.id.includes('__');
-          const suffix = hasSuffix ? inv.id.slice(inv.id.indexOf('__')) : null;
-          const realId = hasSuffix ? inv.id.slice(0, inv.id.indexOf('__')) : inv.id;
-          const realInvoice = hasSuffix ? invoices.find((i) => i.id === realId) : null;
+          const realId = toRealInvoiceId(inv.id);
+          const suffix = realId === inv.id ? null : inv.id.slice(realId.length);
+          const realInvoice = suffix ? invoices.find((i) => i.id === realId) : null;
           const copyComment = suffix ? (realInvoice?.copy_comments?.[suffix] ?? '') : undefined;
           setEditInvoice({
             ...inv,
@@ -504,17 +552,45 @@ export function InvoiceTable({
       />
       <ConfirmModal
         opened={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={closeDeleteModal}
         onConfirm={() => {
           if (deleteTarget) {
-            deleteInvoice.mutate(deleteTarget.id);
+            deleteInvoice.mutate({
+              id: toRealInvoiceId(deleteTarget.id),
+              reason: deleteReason.trim(),
+            });
           }
-          setDeleteTarget(null);
+          closeDeleteModal();
         }}
         title="Удаление счёта"
-        message={`Удалить счёт «${deleteTarget?.counterparty || deleteTarget?.invoice_no || ''}»?`}
+        size="md"
+        subject={deleteSubject}
+        note={deleteNote}
         loading={deleteInvoice.isPending}
-      />
+        confirmDisabled={deleteReason.trim() === '' || deleteInvoice.isPending}
+        confirmLeftSection={<IconArchive size={16} />}
+        confirmBlocked
+      >
+        <TextInput
+          label="Причина удаления"
+          aria-label="Причина удаления"
+          placeholder="Например: счёт создан ошибочно"
+          description={
+            <Group component="span" justify="space-between" gap="sm" wrap="nowrap">
+              <Text component="span" size="xs" flex={1}>
+                Сохранится в архивной записи и в истории счёта.
+              </Text>
+              <Text component="span" size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                {deleteReason.length > 0 ? `${deleteReason.length} симв.` : ''}
+              </Text>
+            </Group>
+          }
+          value={deleteReason}
+          onChange={(event) => setDeleteReason(event.currentTarget.value)}
+          disabled={deleteInvoice.isPending}
+          required
+        />
+      </ConfirmModal>
       <ConfirmModal
         opened={duplicateInvoices.length > 0}
         onClose={() => {

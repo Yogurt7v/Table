@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { DeliveryMethod, MailType } from '@/shared/types';
 import type { MailListQuery } from '@/shared/hooks/useMail';
+import { LIVE_MAIL_SORT_ASC } from '@/api/mail';
 import {
   MAIL_ATTACHMENT_FILTER_LABELS,
   MAIL_COUNTERPARTY_FIELD_LABELS,
@@ -28,6 +29,15 @@ import type { MailPeriodPreset } from './mail-date';
 /** Отбор по вложениям: одно из трёх взаимоисключающих состояний. */
 export type MailAttachmentFilter = keyof typeof MAIL_ATTACHMENT_FILTER_LABELS;
 
+/**
+ * Направление порядка живого реестра. Это НЕ фильтр, а настройка показа, но
+ * она лежит в `MailFilterState` намеренно: `MailSection` возвращает страницу на
+ * первую при смене ЛЮБОГО поля этого состояния, и отдельный `useState` на
+ * направление оставил бы пользователя на пустой странице — смена порядка на
+ * третьей странице реестра уменьшает число строк.
+ */
+export type MailSortDirection = 'desc' | 'asc';
+
 export type MailFilterGroup =
   | 'period'
   | 'accountingObject'
@@ -50,6 +60,8 @@ export interface MailFilterState {
   attachments: MailAttachmentFilter;
   hasRelations: boolean;
   search: string;
+  /** `'desc'` — «новые сверху» (по умолчанию), `'asc'` — «старые сверху». */
+  sortDirection: MailSortDirection;
 }
 
 export const DEFAULT_MAIL_FILTERS: MailFilterState = {
@@ -65,6 +77,7 @@ export const DEFAULT_MAIL_FILTERS: MailFilterState = {
   attachments: 'any',
   hasRelations: false,
   search: '',
+  sortDirection: 'desc',
 };
 
 export const MAIL_FILTER_GROUPS: MailFilterGroup[] = [
@@ -81,7 +94,12 @@ export function createDefaultMailFilters(): MailFilterState {
   return { ...DEFAULT_MAIL_FILTERS };
 }
 
-/** Группы, в которых что-то выбрано — ими питается подпись `Фильтр (N)`. */
+/**
+ * Группы, в которых что-то выбрано — ими питается подпись `Фильтр (N)`.
+ *
+ * `sortDirection` здесь не упоминается намеренно: это порядок показа, а не
+ * отбор, и его не должно быть видно ни в счётчике на кнопке, ни чипом.
+ */
 export function activeFilterGroups(state: MailFilterState): MailFilterGroup[] {
   const active: MailFilterGroup[] = [];
 
@@ -137,6 +155,11 @@ export function cycleAttachmentFilter(current: MailAttachmentFilter): MailAttach
   }
 }
 
+/** Следующее направление порядка. Направлений ровно два, цикла нет. */
+export function nextSortDirection(current: MailSortDirection): MailSortDirection {
+  return current === 'desc' ? 'asc' : 'desc';
+}
+
 export function toggleInList<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
@@ -162,6 +185,11 @@ export function buildMailListQuery(state: MailFilterState): MailListQuery {
     ...(state.withoutDeliveryMethod ? { withoutDeliveryMethod: true } : {}),
     ...(state.responsibleIds.length > 0 ? { responsibleIds: state.responsibleIds } : {}),
     ...(counterparty ? { counterparty } : {}),
+    // `sort` уходит только для обратного направления: убывающий порядок —
+    // умолчание сервера (`params.sort ?? LIVE_MAIL_SORT`), и лишний `sort` в
+    // запросе изменил бы ключ React Query, не изменив выдачу. Значение берётся
+    // из константы API, в строку оно не интерполируется.
+    ...(state.sortDirection === 'asc' ? { sort: LIVE_MAIL_SORT_ASC } : {}),
   };
 
   return query;
@@ -277,6 +305,8 @@ export interface UseMailFiltersResult {
   activeGroups: MailFilterGroup[];
   activeCount: number;
   hasSearch: boolean;
+  /** Порядок реестра: `'desc'` — новые сверху (по умолчанию), `'asc'` — старые сверху. */
+  sortDirection: MailSortDirection;
   setSearch: (value: string) => void;
   setPeriod: (preset: MailPeriodPreset) => void;
   setCustomRange: (from: string, to: string) => void;
@@ -289,6 +319,8 @@ export interface UseMailFiltersResult {
   cycleAttachments: () => void;
   setAttachments: (value: MailAttachmentFilter) => void;
   toggleHasRelations: () => void;
+  /** Переключает порядок показа. Не трогает ни фильтры, ни счётчик активных. */
+  toggleSortDirection: () => void;
   removeChip: (chip: MailFilterChip) => void;
   resetGroup: (group: MailFilterGroup) => void;
   resetAll: () => void;
@@ -381,12 +413,31 @@ export function useMailFilters(initial?: Partial<MailFilterState>): UseMailFilte
     [],
   );
 
+  const toggleSortDirection = useCallback(
+    () =>
+      setFilters((prev) => ({ ...prev, sortDirection: nextSortDirection(prev.sortDirection) })),
+    [],
+  );
+
   const resetGroup = useCallback((group: MailFilterGroup) => {
     setFilters((prev) => resetFilterGroup(prev, group));
   }, []);
 
+  /**
+   * «Сбросить все фильтры» снимает отбор, но НЕ порядок показа.
+   *
+   * `search` здесь сохраняется по той же причине, что и `sortDirection`: оба
+   * заданы не фильтром, а сверху — общий поиск живёт над вкладками, а порядок
+   * выбирает пользователь. Сброс фильтра, возвращающий реестр к «новым
+   * сверху», заставил бы `handleGoToRegister` в `MailSection` (переход из дерева
+   * переписки к письму по дате) тихо отменить только что выбранный порядок.
+   */
   const resetAll = useCallback(() => {
-    setFilters((prev) => ({ ...createDefaultMailFilters(), search: prev.search }));
+    setFilters((prev) => ({
+      ...createDefaultMailFilters(),
+      search: prev.search,
+      sortDirection: prev.sortDirection,
+    }));
   }, []);
 
   /**
@@ -435,6 +486,7 @@ export function useMailFilters(initial?: Partial<MailFilterState>): UseMailFilte
     activeGroups,
     activeCount: activeGroups.length,
     hasSearch: filters.search.trim().length > 0,
+    sortDirection: filters.sortDirection,
     setSearch,
     setPeriod,
     setCustomRange,
@@ -447,6 +499,7 @@ export function useMailFilters(initial?: Partial<MailFilterState>): UseMailFilte
     cycleAttachments,
     setAttachments,
     toggleHasRelations,
+    toggleSortDirection,
     removeChip,
     resetGroup,
     resetAll,

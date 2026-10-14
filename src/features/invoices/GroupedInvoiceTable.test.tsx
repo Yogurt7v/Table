@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { GroupedInvoiceTable } from './GroupedInvoiceTable';
 import type { IInvoice, IInvoiceFile } from '@/shared/types';
@@ -64,5 +65,30 @@ describe('GroupedInvoiceTable', () => {
     renderTable({ invoices: [] });
 
     expect(screen.getByText('Нет счетов на эту дату')).toBeInTheDocument();
+  });
+
+  describe('удаление счёта на мобильных карточках', () => {
+    it('показывает кнопку удаления, когда canDelete = true', () => {
+      renderTable({ onDelete: vi.fn() });
+
+      expect(screen.getByLabelText('Удалить счёт')).toBeInTheDocument();
+    });
+
+    it('скрывает кнопку удаления, когда canDelete = false', () => {
+      renderTable({ onDelete: vi.fn(), permissions: { ...permissions, canDelete: false } });
+
+      expect(screen.queryByLabelText('Удалить счёт')).not.toBeInTheDocument();
+    });
+
+    it('вызывает onDelete со счётом карточки', async () => {
+      const user = userEvent.setup();
+      const onDelete = vi.fn();
+      renderTable({ onDelete });
+
+      await user.click(screen.getByLabelText('Удалить счёт'));
+
+      expect(onDelete).toHaveBeenCalledTimes(1);
+      expect(onDelete).toHaveBeenCalledWith(invoice);
+    });
   });
 });

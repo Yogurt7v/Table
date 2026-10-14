@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 import {
   activeFilterGroups,
   buildFilterChips,
@@ -6,9 +7,13 @@ import {
   createDefaultMailFilters,
   cycleAttachmentFilter,
   DEFAULT_MAIL_FILTERS,
+  hasActiveFilters,
+  nextSortDirection,
   resetFilterGroup,
   toggleInList,
+  useMailFilters,
 } from './useMailFilters';
+import { LIVE_MAIL_SORT, LIVE_MAIL_SORT_ASC } from '@/api/mail';
 import { MAIL_NO_ACCOUNTING_OBJECT_LABEL } from './mail-labels';
 import { MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import type { MailFilterChip, MailFilterState } from './useMailFilters';
@@ -89,6 +94,48 @@ describe('buildMailListQuery', () => {
   it('отбор по связанным письмам не уходит на сервер', () => {
     expect(buildMailListQuery(withOverrides({ hasRelations: true }))).toEqual({});
   });
+
+  it('обратный порядок уходит на сервер явной строкой sort', () => {
+    expect(buildMailListQuery(withOverrides({ sortDirection: 'asc' }))).toEqual({
+      sort: LIVE_MAIL_SORT_ASC,
+    });
+  });
+
+  it('порядок по умолчанию sort не добавляет — он и есть умолчание сервера', () => {
+    // Лишний `sort: LIVE_MAIL_SORT` изменил бы ключ React Query, не изменив
+    // выдачу, поэтому в состоянии по умолчанию его быть не должно.
+    expect(buildMailListQuery(withOverrides({ sortDirection: 'desc' }))).toEqual({});
+  });
+
+  it('порядок едет вместе с остальными фильтрами, а не вместо них', () => {
+    expect(
+      buildMailListQuery(
+        withOverrides({ sortDirection: 'asc', counterparty: 'ООО Ромашка', deliveryMethods: ['post'] }),
+      ),
+    ).toEqual({ counterparty: 'ООО Ромашка', deliveryMethods: ['post'], sort: LIVE_MAIL_SORT_ASC });
+  });
+});
+
+describe('порядок живого реестра', () => {
+  it('две строки сортировки совпадают по ключам и различаются только знаком', () => {
+    // Расхождение означало бы другой регистр, а не другой порядок: потерянный
+    // `-seq` снова разъезжает порядок внутри дня, а потерянный `-created`
+    // возвращает двойным по `(date, seq)` строкам право прыгать через границу
+    // страниц. Поэтому строки выводятся одна из другой, а не пишутся рядом.
+    expect(LIVE_MAIL_SORT).toBe('-date,-seq,-created');
+    expect(LIVE_MAIL_SORT_ASC).toBe('date,seq,created');
+    expect(LIVE_MAIL_SORT_ASC).toBe(LIVE_MAIL_SORT.replace(/-/g, ''));
+  });
+
+  it('ни один ключ сортировки не пропадает при смене направления', () => {
+    const keysOf = (sort: string) => sort.split(',').map((key) => key.replace('-', ''));
+    expect(keysOf(LIVE_MAIL_SORT_ASC)).toEqual(keysOf(LIVE_MAIL_SORT));
+  });
+
+  it('направление переключается и обратно', () => {
+    expect(nextSortDirection('desc')).toBe('asc');
+    expect(nextSortDirection('asc')).toBe('desc');
+  });
 });
 
 describe('activeFilterGroups', () => {
@@ -119,6 +166,72 @@ describe('activeFilterGroups', () => {
 
   it('поиск не попадает в счётчик групп', () => {
     expect(activeFilterGroups(withOverrides({ search: 'договор' }))).toEqual([]);
+  });
+
+  it('обратный порядок — не фильтр: ни в счётчике, ни чипом', () => {
+    // Иначе кнопка «Фильтр» посинеет от настройки показа, а сброс фильтров
+    // начнёт молча отменять выбранный порядок.
+    expect(activeFilterGroups(withOverrides({ sortDirection: 'asc' }))).toEqual([]);
+    expect(hasActiveFilters(withOverrides({ sortDirection: 'asc' }))).toBe(false);
+    expect(buildFilterChips(withOverrides({ sortDirection: 'asc' }), CHIP_CONTEXT)).toEqual([]);
+  });
+});
+
+describe('useMailFilters — переключатель порядка', () => {
+  it('по умолчанию реестр идёт от новых к старым, и направление ни на что не влияет', () => {
+    const { result } = renderHook(() => useMailFilters());
+
+    expect(result.current.sortDirection).toBe('desc');
+    expect(result.current.activeCount).toBe(0);
+    expect(result.current.query).toEqual({});
+  });
+
+  it('переключение меняет направление и включает sort в запрос', () => {
+    const { result } = renderHook(() => useMailFilters());
+
+    act(() => result.current.toggleSortDirection());
+
+    expect(result.current.sortDirection).toBe('asc');
+    expect(result.current.query).toEqual({ sort: LIVE_MAIL_SORT_ASC });
+
+    act(() => result.current.toggleSortDirection());
+
+    expect(result.current.sortDirection).toBe('desc');
+    expect(result.current.query).toEqual({});
+  });
+
+  it('переключение не трогает ни фильтры, ни счётчик активных', () => {
+    const { result } = renderHook(() => useMailFilters());
+
+    act(() => result.current.toggleAccountingObject('obj-1'));
+    const activeBefore = result.current.activeCount;
+
+    act(() => result.current.toggleSortDirection());
+
+    expect(result.current.activeCount).toBe(activeBefore);
+    expect(result.current.query.accountingObjectIds).toEqual(['obj-1']);
+  });
+
+  it('сброс фильтров сохраняет порядок показа — он выбран, а не отобран', () => {
+    const { result } = renderHook(() => useMailFilters());
+
+    act(() => result.current.toggleSortDirection());
+    act(() => result.current.setCounterparty('ООО Ромашка'));
+    act(() => result.current.resetAll());
+
+    expect(result.current.filters.sortDirection).toBe('asc');
+    expect(result.current.filters.counterparty).toBe('');
+    expect(result.current.activeCount).toBe(0);
+    expect(result.current.query).toEqual({ sort: LIVE_MAIL_SORT_ASC });
+  });
+
+  it('сброс фильтров сохраняет и поиск, как и раньше', () => {
+    const { result } = renderHook(() => useMailFilters());
+
+    act(() => result.current.setSearch('договор'));
+    act(() => result.current.resetAll());
+
+    expect(result.current.filters.search).toBe('договор');
   });
 });
 

@@ -13,7 +13,16 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconCalendar, IconCheck, IconFilter, IconLink, IconPaperclip, IconX } from '@tabler/icons-react';
+import {
+  IconCalendar,
+  IconCheck,
+  IconChevronsDown,
+  IconChevronsUp,
+  IconFilter,
+  IconLink,
+  IconPaperclip,
+  IconX,
+} from '@tabler/icons-react';
 import type { DeliveryMethod } from '@/shared/types';
 import { MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import {
@@ -47,6 +56,8 @@ const PERIOD_DROPDOWN_CLASS = 'mail-filters-period-dropdown';
 
 const OPTION_SELECTOR = '[data-mail-filter-option]:not(:disabled)';
 const COLUMN_SELECTOR = '[data-mail-filter-column]';
+/** Переключатель порядка — соседняя кнопка панели, клик по ней её не закрывает. */
+const SORT_TOGGLE_SELECTOR = '[data-mail-sort-toggle]';
 
 interface MailFiltersProps {
   filters: UseMailFiltersResult;
@@ -154,6 +165,11 @@ function FilterColumn({ label, children }: { label: string; children: ReactNode 
  * успев выбрать дату, поэтому он выключен, а закрытие по клику вне ведёт
  * обработчик `useEffect` ниже: он исключает и панель, и кнопку, и помеченное
  * окно пикера. Все четыре предустановки периода остаются пунктами панели.
+ *
+ * Переключатель порядка исключён из закрытия по той же логике, что и сама
+ * кнопка «Фильтр»: это соседний элемент той же строки панели управления, а не
+ * место снаружи, и захлопывать по нему открытую панель означало бы наказать
+ * пользователя за перестановку порядка на середине работы с отбором.
  */
 export function MailFilters({
   filters,
@@ -174,6 +190,7 @@ export function MailFilters({
       if (!(target instanceof Element)) return;
       if (panelRef.current?.contains(target)) return;
       if (target.closest('[data-mail-filter-trigger]')) return;
+      if (target.closest(SORT_TOGGLE_SELECTOR)) return;
       if (target.closest('[data-mail-filter-period]')) return;
       if (target.closest(`.${PERIOD_DROPDOWN_CLASS}`)) return;
       setOpened(false);
@@ -211,188 +228,213 @@ export function MailFilters({
   return (
     <Stack gap="xs">
       <Group gap="xs" wrap="wrap" justify="space-between">
-        <Popover
-          opened={opened}
-          onChange={setOpened}
-          position="bottom-start"
-          width={PANEL_WIDTH}
-          shadow="md"
-          trapFocus
-          returnFocus
-          closeOnClickOutside={false}
-        >
-          <Popover.Target data-mail-filter-trigger>
-            <Button
-              size="compact-sm"
-              variant="light"
-              style={{ padding: '0 20px' }}
-              color={filters.activeCount > 0 ? 'blue' : 'gray'}
-              leftSection={<IconFilter size={16} />}
-              onClick={() => setOpened((value) => !value)}
-            >
-              {filters.activeCount > 0 ? `Фильтр (${filters.activeCount})` : 'Фильтр'}
-            </Button>
-          </Popover.Target>
-          <Popover.Dropdown
-            ref={panelRef}
-            onKeyDown={handlePanelKeyDown}
-            styles={{
-              dropdown: {
-                padding: 'var(--mantine-spacing-sm)',
-                maxHeight: 'min(70dvh, 560px)',
-                overflowY: 'auto',
-                overscrollBehavior: 'contain',
-              },
-            }}
+        <Group gap="xs">
+          <Button
+            size="compact-sm"
+            variant="light"
+            color="gray"
+            style={{ padding: '0 20px' }}
+            data-mail-sort-toggle
+            aria-label={
+              filters.sortDirection === 'asc'
+                ? 'Показать сначала новые письма'
+                : 'Показать сначала старые письма'
+            }
+            leftSection={
+              filters.sortDirection === 'asc' ? (
+                <IconChevronsUp size={16} />
+              ) : (
+                <IconChevronsDown size={16} />
+              )
+            }
+            onClick={filters.toggleSortDirection}
           >
-            <Box className="mail-filters-grid">
-              {/*<FilterColumn label={MAIL_FILTER_GROUP_LABELS.period}>
-                <Box className="mail-filters-column__body">
-                  {PERIOD_ITEMS.map((preset) => (
-                    <FilterOption
-                      key={preset}
-                      active={state.period === preset}
-                      marker={checkMark(state.period === preset)}
-                      onSelect={() => filters.setPeriod(preset)}
-                      onClose={close}
-                    >
-                      {MAIL_PERIOD_PRESET_LABELS[preset]}
-                    </FilterOption>
-                  ))}
-                </Box>
-              </FilterColumn>*/}
+            {filters.sortDirection === 'asc' ? 'Сначала старые' : 'Сначала новые'}
+          </Button>
 
-              <FilterColumn label={MAIL_FILTER_GROUP_LABELS.accountingObject}>
-                <Box className="mail-filters-column__body">
-                  {accountingObjects.length === 0 && (
-                    <Text className="mail-filters-empty" size="sm">
-                      Нет доступных объектов
-                    </Text>
-                  )}
-                  {accountingObjects.map((obj) => (
-                    <FilterOption
-                      key={obj.id}
-                      active={state.accountingObjectIds.includes(obj.id)}
-                      marker={checkMark(state.accountingObjectIds.includes(obj.id))}
-                      onSelect={() => filters.toggleAccountingObject(obj.id)}
-                      onClose={close}
-                    >
-                      {obj.name}
-                    </FilterOption>
-                  ))}
-                  <FilterOption
-                    active={state.withoutAccountingObject}
-                    marker={checkMark(state.withoutAccountingObject)}
-                    onSelect={filters.toggleWithoutAccountingObject}
-                    onClose={close}
-                  >
-                    {MAIL_NO_ACCOUNTING_OBJECT_LABEL}
-                  </FilterOption>
-                </Box>
-              </FilterColumn>
-
-              <FilterColumn label={MAIL_FILTER_GROUP_LABELS.deliveryMethod}>
-                <Box className="mail-filters-column__body">
-                  {DELIVERY_METHODS.map((method) => (
-                    <FilterOption
-                      key={method}
-                      active={state.deliveryMethods.includes(method)}
-                      marker={checkMark(state.deliveryMethods.includes(method))}
-                      onSelect={() => filters.toggleDeliveryMethod(method)}
-                      onClose={close}
-                    >
-                      {MAIL_DELIVERY_METHOD_NAMES[method]}
-                    </FilterOption>
-                  ))}
-                  <FilterOption
-                    active={state.withoutDeliveryMethod}
-                    marker={checkMark(state.withoutDeliveryMethod)}
-                    onSelect={filters.toggleWithoutDeliveryMethod}
-                    onClose={close}
-                  >
-                    {MAIL_NO_DELIVERY_METHOD_LABEL}
-                  </FilterOption>
-                </Box>
-              </FilterColumn>
-
-              <FilterColumn label={MAIL_FILTER_GROUP_LABELS.responsible}>
-                <Box className="mail-filters-column__body">
-                  {responsibleOptions.length === 0 && (
-                    <Text className="mail-filters-empty" size="sm">
-                      Нет пользователей
-                    </Text>
-                  )}
-                  {responsibleOptions.map((option) => (
-                    <FilterOption
-                      key={option.id}
-                      active={state.responsibleIds.includes(option.id)}
-                      marker={checkMark(state.responsibleIds.includes(option.id))}
-                      onSelect={() => filters.toggleResponsible(option.id)}
-                      onClose={close}
-                    >
-                      {option.name}
-                    </FilterOption>
-                  ))}
-                </Box>
-              </FilterColumn>
-
-
-              <FilterColumn label={MAIL_FILTER_GROUP_LABELS.attachments}>
-                <Box className="mail-filters-column__body">
-                  <AttachmentFilterItem
-                    value="with"
-                    current={state.attachments}
-                    onSelect={filters.setAttachments}
-                    onClose={close}
-                  />
-                  <AttachmentFilterItem
-                    value="without"
-                    current={state.attachments}
-                    onSelect={filters.setAttachments}
-                    onClose={close}
-                  />
-                </Box>
-              </FilterColumn>
-
-              <FilterColumn label={MAIL_FILTER_GROUP_LABELS.counterparty}>
-                <TextInput
-                  size="xs"
-                  placeholder={`${MAIL_COUNTERPARTY_FIELD_LABELS[mailType]}…`}
-                  aria-label={MAIL_FILTER_GROUP_LABELS.counterparty}
-                  value={state.counterparty}
-                  onChange={(e) => filters.setCounterparty(e.currentTarget.value)}
-                />
-              </FilterColumn>
-
-              <FilterColumn label={MAIL_FILTER_GROUP_LABELS.relations}>
-                <Box className="mail-filters-column__body">
-                  <FilterOption
-                    active={state.hasRelations}
-                    marker={state.hasRelations ? CHECK_MARK : <IconLink size={16} />}
-                    onSelect={filters.toggleHasRelations}
-                    onClose={close}
-                  >
-                    Есть связанные письма
-                  </FilterOption>
-                </Box>
-              </FilterColumn>
-            </Box>
-
-            <Box className="mail-filters-footer">
-              <FilterOption
-                active={false}
-                danger
-                disabled={filters.activeCount === 0}
-                marker={<IconX size={16} />}
-                onSelect={filters.resetAll}
-                closeOnSelect
-                onClose={close}
+          <Popover
+            opened={opened}
+            onChange={setOpened}
+            position="bottom-start"
+            width={PANEL_WIDTH}
+            shadow="md"
+            trapFocus
+            returnFocus
+            closeOnClickOutside={false}
+          >
+            <Popover.Target data-mail-filter-trigger>
+              <Button
+                size="compact-sm"
+                variant="light"
+                style={{ padding: '0 20px' }}
+                color={filters.activeCount > 0 ? 'blue' : 'gray'}
+                leftSection={<IconFilter size={16} />}
+                onClick={() => setOpened((value) => !value)}
               >
-                Сбросить все фильтры
-              </FilterOption>
-            </Box>
-          </Popover.Dropdown>
-        </Popover>
+                {filters.activeCount > 0 ? `Фильтр (${filters.activeCount})` : 'Фильтр'}
+              </Button>
+            </Popover.Target>
+            <Popover.Dropdown
+              ref={panelRef}
+              onKeyDown={handlePanelKeyDown}
+              styles={{
+                dropdown: {
+                  padding: 'var(--mantine-spacing-sm)',
+                  maxHeight: 'min(70dvh, 560px)',
+                  overflowY: 'auto',
+                  overscrollBehavior: 'contain',
+                },
+              }}
+            >
+              <Box className="mail-filters-grid">
+                {/*<FilterColumn label={MAIL_FILTER_GROUP_LABELS.period}>
+                  <Box className="mail-filters-column__body">
+                    {PERIOD_ITEMS.map((preset) => (
+                      <FilterOption
+                        key={preset}
+                        active={state.period === preset}
+                        marker={checkMark(state.period === preset)}
+                        onSelect={() => filters.setPeriod(preset)}
+                        onClose={close}
+                      >
+                        {MAIL_PERIOD_PRESET_LABELS[preset]}
+                      </FilterOption>
+                    ))}
+                  </Box>
+                </FilterColumn>*/}
+  
+                <FilterColumn label={MAIL_FILTER_GROUP_LABELS.accountingObject}>
+                  <Box className="mail-filters-column__body">
+                    {accountingObjects.length === 0 && (
+                      <Text className="mail-filters-empty" size="sm">
+                        Нет доступных объектов
+                      </Text>
+                    )}
+                    {accountingObjects.map((obj) => (
+                      <FilterOption
+                        key={obj.id}
+                        active={state.accountingObjectIds.includes(obj.id)}
+                        marker={checkMark(state.accountingObjectIds.includes(obj.id))}
+                        onSelect={() => filters.toggleAccountingObject(obj.id)}
+                        onClose={close}
+                      >
+                        {obj.name}
+                      </FilterOption>
+                    ))}
+                    <FilterOption
+                      active={state.withoutAccountingObject}
+                      marker={checkMark(state.withoutAccountingObject)}
+                      onSelect={filters.toggleWithoutAccountingObject}
+                      onClose={close}
+                    >
+                      {MAIL_NO_ACCOUNTING_OBJECT_LABEL}
+                    </FilterOption>
+                  </Box>
+                </FilterColumn>
+  
+                <FilterColumn label={MAIL_FILTER_GROUP_LABELS.deliveryMethod}>
+                  <Box className="mail-filters-column__body">
+                    {DELIVERY_METHODS.map((method) => (
+                      <FilterOption
+                        key={method}
+                        active={state.deliveryMethods.includes(method)}
+                        marker={checkMark(state.deliveryMethods.includes(method))}
+                        onSelect={() => filters.toggleDeliveryMethod(method)}
+                        onClose={close}
+                      >
+                        {MAIL_DELIVERY_METHOD_NAMES[method]}
+                      </FilterOption>
+                    ))}
+                    <FilterOption
+                      active={state.withoutDeliveryMethod}
+                      marker={checkMark(state.withoutDeliveryMethod)}
+                      onSelect={filters.toggleWithoutDeliveryMethod}
+                      onClose={close}
+                    >
+                      {MAIL_NO_DELIVERY_METHOD_LABEL}
+                    </FilterOption>
+                  </Box>
+                </FilterColumn>
+  
+                <FilterColumn label={MAIL_FILTER_GROUP_LABELS.responsible}>
+                  <Box className="mail-filters-column__body">
+                    {responsibleOptions.length === 0 && (
+                      <Text className="mail-filters-empty" size="sm">
+                        Нет пользователей
+                      </Text>
+                    )}
+                    {responsibleOptions.map((option) => (
+                      <FilterOption
+                        key={option.id}
+                        active={state.responsibleIds.includes(option.id)}
+                        marker={checkMark(state.responsibleIds.includes(option.id))}
+                        onSelect={() => filters.toggleResponsible(option.id)}
+                        onClose={close}
+                      >
+                        {option.name}
+                      </FilterOption>
+                    ))}
+                  </Box>
+                </FilterColumn>
+  
+  
+                <FilterColumn label={MAIL_FILTER_GROUP_LABELS.attachments}>
+                  <Box className="mail-filters-column__body">
+                    <AttachmentFilterItem
+                      value="with"
+                      current={state.attachments}
+                      onSelect={filters.setAttachments}
+                      onClose={close}
+                    />
+                    <AttachmentFilterItem
+                      value="without"
+                      current={state.attachments}
+                      onSelect={filters.setAttachments}
+                      onClose={close}
+                    />
+                  </Box>
+                </FilterColumn>
+  
+                <FilterColumn label={MAIL_FILTER_GROUP_LABELS.counterparty}>
+                  <TextInput
+                    size="xs"
+                    placeholder={`${MAIL_COUNTERPARTY_FIELD_LABELS[mailType]}…`}
+                    aria-label={MAIL_FILTER_GROUP_LABELS.counterparty}
+                    value={state.counterparty}
+                    onChange={(e) => filters.setCounterparty(e.currentTarget.value)}
+                  />
+                </FilterColumn>
+  
+                <FilterColumn label={MAIL_FILTER_GROUP_LABELS.relations}>
+                  <Box className="mail-filters-column__body">
+                    <FilterOption
+                      active={state.hasRelations}
+                      marker={state.hasRelations ? CHECK_MARK : <IconLink size={16} />}
+                      onSelect={filters.toggleHasRelations}
+                      onClose={close}
+                    >
+                      Есть связанные письма
+                    </FilterOption>
+                  </Box>
+                </FilterColumn>
+              </Box>
+  
+              <Box className="mail-filters-footer">
+                <FilterOption
+                  active={false}
+                  danger
+                  disabled={filters.activeCount === 0}
+                  marker={<IconX size={16} />}
+                  onSelect={filters.resetAll}
+                  closeOnSelect
+                  onClose={close}
+                >
+                  Сбросить все фильтры
+                </FilterOption>
+              </Box>
+            </Popover.Dropdown>
+          </Popover>
+        </Group>
 
         <Box
           style={{ minWidth: 0 }}

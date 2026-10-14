@@ -3,20 +3,26 @@ import { notifications } from '@mantine/notifications';
 import { deleteInvoice } from '@/api/collections';
 import type { IInvoice } from '@/shared/types';
 
+/** Переменные удаления: идентификатор счёта и обязательная причина. */
+export interface DeleteInvoiceVars {
+  id: string;
+  reason: string;
+}
+
 export function useDeleteInvoice(orgId: string, date: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => deleteInvoice(id),
-    onMutate: async (id) => {
+    mutationFn: (vars: DeleteInvoiceVars) => deleteInvoice(vars.id, vars.reason),
+    onMutate: async (vars) => {
       await queryClient.cancelQueries({ queryKey: ['invoices', orgId, date] });
       const previous = queryClient.getQueryData<IInvoice[]>(['invoices', orgId, date]);
       queryClient.setQueryData<IInvoice[]>(['invoices', orgId, date], (old) =>
-        old?.filter((inv) => inv.id !== id),
+        old?.filter((inv) => inv.id !== vars.id),
       );
       return { previous };
     },
-    onError: (_err, _id, context) => {
+    onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['invoices', orgId, date], context.previous);
       }

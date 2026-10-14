@@ -9,10 +9,12 @@ import {
   Skeleton,
   Stack,
   Tabs,
+  Text,
+  TextInput,
   Title,
   Tooltip,
 } from '@mantine/core';
-import { IconMailPlus, IconPlus, IconSettings } from '@tabler/icons-react';
+import { IconMailPlus, IconPlus, IconSettings, IconTrash } from '@tabler/icons-react';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useUserMap } from '@/shared/hooks/useUserMap';
@@ -32,6 +34,7 @@ import {
   useUpdateOutgoingMail,
 } from '@/shared/hooks/useMail';
 import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
+import { formatMailDate } from './mail-date';
 import { mailSearchFieldsOf } from './mail-field-access';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -164,6 +167,7 @@ export function MailSection({ orgId }: MailSectionProps) {
   const [threadTarget, setThreadTarget] = useState<ThreadTarget | null>(null);
   const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
   const [deleteFor, setDeleteFor] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
 
   const query = useMemo(() => {
     const result = { ...filters.query, page, perPage: MAIL_PAGE_SIZE };
@@ -547,11 +551,18 @@ export function MailSection({ orgId }: MailSectionProps) {
     request.then(afterSave).catch(() => undefined);
   };
 
+  const closeDeleteModal = () => {
+    setDeleteFor(null);
+    setDeleteReason('');
+  };
+
   const confirmDelete = () => {
     if (!deleteFor) return;
+    const reason = deleteReason.trim();
+    if (!reason) return;
     const mutation = tab === 'incoming' ? deleteIncoming : deleteOutgoing;
-    setDeleteFor(null);
-    mutation.mutate(deleteFor);
+    closeDeleteModal();
+    mutation.mutate({ id: deleteFor, reason });
   };
 
   const labelFor = (mailId: string | null): string => {
@@ -559,6 +570,29 @@ export function MailSection({ orgId }: MailSectionProps) {
     const row = rows.find((candidate) => candidate.id === mailId);
     return row?.number || row?.subject || mailId;
   };
+
+  // Письма нет в `rows`, если страница перелисталась, — карточка тогда молча
+  // деградирует до одной строки-заглушки и ничего не выдумывает.
+  const deleteMailRow = deleteFor ? rows.find((row) => row.id === deleteFor) : undefined;
+  const deleteMailMeta = deleteMailRow
+    ? [
+        deleteMailRow.number ? `№ ${deleteMailRow.number}` : null,
+        deleteMailRow.counterparty || null,
+        deleteMailRow.dateKey ? formatMailDate(deleteMailRow.dateKey) : null,
+      ].filter((part): part is string => Boolean(part))
+    : [];
+  const deleteMailSubject = deleteFor ? (
+    <Paper withBorder radius="md" p="sm">
+      <Text fw={600} lh={1.35} lineClamp={2}>
+        {deleteMailRow?.subject || deleteMailRow?.number || deleteMailRow?.counterparty || '—'}
+      </Text>
+      {deleteMailMeta.length > 0 && (
+        <Text size="xs" c="dimmed" mt={2} lineClamp={1}>
+          {deleteMailMeta.join(' · ')}
+        </Text>
+      )}
+    </Paper>
+  ) : null;
 
   if (!orgId) return null;
 
@@ -749,11 +783,37 @@ export function MailSection({ orgId }: MailSectionProps) {
 
       <ConfirmModal
         opened={deleteFor !== null}
-        onClose={() => setDeleteFor(null)}
+        onClose={closeDeleteModal}
         onConfirm={confirmDelete}
         title="Удаление письма"
-        message="Письмо переместится в архив. Вложения останутся доступны и после восстановления."
-      />
+        size="md"
+        subject={deleteMailSubject}
+        note="Письмо переместится в архив. Вложения останутся доступны и после восстановления."
+        confirmDisabled={
+          deleteReason.trim() === '' || deleteIncoming.isPending || deleteOutgoing.isPending
+        }
+        confirmLeftSection={<IconTrash size={16} />}
+        confirmBlocked
+      >
+        <TextInput
+          label="Причина удаления"
+          aria-label="Причина удаления"
+          placeholder="Например: письмо отправлено ошибочно"
+          description={
+            <Group component="span" justify="space-between" gap="sm" wrap="nowrap">
+              <Text component="span" size="xs" flex={1}>
+                Сохранится в архивной записи и в истории письма.
+              </Text>
+              <Text component="span" size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                {deleteReason.length > 0 ? `${deleteReason.length} симв.` : ''}
+              </Text>
+            </Group>
+          }
+          required
+          value={deleteReason}
+          onChange={(event) => setDeleteReason(event.currentTarget.value)}
+        />
+      </ConfirmModal>
     </>
   );
 }

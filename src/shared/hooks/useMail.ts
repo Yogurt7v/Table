@@ -282,12 +282,22 @@ export function useUpdateOutgoingMail(orgId: string) {
  * Delete archives the letter server-side, so the register and the archive list
  * both move; history and relations cascade-delete with it, which is exactly what
  * these invalidations drop.
+ *
+ * Переменные — пара `{ id, reason }`, а не голый `id`: причина удаления
+ * обязательна, и подставлять её в мутацию должен вызывающий (модалка), а не
+ * хук. `invalidateMail` по-прежнему получает настоящий `id`, а не объект
+ * переменных.
  */
+export type DeleteMailVars = {
+  id: string;
+  reason: string;
+};
+
 export function useDeleteIncomingMail(orgId: string) {
-  return useMailMutation<string, boolean>(
-    (id) => deleteIncomingMail(id),
+  return useMailMutation<DeleteMailVars, boolean>(
+    ({ id, reason }) => deleteIncomingMail(id, reason),
     'Не удалось удалить входящее письмо',
-    (queryClient, id) => {
+    (queryClient, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['incomingMails', orgId] });
       queryClient.invalidateQueries({ queryKey: ['deletedIncomingMails', orgId] });
       invalidateMail(queryClient, 'incoming', id);
@@ -296,10 +306,10 @@ export function useDeleteIncomingMail(orgId: string) {
 }
 
 export function useDeleteOutgoingMail(orgId: string) {
-  return useMailMutation<string, boolean>(
-    (id) => deleteOutgoingMail(id),
+  return useMailMutation<DeleteMailVars, boolean>(
+    ({ id, reason }) => deleteOutgoingMail(id, reason),
     'Не удалось удалить исходящее письмо',
-    (queryClient, id) => {
+    (queryClient, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['outgoingMails', orgId] });
       queryClient.invalidateQueries({ queryKey: ['deletedOutgoingMails', orgId] });
       invalidateMail(queryClient, 'outgoing', id);

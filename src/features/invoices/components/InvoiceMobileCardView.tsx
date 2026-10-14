@@ -16,7 +16,7 @@ import {
   ActionIcon,
   Tooltip,
 } from '@mantine/core';
-import { IconPaperclip, IconX } from '@tabler/icons-react';
+import { IconPaperclip, IconTrash, IconX } from '@tabler/icons-react';
 import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { shortenFileName } from '@/shared/utils/shorten-file-name';
@@ -67,6 +67,7 @@ interface InvoiceMobileCardViewProps {
   onClearPaymentConfirm: (invoiceId: string) => void;
   onOpenPartialModal: (invoice: IInvoice) => void;
   onApproveMark?: (markId: string) => void;
+  onDelete?: (invoice: IInvoice) => void;
 }
 
 export function InvoiceMobileCardView({
@@ -89,6 +90,7 @@ export function InvoiceMobileCardView({
   onClearPaymentConfirm,
   onOpenPartialModal,
   onApproveMark,
+  onDelete,
 }: InvoiceMobileCardViewProps) {
   const groups = groupInvoicesByCounterparty(invoices, allInvoices, counterpartyOrder);
   const [draftErrors, setDraftErrors] = useState<DraftFieldErrors>({});
@@ -178,6 +180,7 @@ export function InvoiceMobileCardView({
               const totalPaid = amounts.reduce((s, a) => s + a, 0);
               const hasRemainder = !invoice.paid && totalPaid > 0 && invoice.amount - totalPaid > 0;
               const invoiceFiles = filesByInvoice?.[invoice.id];
+              const showDelete = permissions.canDelete && !!onDelete;
 
               return (
                 <Paper
@@ -305,6 +308,22 @@ export function InvoiceMobileCardView({
                       onApproveMark={onApproveMark}
                     />
                   </Box>
+
+                  {showDelete && (
+                    <Group justify="flex-end" mt={2}>
+                      <Tooltip label="Удалить счёт">
+                        <ActionIcon
+                          size="md"
+                          color="red"
+                          variant="subtle"
+                          aria-label="Удалить счёт"
+                          onClick={() => onDelete?.(invoice)}
+                        >
+                          <IconTrash size={14} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
+                  )}
                 </Paper>
               );
             })}
