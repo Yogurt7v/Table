@@ -91,7 +91,8 @@ export function mailThreadOrderRanks(order: MailThreadOrder): ReadonlyMap<MailNo
  * выше, а не прыгает вниз оттого, что его ключ впервые попал в настройку.
  *
  * `siblings` — соседи нового родителя в текущем порядке показа; в него входит и
- * само письмо, если оно уже было среди них, поэтому индекс сдвигается на один.
+ * само письмо, если оно уже было среди них, поэтому позиционный индекс (`at`)
+ * сдвигается на единицу.
  */
 export function applyOrderPlacement(
   order: MailThreadOrder,
@@ -113,10 +114,14 @@ export function applyOrderPlacement(
   const current = siblings.filter((key) => key !== dragged);
   const wanted =
     placement.kind === 'first' ? 0 : placement.kind === 'last' ? current.length : placement.index;
-  const index = Math.min(
-    Math.max(wasAt >= 0 && wasAt < wanted ? wanted - 1 : wanted, 0),
-    current.length,
-  );
+  // Компенсация на единицу — только для `at`. Только у него `wanted` это позиция
+  // в `siblings`, а `siblings` включает само письмо: снятие письма сдвигает всё
+  // левее, и тот же промежуток без него — на единицу раньше. У `first` и `last`
+  // `wanted` — это уже край списка без письма (0 и `current.length`), сдвигать
+  // там нечего, и сдвиг уводил письмо ровно туда, куда его не просили: в
+  // середину вместо конца.
+  const shifts = placement.kind === 'at' && wasAt >= 0 && wasAt < wanted;
+  const index = Math.min(Math.max(shifts ? wanted - 1 : wanted, 0), current.length);
 
   const next = [...current.slice(0, index), dragged, ...current.slice(index)].slice(-GROUP_LIMIT);
   return { ...rest, [groupKey]: next };
