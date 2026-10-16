@@ -1,4 +1,4 @@
-import { act, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/mocks/test-utils';
@@ -22,9 +22,15 @@ import { mailPrintFileUrl } from './mail-thread-print';
  *     на бумагу не попало. Файл, который не удалось получить, обязан остаться на
  *     листе с пометкой: исчезнув молча, переписка напечатается полной, а
  *     отсутствующая страница скана обнаружится позже и уже не там, где искали.
+ *     Пометка о провале важнее любой другой, поэтому она выбирается первой — в том
+ *     числе для файла, который печатать иначе было бы нечем: «нечем» не страшно,
+ *     а вот сорванное вложение может означать, что отсканированной страницы,
+ *     на которую ссылается письмо, больше нет.
  *  2. **Разбор блобов.** Отмеченный файл качается заранее, и у каждого свой
  *     итог: получен, не получен, ещё не получен. Провал обязан отличаться от
- *     «ещё не получен» и не должен намертво блокировать кнопку печати.
+ *     «ещё не получен» и не должен намертво блокировать кнопку печати. Поэтому
+ *     запрос, который не ответил никогда, тоже обязан стать провалом — иначе одно
+ *     зависшее вложение выключает печать всего документа.
  *  3. **Сборка строк.** На лист идут только отмеченные файлы и только те письма,
  *     у которых что-то отмечено, — в порядке переписки.
  *
@@ -72,6 +78,12 @@ vi.mock('./useOrgMailFiles', () => ({
  * Три заметки из `printFileNote` — весь контракт модалки с читателем. Живут
  * здесь строкой, а не импортом: они не экспортированы, и это единственное, что
  * видит человек на листе, когда файл на него не попал.
+ *
+ * Порядок выбора — часть контракта, а не деталь реализации: `NOTE_FAILED`
+ * выигрывает у обеих остальных и у любого типа файла, а вот `NOTE_OTHER` и
+ * `NOTE_LOADING` между собой равноправны только для одного типа — для `.docx`
+ * «нечем» перебивает «ещё не готово», потому что грузящийся `.docx` всё равно
+ * не напечатает содержимое.
  */
 const NOTE_OTHER =
   'Содержимое файла на печать не выводится — в документ попадёт только его название.';
@@ -80,6 +92,14 @@ const NOTE_FAILED = 'Файл получить не удалось: вложен
 
 /** Хвост подписи флажка у файла, печатаемого только названием. */
 const OTHER_CHECKBOX_SUFFIX = ' — печатается только название';
+
+/**
+ * Предел ожидания в модалке, повторённый здесь числом: константа не
+ * экспортирована, а тесту нужно знать, на сколько перевести часы. Правка
+ * модалки обязана ронять и этот тест — иначе рассинхрон заметят только в
+ * браузере.
+ */
+const BLOB_TIMEOUT_MS = 60_000;
 
 // ─── Сеть и объектные адреса ───
 
@@ -208,6 +228,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -386,10 +407,36 @@ describe('MailThreadPrintModal — чем файл напечатан: тип ×
     expect(noteOf('Договор.docx')).toBe(NOTE_OTHER);
   });
 
-  it('недоступный .docx не путается с провалом: содержимое всё равно не печаталось бы', async () => {
+  it('недоступный .docx — это провал, а не «нечем»: сломан он как вложение, а не как тип', async () => {
     await printSingle('stored.docx', 'Договор.docx', 'not-ok');
 
-    expect(noteOf('Договор.docx')).toBe(NOTE_OTHER);
+    // Тип `.docx` говорит, что печатать нечем, но ничего не говорит о том, что
+    // вложение цело. Провал сорванного вложения опаснее отсутствия содержимого:
+    // «печатается только название» уверило бы читателя, что документ на месте,
+    // и пропавший скан обнаружился бы уже после печати.
+    expect(noteOf('Договор.docx')).toBe(NOTE_FAILED);
+    expect(renderedTagOf('Договор.docx')).toBeNull();
+  });
+
+  it('провал перебивает и «нечем», и «ещё не готово» у каждого типа файла', async () => {
+    // Раньше достаточно было проверить `.docx`: ошибочный порядок веток прятался
+    // именно за «печатать нечем» и не был виден ни на картинке, ни на PDF, где
+    // «нечем» не бывает. Все три типа обязаны называть провал провалом.
+    const image = mailFile('f1', 'a', { file: ['one.png'], name: 'Скан.png' });
+    const pdf = mailFile('f2', 'a', { file: ['two.pdf'], name: 'Договор.pdf' });
+    const docx = mailFile('f3', 'a', { file: ['three.docx'], name: 'Приложение.docx' });
+    state.files = [image, pdf, docx];
+    state.plan.set(urlOf(image, 'one.png'), 'not-ok');
+    state.plan.set(urlOf(pdf, 'two.pdf'), 'network-error');
+    state.plan.set(urlOf(docx, 'three.docx'), 'unreadable-body');
+    renderModal({ nodes: [nodeOf(inKey('a'))] });
+
+    await user.click(selectAllButton());
+    await flushBlobs();
+
+    expect(noteOf('Скан.png')).toBe(NOTE_FAILED);
+    expect(noteOf('Договор.pdf')).toBe(NOTE_FAILED);
+    expect(noteOf('Приложение.docx')).toBe(NOTE_FAILED);
   });
 });
 
@@ -464,6 +511,36 @@ describe('MailThreadPrintModal — разбор блобов отмеченны�
 
     expect(preparingButton()).toBeDisabled();
     expect(noteOf('Договор.pdf')).toBe(NOTE_LOADING);
+  });
+
+  it('запрос, не ответивший никогда, признаётся провалом и печать разблокируется', async () => {
+    const record = mailFile('rec1', 'a', { file: ['stored.pdf'], name: 'Договор.pdf' });
+    state.files = [record];
+    state.plan.set(urlOf(record, 'stored.pdf'), 'pending');
+    // Часы подменяются только здесь: подменённый на весь файл `Date.now` ломает
+    // `waitFor` и `userEvent` в соседних случаях.
+    vi.useFakeTimers();
+
+    renderModal({ nodes: [nodeOf(inKey('a'))] });
+    // Подменёнными часами `userEvent` пользоваться нельзя: он встаёт на ожидание
+    // собственных таймеров, которые никто не двигает. Отметка флажка — обычный
+    // `change`, поэтому её достаточно воспроизвести напрямую.
+    fireEvent.click(checkboxFor('Договор.pdf'));
+
+    expect(preparingButton()).toBeDisabled();
+    expect(noteOf('Договор.pdf')).toBe(NOTE_LOADING);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(BLOB_TIMEOUT_MS);
+    });
+
+    // Ни ответа, ни обрыва не будет никогда: если бы итог не появился, кнопка
+    // осталась бы на «Готовятся файлы…» навсегда, и это одно вложение выключило
+    // бы печать всего документа — молча и без срока.
+    expect(screen.queryByRole('button', { name: 'Готовятся файлы…' })).not.toBeInTheDocument();
+    expect(printButton()).toBeEnabled();
+    expect(noteOf('Договор.pdf')).toBe(NOTE_FAILED);
+    expect(renderedTagOf('Договор.pdf')).toBeNull();
   });
 
   it('провал не превращается в готовый файл: на листе нет ни картинки, ни рамки', async () => {
