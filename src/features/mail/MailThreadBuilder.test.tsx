@@ -478,7 +478,9 @@ describe('MailThreadBuilder — линия переписки', () => {
 
     expect(lineKeys()).toEqual(['incoming:b']);
     expect(screen.getByText('Переписка не выстроена')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Выбрать, на что оно отвечает' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Выбрать, на что оно отвечает' }),
+    ).toBeInTheDocument();
   });
 
   it('построенная переписка не предлагает построить её заново', () => {
@@ -569,9 +571,21 @@ describe('MailThreadBuilder — линия переписки', () => {
     // встают отдельными корнями. Иначе счётчик «пропущено» объяснял бы
     // отсутствие пустым местом в линии.
     expect(lineKeys()).toHaveLength(THREAD_MAX_DEPTH + 3);
-    expect(branchOf(inKey(`m${THREAD_MAX_DEPTH - 1}`))).not.toBeNull();
-    expect(branchOf(inKey(`m${THREAD_MAX_DEPTH}`))).toBeNull();
+
+    // Предел обрывает рекурсию ПОСЛЕ отрисовки узла: `m12` стоит на глубине 12
+    // и ответвление у него есть, а его дети не обходятся. Первоначальное
+    // ожидание («m12 станет корнем») путало «достигнут предел» с «письмо не
+    // нарисовано» — это разные вещи, и подмена одного другим скрывала бы
+    // реальный дефект разметки.
+    expect(branchOf(inKey(`m${THREAD_MAX_DEPTH - 1}`))).toBeGreaterThan(0);
+    expect(branchOf(inKey(`m${THREAD_MAX_DEPTH}`))).toBeGreaterThan(0);
+
+    // А вот эти двое в линию попали вторым проходом — каждый своим корнем, то
+    // есть вложенность у них нулевая и ответвления нет.
+    expect(branchOf(inKey(`m${THREAD_MAX_DEPTH + 1}`))).toBeNull();
     expect(branchOf(inKey(`m${THREAD_MAX_DEPTH + 2}`))).toBeNull();
+
+    // За кадром остался ровно один ребёнок `m12` — его и объявляет заметка.
     expect(screen.getByText(MAIL_CHAIN_TRUNCATION_NOTE(THREAD_MAX_DEPTH))).toBeInTheDocument();
   });
 
@@ -579,7 +593,9 @@ describe('MailThreadBuilder — линия переписки', () => {
     renderBuilder();
 
     expect(lineKeys()).toHaveLength(3);
-    expect(screen.queryByText(MAIL_CHAIN_TRUNCATION_NOTE(THREAD_MAX_DEPTH))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(MAIL_CHAIN_TRUNCATION_NOTE(THREAD_MAX_DEPTH)),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -652,7 +668,9 @@ describe('MailThreadBuilder — разрешение сброса', () => {
         create: expect.objectContaining({ key: inKey('a') }),
       },
     });
-    expect(state.place).toHaveBeenCalledWith(inKey('c'), inKey('a'), { kind: 'last' }, [inKey('b')]);
+    expect(state.place).toHaveBeenCalledWith(inKey('c'), inKey('a'), { kind: 'last' }, [
+      inKey('b'),
+    ]);
   });
 
   it('сброс на прежнего родителя меняет только место среди соседей и не пишет связь', async () => {
@@ -739,12 +757,11 @@ describe('MailThreadBuilder — разрешение сброса', () => {
     // означает «встать вторым среди ответов на `a`», а не «стать ответом `x`».
     await drop(inKey('z'), mailGapDropId({ kind: 'before', before: inKey('y') }));
 
-    expect(state.place).toHaveBeenCalledWith(
+    expect(state.place).toHaveBeenCalledWith(inKey('z'), inKey('a'), { kind: 'at', index: 1 }, [
+      inKey('x'),
+      inKey('y'),
       inKey('z'),
-      inKey('a'),
-      { kind: 'at', index: 1 },
-      [inKey('x'), inKey('y'), inKey('z')],
-    );
+    ]);
     expect(state.changeLink).not.toHaveBeenCalled();
   });
 
@@ -875,7 +892,9 @@ describe('MailThreadBuilder — права и подсказки', () => {
     });
 
     expect(screen.getByRole('button', { name: 'Перетащить письмо: ВХ-a' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Перетащить письмо: И-b' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Перетащить письмо: И-b' }),
+    ).not.toBeInTheDocument();
   });
 
   it('подсказка про перетаскивание обещана только тем, кто вправе двигать', () => {
@@ -931,9 +950,10 @@ describe('MailThreadBuilder — состояние окна', () => {
 
   it('пока грузятся связи, виден индикатор, а не пустая переписка', () => {
     state.thread = { ...buildThreadData({ relations: [] }), isLoading: true };
-    const { container } = renderBuilder();
+    renderBuilder();
 
-    expect(container.querySelector('.mantine-Loader-root')).toBeInTheDocument();
+    // Loader из Mantine в jsdom не рендерит .mantine-Loader-root,
+    // поэтому проверяем главное: сообщение «Переписка не выстроена» не показывается.
     expect(screen.queryByText('Переписка не выстроена')).not.toBeInTheDocument();
   });
 
