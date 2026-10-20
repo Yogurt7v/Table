@@ -108,20 +108,25 @@ export const MAIL_HISTORY_FIELD_LABELS: Record<string, string> = {
   parent_id: 'Связанное письмо',
   child_type: 'Реестр связанного письма',
   parent_type: 'Реестр связанного письма',
-  created: 'Создано',
-  created_by_name: 'Создал',
-  updated: 'Изменено',
-  updated_by_name: 'Изменил',
 };
 
 /**
  * Поля служебные: их смена не читается как правка письма — служебные записи
  * истории (удаление, восстановление, связывание) показываются своей подписью.
+ *
+ * `created`/`updated` и их `*_by_name` тоже служебные: `snapshotForHistory`
+ * кладёт в `previous_data` запись целиком, поэтому метка времени менялась бы на
+ * каждой правке и висела в ленте сырой строкой PocketBase рядом с настоящим
+ * изменением. Момент правки у записи уже есть — `changed_at`.
  */
 export const MAIL_HISTORY_HIDDEN_FIELDS = new Set([
   'organization_id',
   'created_by',
   'updated_by',
+  'created',
+  'created_by_name',
+  'updated',
+  'updated_by_name',
   'child_type',
   'parent_type',
   'collectionId',

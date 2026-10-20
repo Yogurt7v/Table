@@ -1,5 +1,6 @@
 import type { IMailHistory, MailHistoryType } from '@/shared/types';
 import { MAIL_HISTORY_HIDDEN_FIELDS } from './mail-labels';
+import { formatMailDate, formatMailTimestampSeconds } from './mail-date';
 
 /**
  * Разбор `mail_history` в список записей для модалки истории.
@@ -47,6 +48,31 @@ export function formatDiffValue(value: unknown): string {
   if (value == null || value === '') return '—';
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+}
+
+/** Ключ-календарный день: `date` письма — сутки, а не момент (см. `mail-date.ts`). */
+const DATE_ONLY_FIELDS = new Set(['date']);
+
+/**
+ * Значение диффа так, как его прочтёт человек. Строки даты и времени
+ * форматируются: в `previous_data` они лежат в формате PocketBase
+ * (`2026-10-09 00:00:00.000Z`), и в ленте это не читается.
+ *
+ * `date` печатается календарным днём (первые 10 символов), а момент
+ * (`*_at`) — с временем и секундами: у них разный смысл, и один формат
+ * для обоих сдвинул бы письмо на сутки в западных таймзонах.
+ */
+export function formatMailHistoryValue(key: string, value: unknown): string {
+  if (typeof value === 'string' && value) {
+    if (DATE_ONLY_FIELDS.has(key)) {
+      const day = formatMailDate(value);
+      if (day) return day;
+    } else if (key.endsWith('_at')) {
+      const moment = formatMailTimestampSeconds(value);
+      if (moment) return moment;
+    }
+  }
+  return formatDiffValue(value);
 }
 
 export function buildMailHistoryEntries(

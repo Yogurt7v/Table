@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { IIncomingMail, IMailHistory } from '@/shared/types';
 import { snapshotForHistory } from './mail-form';
-import { buildMailHistoryEntries } from './mail-history';
+import { buildMailHistoryEntries, formatMailHistoryValue } from './mail-history';
 
 /**
  * Разбор `mail_history` в диффы. Проверяется round-trip, которым живёт экран:
@@ -117,5 +117,27 @@ describe('mail-history: buildMailHistoryEntries', () => {
     );
 
     expect(entries[0]!.diffs.map((diff) => diff.key)).toEqual(['comment']);
+  });
+});
+
+describe('mail-history: formatMailHistoryValue', () => {
+  it('календарный день печатается днём, как в реестре, а не моментом', () => {
+    expect(formatMailHistoryValue('date', '2026-10-09 00:00:00.000Z')).toBe('09.10.2026');
+    expect(formatMailHistoryValue('date', '2026-01-15 00:00:00.000Z')).toBe('15.01.2026');
+  });
+
+  it('момент печатается с временем и секундами', () => {
+    expect(formatMailHistoryValue('deleted_at', '2026-10-08T10:00:00')).toBe(
+      '08.10.2026 10:00:00',
+    );
+  });
+
+  it('обычное значение печатается как есть, а пустое — прочерком', () => {
+    expect(formatMailHistoryValue('subject', 'Тема письма')).toBe('Тема письма');
+    expect(formatMailHistoryValue('comment', '')).toBe('—');
+  });
+
+  it('нечитаемая дата не превращается в пустоту: строка остаётся как есть', () => {
+    expect(formatMailHistoryValue('date', 'не дата')).toBe('не дата');
   });
 });

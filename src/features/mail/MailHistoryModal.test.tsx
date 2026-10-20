@@ -206,22 +206,20 @@ function asked(query: HistoryQuery): string[] {
 function timeline(): string[] {
   return [...modal().querySelectorAll('p')]
     .map((node) => (node.textContent ?? '').trim())
-    .filter((text) => HISTORY_TYPE_LABELS.includes(text));
+    .filter((text) => HISTORY_TYPE_LABELS.includes(text) || text.startsWith('Изменено «'));
 }
 
 /**
- * Чипы «поле: старое → новое» целиком, в порядке показа.
+ * Чипы «старое → новое» целиком, в порядке показа.
  *
- * Собираются по подписи поля — тем же текстом, который видит человек, — и
- * отдаются узлами: «старое» и «новое» встречаются в ленте по несколько раз
- * (одно значение бывает и старым в своей правке, и новым в следующей), поэтому
- * проверять зачёркивание нужно внутри своего чипа, а не поиском по значению.
+ * Чип ищется по своему атрибуту, а не по подписи поля: поле называет строка
+ * события, в чипе остались только значения. Отдаются узлами: «старое» и «новое»
+ * встречаются в ленте по несколько раз (одно значение бывает и старым в своей
+ * правке, и новым в следующей), поэтому проверять зачёркивание нужно внутри
+ * своего чипа, а не поиском по значению.
  */
 function diffChipNodes(): HTMLElement[] {
-  return [...modal().querySelectorAll('span')]
-    .filter((node) => node.textContent?.endsWith(': ') ?? false)
-    .map((node) => node.parentElement)
-    .filter((node): node is HTMLElement => node !== null);
+  return [...modal().querySelectorAll<HTMLElement>('[data-mail-history-chip]')];
 }
 
 function diffChips(): string[] {
@@ -309,9 +307,11 @@ describe('MailHistoryModal — заголовок и запрос', () => {
 
     expect(asked(state.outgoing)).toEqual([MAIL_ID]);
     expect(asked(state.incoming)).toEqual(['']);
-    // Лента собрана из исходящего хука, и подпись записи — единый узел
-    // «время · автор»: искать по одному автору нельзя.
-    expect(screen.getByText('09.10.2026 12:00:00 · Петрова М. М.')).toBeInTheDocument();
+    // Лента собрана из исходящего хука: правка u2 изменила тему и номер, а
+    // текущего письма нет — обе пары идут в строку события.
+    expect(
+      screen.getByText('Изменено «Тема», «Номер письма» в 09.10.2026 12:00:00 · Петрова М. М.'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('09.10.2026 09:00:00 · Входящий автор')).not.toBeInTheDocument();
   });
 
@@ -385,7 +385,14 @@ describe('MailHistoryModal — лента событий', () => {
     // После восстановления из архива запись `created` приходит переписанной и
     // в середине ленты; «создано раньше всего» обязано быть истиной на экране,
     // иначе письмо выглядит созданным после того, как его восстановили.
-    expect(timeline()).toEqual([RESTORED_LABEL, UPDATED_LABEL, DELETED_LABEL, CREATED_LABEL]);
+    // Запись `h2` меняла тему: поле и время называет одна строка, подписи типа
+    // у неё нет.
+    expect(timeline()).toEqual([
+      RESTORED_LABEL,
+      'Изменено «Тема» в 09.10.2026 12:00:02 · Иванов И. И.',
+      DELETED_LABEL,
+      CREATED_LABEL,
+    ]);
     expect(connectors()).toHaveLength(3);
   });
 
@@ -416,7 +423,9 @@ describe('MailHistoryModal — лента событий', () => {
     renderModal();
 
     expect(screen.getByText('09.10.2026 12:00:04 · Сидоров С. С.')).toBeInTheDocument();
-    expect(screen.getByText('09.10.2026 12:00:02 · Иванов И. И.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Изменено «Тема» в 09.10.2026 12:00:02 · Иванов И. И.'),
+    ).toBeInTheDocument();
     expect(screen.getByText(`09.10.2026 12:00:03 · ${CREATED_BY}`)).toBeInTheDocument();
   });
 
@@ -474,12 +483,9 @@ describe('MailHistoryModal — изменения полей', () => {
     renderModal();
 
     expect(screen.getByText('Старые значения зачёркнуты')).toBeInTheDocument();
-    expect(diffChips()).toEqual([
-      'Тема: Новая тема → Итоговая тема',
-      'Тема: Старая тема → Новая тема',
-    ]);
+    expect(diffChips()).toEqual(['Новая тема → Итоговая тема', 'Старая тема → Новая тема']);
     const changed = diffChipNodes().find(
-      (node) => node.textContent === 'Тема: Старая тема → Новая тема',
+      (node) => node.textContent === 'Старая тема → Новая тема',
     );
     if (!changed) throw new Error('чипа правки темы нет в ленте');
     expect(within(changed).getByText('Старая тема')).toHaveStyle({
@@ -497,7 +503,7 @@ describe('MailHistoryModal — изменения полей', () => {
 
     // `number` в обеих правках и в текущем письме один и тот же: пара
     // «ВХ-77 → ВХ-77» ничего не сообщает читателю и в ленте занимала бы место.
-    expect(diffChips().filter((chip) => chip.startsWith('Номер письма:'))).toEqual([]);
+    expect(diffChips().filter((chip) => chip.includes(MAIL_LABEL))).toEqual([]);
   });
 
   it('без изменений подсказка про зачёркнутые значения не появляется', () => {
@@ -528,7 +534,10 @@ describe('MailHistoryModal — изменения полей', () => {
     state.detail.data = { comment: 'Новый комментарий' };
     renderModal();
 
-    expect(diffChips()).toContain('Комментарий: Старый комментарий → Новый комментарий');
+    expect(diffChips()).toContain('Старый комментарий → Новый комментарий');
+    expect(
+      screen.getByText('Изменено «Комментарий» в 09.10.2026 11:00:00 · Иванов И. И.'),
+    ).toBeInTheDocument();
   });
 
   it('добавленный комментарий виден в истории, даже если раньше его не было', () => {
@@ -544,7 +553,10 @@ describe('MailHistoryModal — изменения полей', () => {
     state.detail.data = { comment: 'Позвонить в четверг' };
     renderModal();
 
-    expect(diffChips()).toContain('Комментарий: — → Позвонить в четверг');
+    expect(diffChips()).toContain('— → Позвонить в четверг');
+    expect(
+      screen.getByText('Изменено «Комментарий» в 09.10.2026 12:00:00 · Иванов И. И.'),
+    ).toBeInTheDocument();
   });
 
   it('служебные поля PocketBase не показываются в истории', () => {
@@ -574,7 +586,7 @@ describe('MailHistoryModal — изменения полей', () => {
           collectionName: 'incoming_mails',
           created: '2026-10-09T07:48:00.387Z',
           created_by_name: 'Имя*Администратор',
-          updated: '2026-10-09T07:48:00.387Z',
+          updated: '2026-10-09T10:49:58.481Z',
           updated_by_name: 'Имя*Администратор',
           subject: 'Тема письма',
         },
@@ -584,7 +596,11 @@ describe('MailHistoryModal — изменения полей', () => {
 
     expect(diffChips().filter((chip) => chip.includes('collectionId'))).toEqual([]);
     expect(diffChips().filter((chip) => chip.includes('collectionName'))).toEqual([]);
-    expect(diffChips().filter((chip) => /^created: |^updated: /.test(chip))).toEqual([]);
+    // Метка времени в снимке меняется на каждой правке и лежит строкой PocketBase:
+    // чипом «2026-10-09T10:49:58.481Z → —» она читалась бы как правка поля,
+    // которой не было.
+    expect(diffChips().filter((chip) => chip.includes('2026-10-09T'))).toEqual([]);
+    expect(screen.queryByText(/Имя\*Администратор/)).not.toBeInTheDocument();
   });
 });
 

@@ -16,7 +16,7 @@ import {
 } from '@/shared/hooks/useMail';
 import type { MailHistoryType, MailType } from '@/shared/types';
 import { formatMailTimestampSeconds } from './mail-date';
-import { buildMailHistoryEntries, formatDiffValue } from './mail-history';
+import { buildMailHistoryEntries, formatMailHistoryValue } from './mail-history';
 import { MAIL_HISTORY_FIELD_LABELS, MAIL_HISTORY_TYPE_LABELS } from './mail-labels';
 
 const ACTION_ICONS: Record<MailHistoryType, ReactNode> = {
@@ -122,6 +122,12 @@ export function MailHistoryModal({
           <Box ml={6}>
             {entries.map((item, index) => {
               const isLast = index === entries.length - 1;
+              const isFieldEdit = item.type === 'updated' && item.diffs.length > 0;
+              const actionText = isFieldEdit
+                ? `Изменено ${item.diffs
+                    .map((diff) => `«${MAIL_HISTORY_FIELD_LABELS[diff.key] ?? diff.key}»`)
+                    .join(', ')} в ${formatMailTimestampSeconds(item.changedAt)} · ${item.author}`
+                : MAIL_HISTORY_TYPE_LABELS[item.type];
               return (
                 <Group key={item.entryId} gap={12} align="flex-start" wrap="nowrap">
                   <Stack align="center" gap={0} mt={2} style={{ width: 20, alignSelf: 'stretch' }}>
@@ -154,7 +160,7 @@ export function MailHistoryModal({
                   </Stack>
                   <Box pb={isLast ? 0 : 18} style={{ flex: 1, minWidth: 0 }}>
                     <Text size="sm" c="dark.5">
-                      {MAIL_HISTORY_TYPE_LABELS[item.type]}
+                      {actionText}
                     </Text>
 
                     {item.diffs.length > 0 && (
@@ -162,6 +168,7 @@ export function MailHistoryModal({
                         {item.diffs.map((diff) => (
                           <Box
                             key={diff.key}
+                            data-mail-history-chip
                             px={8}
                             py={3}
                             style={{
@@ -170,18 +177,14 @@ export function MailHistoryModal({
                               border: '1px solid var(--mantine-color-gray-2)',
                             }}
                           >
-                            <Text component="span" size="xs" c="dimmed">
-                              {MAIL_HISTORY_FIELD_LABELS[diff.key] ?? diff.key}
-                              {': '}
-                            </Text>
                             <Text component="span" size="xs" td="line-through" c="dimmed">
-                              {formatDiffValue(diff.from)}
+                              {formatMailHistoryValue(diff.key, diff.from)}
                             </Text>
                             <Text component="span" size="xs" c="gray.5">
                               {' → '}
                             </Text>
                             <Text component="span" size="xs">
-                              {formatDiffValue(diff.to)}
+                              {formatMailHistoryValue(diff.key, diff.to)}
                             </Text>
                           </Box>
                         ))}
@@ -195,9 +198,11 @@ export function MailHistoryModal({
                         </Text>
                       )}
 
-                    <Text size="xs" c="dimmed" mt={2}>
-                      {formatMailTimestampSeconds(item.changedAt)} · {item.author}
-                    </Text>
+                    {!isFieldEdit && (
+                      <Text size="xs" c="dimmed" mt={2}>
+                        {formatMailTimestampSeconds(item.changedAt)} · {item.author}
+                      </Text>
+                    )}
                   </Box>
                 </Group>
               );
