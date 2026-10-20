@@ -710,7 +710,7 @@ export function MailSection({ orgId }: MailSectionProps) {
                   hasFilters={filters.activeCount > 0}
                   highlightedMailId={highlightedMailId}
                   emptyHint={
-                    filters.activeCount > 0 ? 'Писем по заданным условиям нет' : 'Писей пока нет'
+                    filters.activeCount > 0 ? 'Писем по заданным условиям нет' : 'Писем пока нет'
                   }
                 />
               </Box>
