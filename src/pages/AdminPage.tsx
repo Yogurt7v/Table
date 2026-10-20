@@ -191,7 +191,12 @@ export function AdminPage() {
   }
 
   return (
-    <Container size="xl" py="md">
+    <Container
+      size="xl"
+      py="md"
+      mih="calc(100dvh - var(--app-shell-header-height, 0px) - 2 * var(--app-shell-padding, 0px))"
+      style={{ display: 'flex', flexDirection: 'column' }}
+    >
       <Group justify="space-between" mb="lg">
         <Title order={3}>Администрирование</Title>
       </Group>
@@ -249,7 +254,7 @@ export function AdminPage() {
         )}
       </Tabs>
 
-      <Text size="sm" c="dimmed" ta="center" mt="xl">
+      <Text size="sm" c="dimmed" ta="center" mt="auto" pt="xl">
         © {new Date().getFullYear()} Реестры счетов ·{' '}
         <Anchor href="https://github.com/Yogurt7v/Table" target="_blank" rel="noreferrer">
           Исходный код
