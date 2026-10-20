@@ -384,9 +384,18 @@ onRecordCreate((e) => {
     }
 
     var invOrgId = inv.get('organization_id');
-    var actorId = pm.get('created_by');
+    // Фолбэк на `e.auth` обязателен: `created_by` у отметки может быть пустым
+    // (например, если токен успел просрочиться и authStore очистился до записи) или
+    // указывать на пользователя, которого нет в этой базе (миграция данных). Без
+    // фолбэка имя автора не резолвится и в уведомление уезжает «Пользователь».
+    var actorId = pm.get('created_by') || (e.auth ? e.auth.id : '');
     var actorName =
-      require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || 'Пользователь';
+      require(__hooks + '/lib-actor.js').resolveActorName($app, [
+        actorId,
+        e.auth ? e.auth.id : '',
+      ]) ||
+      (e.auth ? e.auth.get('name') || e.auth.get('login') || e.auth.get('email') : '') ||
+      'Пользователь';
     var counterparty = inv.get('counterparty');
     var pmAmount = pm.get('amount');
     var pmComment = pm.get('comment');
