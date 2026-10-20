@@ -111,7 +111,7 @@ function iconButtons(icon: string): HTMLButtonElement[] {
     .filter((node): node is HTMLButtonElement => node instanceof HTMLButtonElement);
 }
 
-const objectButtons = () => iconButtons('eye');
+const objectButtons = () => iconButtons('adjustments');
 const trashButtons = () => iconButtons('trash');
 
 /** Безымянная кнопка «+» формы назначения: у кнопки «Добавить» есть подпись. */

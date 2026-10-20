@@ -13,7 +13,7 @@ import {
   Loader,
   Table,
 } from '@mantine/core';
-import { IconTrash, IconPlus, IconEye, IconMail } from '@tabler/icons-react';
+import { IconTrash, IconPlus, IconAdjustments, IconMail } from '@tabler/icons-react';
 import {
   useCreateOrganizationUser,
   useDeleteOrganizationUser,
@@ -193,7 +193,7 @@ export function InlineRoleCell({
                                 setSelectedObjects(a.objects ?? []);
                               }}
                             >
-                              <IconEye size={24} />
+                              <IconAdjustments size={24} />
                             </ActionIcon>
                           </Popover.Target>
                           <Popover.Dropdown>

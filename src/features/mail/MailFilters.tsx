@@ -18,6 +18,7 @@ import {
   IconCheck,
   IconChevronsDown,
   IconChevronsUp,
+  IconFileOff,
   IconFilter,
   IconLink,
   IconPaperclip,
@@ -506,12 +507,17 @@ interface AttachmentFilterItemProps {
   onClose: () => void;
 }
 
+const ATTACHMENT_MARKERS: Record<Exclude<MailAttachmentFilter, 'any'>, ReactNode> = {
+  with: <IconPaperclip size={16} />,
+  without: <IconFileOff size={16} />,
+};
+
 function AttachmentFilterItem({ value, current, onSelect, onClose }: AttachmentFilterItemProps) {
   const isActive = current === value;
   return (
     <FilterOption
       active={isActive}
-      marker={isActive ? CHECK_MARK : <IconPaperclip size={16} />}
+      marker={isActive ? CHECK_MARK : ATTACHMENT_MARKERS[value]}
       onSelect={() => onSelect(isActive ? 'any' : value)}
       onClose={onClose}
     >
