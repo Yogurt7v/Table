@@ -108,6 +108,10 @@ export const MAIL_HISTORY_FIELD_LABELS: Record<string, string> = {
   parent_id: 'Связанное письмо',
   child_type: 'Реестр связанного письма',
   parent_type: 'Реестр связанного письма',
+  created: 'Создано',
+  created_by_name: 'Создал',
+  updated: 'Изменено',
+  updated_by_name: 'Изменил',
 };
 
 /**
@@ -120,6 +124,8 @@ export const MAIL_HISTORY_HIDDEN_FIELDS = new Set([
   'updated_by',
   'child_type',
   'parent_type',
+  'collectionId',
+  'collectionName',
 ]);
 
 /** Пустые значения ячейки — прочерк в таблице, слово в карточке. */

@@ -8,6 +8,11 @@ import { MAIL_HISTORY_HIDDEN_FIELDS } from './mail-labels';
  * полей ДО изменения, а «после» восстанавливается из следующей, более свежей
  * записи. Так же считает диффы `InvoiceHistoryModal` — иначе «старое → новое»
  * на соседних экранах читалось бы по-разному.
+ *
+ * У самой свежей правки следующей записи нет, и «после» для неё — это текущее
+ * состояние письма (`currentMail`). Без него новое значение терялось бы, а
+ * правка «пусто → значение» не отличалась бы от «пусто → пусто» и пропадала
+ * бы вовсе (оба конца рисуются прочерком).
  */
 
 export interface MailHistoryDiff {
@@ -44,7 +49,10 @@ export function formatDiffValue(value: unknown): string {
   return String(value);
 }
 
-export function buildMailHistoryEntries(history: IMailHistory[]): MailHistoryEntry[] {
+export function buildMailHistoryEntries(
+  history: IMailHistory[],
+  currentMail?: Record<string, unknown> | null,
+): MailHistoryEntry[] {
   if (history.length === 0) return [];
 
   const ascending = [...history].sort(
@@ -64,7 +72,12 @@ export function buildMailHistoryEntries(history: IMailHistory[]): MailHistoryEnt
     if (entry.type === 'updated') {
       for (const [key, value] of Object.entries(previousData)) {
         if (MAIL_HISTORY_HIDDEN_FIELDS.has(key)) continue;
-        const to = nextPrevious && key in nextPrevious ? nextPrevious[key] : null;
+        let to: unknown = null;
+        if (nextPrevious && key in nextPrevious) {
+          to = nextPrevious[key];
+        } else if (!nextPrevious && currentMail && key in currentMail) {
+          to = currentMail[key];
+        }
         if (formatDiffValue(value) === formatDiffValue(to)) continue;
         diffs.push({ key, from: value, to });
       }

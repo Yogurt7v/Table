@@ -58,6 +58,11 @@ const state = vi.hoisted(() => ({
     isError: false,
     askedIds: [] as string[],
   },
+  detail: {
+    data: undefined as Record<string, unknown> | undefined,
+    isLoading: false,
+    askedIds: [] as string[],
+  },
 }));
 
 vi.mock('@/shared/hooks/useMail', () => {
@@ -65,9 +70,15 @@ vi.mock('@/shared/hooks/useMail', () => {
     query.askedIds.push(mailId);
     return { data: query.data, isLoading: query.isLoading, isError: query.isError };
   };
+  const readDetail = (mailId: string) => {
+    state.detail.askedIds.push(mailId);
+    return { data: state.detail.data, isLoading: state.detail.isLoading };
+  };
   return {
     useIncomingMailHistory: (mailId: string) => read(state.incoming, mailId),
     useOutgoingMailHistory: (mailId: string) => read(state.outgoing, mailId),
+    useIncomingMail: (mailId: string) => readDetail(mailId),
+    useOutgoingMail: (mailId: string) => readDetail(mailId),
   };
 });
 
@@ -263,6 +274,9 @@ beforeEach(() => {
   state.outgoing.isLoading = false;
   state.outgoing.isError = false;
   state.outgoing.askedIds = [];
+  state.detail.data = undefined;
+  state.detail.isLoading = false;
+  state.detail.askedIds = [];
 });
 
 describe('MailHistoryModal — заголовок и запрос', () => {
@@ -456,12 +470,12 @@ describe('MailHistoryModal — лента событий', () => {
 describe('MailHistoryModal — изменения полей', () => {
   it('изменённое поле показывается чипом «старое → новое», старое зачёркнуто', () => {
     state.incoming.data = TWO_UPDATES;
+    state.detail.data = { subject: 'Итоговая тема', number: MAIL_LABEL };
     renderModal();
 
     expect(screen.getByText('Старые значения зачёркнуты')).toBeInTheDocument();
     expect(diffChips()).toEqual([
-      'Тема: Новая тема → —',
-      'Номер письма: ВХ-77 → —',
+      'Тема: Новая тема → Итоговая тема',
       'Тема: Старая тема → Новая тема',
     ]);
     const changed = diffChipNodes().find(
@@ -478,13 +492,12 @@ describe('MailHistoryModal — изменения полей', () => {
 
   it('неизменённое поле чипом не помечается', () => {
     state.incoming.data = TWO_UPDATES;
+    state.detail.data = { subject: 'Итоговая тема', number: MAIL_LABEL };
     renderModal();
 
-    // `number` в обеих правках один и тот же: пара «ВХ-77 → ВХ-77» ничего не
-    // сообщает читателю и в ленте занимала бы место.
-    expect(diffChips().filter((chip) => chip.startsWith('Номер письма: ВХ-77 → ВХ-77'))).toEqual(
-      [],
-    );
+    // `number` в обеих правках и в текущем письме один и тот же: пара
+    // «ВХ-77 → ВХ-77» ничего не сообщает читателю и в ленте занимала бы место.
+    expect(diffChips().filter((chip) => chip.startsWith('Номер письма:'))).toEqual([]);
   });
 
   it('без изменений подсказка про зачёркнутые значения не появляется', () => {
@@ -493,6 +506,85 @@ describe('MailHistoryModal — изменения полей', () => {
 
     expect(diffChips()).toEqual([]);
     expect(screen.queryByText('Старые значения зачёркнуты')).not.toBeInTheDocument();
+  });
+
+  it('изменение комментария показывается в истории с русской подписью', () => {
+    state.incoming.data = [
+      historyEntry({
+        id: 'c1',
+        type: 'updated',
+        changed_at: '2026-10-09T11:00:00',
+        author_name: 'Иванов И. И.',
+        previous_data: { comment: 'Старый комментарий' },
+      }),
+      historyEntry({
+        id: 'c2',
+        type: 'updated',
+        changed_at: '2026-10-09T12:00:00',
+        author_name: 'Петрова М. М.',
+        previous_data: { comment: 'Новый комментарий' },
+      }),
+    ];
+    state.detail.data = { comment: 'Новый комментарий' };
+    renderModal();
+
+    expect(diffChips()).toContain('Комментарий: Старый комментарий → Новый комментарий');
+  });
+
+  it('добавленный комментарий виден в истории, даже если раньше его не было', () => {
+    state.incoming.data = [
+      historyEntry({
+        id: 'c1',
+        type: 'updated',
+        changed_at: '2026-10-09T12:00:00',
+        author_name: 'Иванов И. И.',
+        previous_data: { comment: '' },
+      }),
+    ];
+    state.detail.data = { comment: 'Позвонить в четверг' };
+    renderModal();
+
+    expect(diffChips()).toContain('Комментарий: — → Позвонить в четверг');
+  });
+
+  it('служебные поля PocketBase не показываются в истории', () => {
+    state.incoming.data = [
+      historyEntry({
+        id: 's1',
+        type: 'updated',
+        changed_at: '2026-10-09T11:00:00',
+        author_name: 'Иванов И. И.',
+        previous_data: {
+          collectionId: 'pbc_6001000001',
+          collectionName: 'incoming_mails',
+          created: '2026-10-09T07:48:00.387Z',
+          created_by_name: 'Имя*Администратор',
+          updated: '2026-10-09T07:48:00.387Z',
+          updated_by_name: 'Имя*Администратор',
+          subject: 'Тема письма',
+        },
+      }),
+      historyEntry({
+        id: 's2',
+        type: 'updated',
+        changed_at: '2026-10-09T12:00:00',
+        author_name: 'Петрова М. М.',
+        previous_data: {
+          collectionId: 'pbc_6001000001',
+          collectionName: 'incoming_mails',
+          created: '2026-10-09T07:48:00.387Z',
+          created_by_name: 'Имя*Администратор',
+          updated: '2026-10-09T07:48:00.387Z',
+          updated_by_name: 'Имя*Администратор',
+          subject: 'Тема письма',
+        },
+      }),
+    ];
+    renderModal();
+
+    expect(diffChips().filter((chip) => chip.includes('collectionId'))).toEqual([]);
+    expect(diffChips().filter((chip) => chip.includes('collectionName'))).toEqual([]);
+    expect(diffChips().filter((chip) => /^created: |^updated: /.test(chip))).toEqual([]);
   });
 });
 

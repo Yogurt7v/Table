@@ -8,7 +8,12 @@ import {
   IconRestore,
   IconTrash,
 } from '@tabler/icons-react';
-import { useIncomingMailHistory, useOutgoingMailHistory } from '@/shared/hooks/useMail';
+import {
+  useIncomingMail,
+  useIncomingMailHistory,
+  useOutgoingMail,
+  useOutgoingMailHistory,
+} from '@/shared/hooks/useMail';
 import type { MailHistoryType, MailType } from '@/shared/types';
 import { formatMailTimestampSeconds } from './mail-date';
 import { buildMailHistoryEntries, formatDiffValue } from './mail-history';
@@ -54,7 +59,15 @@ export function MailHistoryModal({
   const outgoing = useOutgoingMailHistory(mailType === 'outgoing' ? id : '');
   const query = mailType === 'incoming' ? incoming : outgoing;
 
-  let entries = buildMailHistoryEntries(query.data ?? []);
+  const incomingDetail = useIncomingMail(mailType === 'incoming' ? id : '');
+  const outgoingDetail = useOutgoingMail(mailType === 'outgoing' ? id : '');
+  const detail = mailType === 'incoming' ? incomingDetail : outgoingDetail;
+  const isLoading = query.isLoading || detail.isLoading;
+
+  let entries = buildMailHistoryEntries(
+    query.data ?? [],
+    (detail.data ?? null) as unknown as Record<string, unknown> | null,
+  );
 
   // Запись о создании письма всегда занимает ПОСЛЕДНЮЮ позицию в ленте
   // (история читается сверху вниз: старые события сверху, новые снизу).
@@ -87,19 +100,19 @@ export function MailHistoryModal({
 
   return (
     <Modal opened={opened} onClose={onClose} title={`История: ${mailLabel}`} size="lg">
-      {query.isLoading && <Loader size="sm" />}
+      {isLoading && <Loader size="sm" />}
 
-      {!query.isLoading && query.isError && (
+      {!isLoading && query.isError && (
         <Text c="red" size="sm">
           Не удалось загрузить историю письма
         </Text>
       )}
 
-      {!query.isLoading && !query.isError && entries.length === 0 && (
+      {!isLoading && !query.isError && entries.length === 0 && (
         <Text c="dimmed">Изменений пока нет</Text>
       )}
 
-      {!query.isLoading && !query.isError && entries.length > 0 && (
+      {!isLoading && !query.isError && entries.length > 0 && (
         <>
           {hasDiff && (
             <Text size="xs" c="dimmed" mb="sm">
