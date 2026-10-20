@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import {
   ActionIcon,
+  Anchor,
   Box,
   Button,
   Group,
@@ -14,6 +15,7 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
+import { Link } from 'react-router-dom';
 import { IconMailPlus, IconPlus, IconSettings, IconTrash } from '@tabler/icons-react';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
@@ -611,6 +613,22 @@ export function MailSection({ orgId }: MailSectionProps) {
       <Paper withBorder p="md" style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
         <Group justify="space-between" mb="sm" wrap="wrap" gap="xs">
           <Group gap={8} align="center" wrap="wrap">
+            <Anchor
+              size="sm"
+              component={Link}
+              to="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                color: 'black',
+                fontWeight: 'bolder',
+                fontSize: '16px',
+              }}
+            >
+              Счета
+            </Anchor>
+            /{' '}
             <Title order={5}>Почта</Title>
             <Tooltip label="Настройка колонок">
               <ActionIcon
