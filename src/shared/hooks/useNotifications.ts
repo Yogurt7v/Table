@@ -7,6 +7,7 @@ import {
   getNotificationsPage,
   getNotificationsByDate,
   getUnreadNotificationsCount,
+  markAllNotificationsAsRead,
   NOTIFICATIONS_PAGE_SIZE,
 } from '@/api/collections';
 import { useAuth } from '@/shared/context/AuthContext';
@@ -360,27 +361,34 @@ export function useNotifications() {
   );
 
   const markAllAsRead = useCallback(() => {
-    // Guard on the loaded rows, not on `unreadCount`: this button (owner decision D-2)
-    // only ever marks the notifications it holds, so "is there anything left to mark"
-    // is a property of `notifications` alone — and it stays correct when the server
-    // total is null (never fetched / count request failed) or larger than the page.
-    const pending = notifications.filter((n) => !n.read);
-    if (pending.length === 0) return;
-    Promise.all(pending.map((n) => pb.collection('notifications').update(n.id, { read: true })))
+    // Отметку делает сервер одним запросом (pb_hooks/notifications.pb.js), так что она
+    // больше не ограничена загруженными строками: непрочитанные строки выше страницы
+    // «Показать ещё» больше не остаются на сервере неразмеченными.
+    //
+    // Клик с нулём непрочитанных отсекается по обоим сигналам сразу: `pending` смотрит
+    // на строки в памяти (в том числе свежее realtime-создания, которых серверный итог
+    // ещё не учёл), а `unreadTotal` — на сервер. `null` итога не блокирует клик, когда
+    // `pending` непуст.
+    const pending = notificationsRef.current.filter((n) => !n.read);
+    if (!user || (pending.length === 0 && (unreadTotal === null || unreadTotal === 0))) return;
+
+    markAllNotificationsAsRead(user.id)
       .then(() => {
-        // Subtract exactly what was marked — never zero the total: unread rows outside this
-        // page are still unread until they are loaded and marked. `settleAsRead` counts what
-        // is still held as unread, so the realtime echoes of these writes cannot pay twice.
-        settleAsRead(pending.map((n) => n.id));
-        amendNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        // Сервер отметил ВСЕ непрочитанные строки пользователя — включая лежащие выше
+        // загруженной страницы, — поэтому итогу присваивается ноль, а не «итог минус
+        // отмеченные». Оба наблюдателя (ответ запроса и эхо каждой записи в реальном
+        // времени) безвредны ровно потому, что строки в ref уже прочитаны: переходов к
+        // прочтению больше нет, `settleAsRead` списывает только непрочитанные переходы.
+        setUnreadTotal(0);
+        amendNotifications((prev) => prev.map((n) => (n.read ? n : { ...n, read: true })));
       })
       .catch((err: unknown) => {
-        // Some of the writes may have landed and some not; the rows on screen keep their
-        // current state either way and the next re-check reconciles against the server.
+        // Отметка не состоялась: строки остаются непрочитанными, бейдж — прежним.
+        // Строки в памяти не трогаем — следующий re-check разойдётся с ответом списка.
         if (isAbortError(err)) return;
         setError(describeWriteFailure(err));
       });
-  }, [notifications, settleAsRead, amendNotifications]);
+  }, [user, unreadTotal, amendNotifications]);
 
   return {
     notifications,

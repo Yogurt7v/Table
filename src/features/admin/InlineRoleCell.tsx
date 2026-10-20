@@ -44,7 +44,7 @@ const ROLE_LABELS: Record<IOrganizationUser['role'], string> = {
 interface InlineRoleCellProps {
   userId: string;
   assignments: IOrganizationUser[];
-  /** Reuses AdminPage's admin-only gate; mail flags are never derived from role. */
+  /** Reuses AdminPage's gate (admin and moderator); mail flags are never derived from role. */
   canManageMailPermissions: boolean;
 }
 

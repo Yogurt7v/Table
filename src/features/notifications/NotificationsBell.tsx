@@ -204,8 +204,6 @@ export function NotificationsBell() {
     [currentOrgId, requestHighlight, setCurrentOrgId, navigate],
   );
 
-  const upcomingCount = items.filter((n) => !n.read).length;
-
   return (
     <>
       <ActionIcon
@@ -252,9 +250,12 @@ export function NotificationsBell() {
           },
         }}
       >
-        {upcomingCount > 0 && !isLoading && (
+        {/* Счётчик и видимость кнопки идут от серверного итога `unreadCount`, а не от
+            загруженных строк: «Прочитать все» помечает весь список на сервере одним
+            запросом, и непрочитанные могут лежать выше страницы «Показать ещё». */}
+        {unreadCount > 0 && !isLoading && (
           <Button variant="light" size="xs" fullWidth mb="sm" onClick={markAllAsRead}>
-            Прочитать все ({upcomingCount})
+            Прочитать все ({unreadCount})
           </Button>
         )}
 

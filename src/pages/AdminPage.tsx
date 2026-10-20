@@ -66,7 +66,7 @@ export function AdminPage() {
   const [editUserTarget, setEditUserTarget] = useState<IUser | null>(null);
   const canEditUsers = currentRole === 'admin' || currentRole === 'moderator';
   const canDeleteUsers = currentRole === 'admin';
-  const canManageMailPermissions = currentRole === 'admin';
+  const canManageMailPermissions = currentRole === 'admin' || currentRole === 'moderator';
   const [deleteOrgTarget, setDeleteOrgTarget] = useState<{ id: string; name: string } | null>(null);
   const [editOrgId, setEditOrgId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');

@@ -146,13 +146,13 @@ export function OrganizationUserMailPermissions({
         Почтовые права
       </Text>
 
-      <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light" p="xs">
+      {/*<Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light" p="xs">
         <Text size="xs" style={{ textWrap: 'pretty' }}>
           Почтовые права задаются отдельно от роли и действуют именно на них. Роль определяет доступ
           к счетам, флаги — к почте. У пользователя без флага «Видеть почту» раздел «Почта» не
           отображается.
         </Text>
-      </Alert>
+      </Alert>*/}
 
       <Checkbox
         label="Видеть почту"
@@ -191,6 +191,7 @@ export function OrganizationUserMailPermissions({
                 <Table.Td key={action} style={{ textAlign: 'center' }}>
                   <Checkbox
                     size="xs"
+                    styles={{ body: { justifyContent: 'center' } }}
                     aria-label={`${direction.label}: ${action}`}
                     checked={draft[key]}
                     disabled={!canEdit}
@@ -211,7 +212,7 @@ export function OrganizationUserMailPermissions({
 
       {canEdit && (
         <Group justify="flex-end" gap={6}>
-          <Button size="compact-xs" variant="light" onClick={handleCancel} disabled={!isDirty}>
+          <Button size="compact-xs" variant="light" onClick={handleCancel} >
             Отмена
           </Button>
           <Button

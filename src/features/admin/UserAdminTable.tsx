@@ -27,7 +27,7 @@ interface UserAdminTableProps {
   currentUserId: string | undefined;
   canEdit: boolean;
   canDelete: boolean;
-  /** Admin-only — unlike `canEdit`, moderators cannot manage mail flags. */
+  /** Admin and moderator — unlike `canDelete`, moderators can manage mail flags too. */
   canManageMailPermissions: boolean;
   accessibleOrgIds: string[];
   onAdd: () => void;

@@ -121,15 +121,17 @@ describe('OrganizationUserMailPermissions', () => {
     expect(getFlag('Исходящие: удаление')).not.toBeChecked();
   });
 
-  it('explains that mail rights are separate from the role', () => {
+  // The explanation Alert is deliberately commented out in the component for
+  // now; this test keeps guarding its absence until the text returns.
+  it('does not render the explanation Alert while it is commented out', () => {
     renderEditor();
 
     expect(
-      screen.getByText(/Почтовые права задаются отдельно от роли и действуют именно на них/),
-    ).toBeInTheDocument();
+      screen.queryByText(/Почтовые права задаются отдельно от роли и действуют именно на них/),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/У пользователя без флага «Видеть почту» раздел «Почта» не отображается/),
-    ).toBeInTheDocument();
+      screen.queryByText(/У пользователя без флага «Видеть почту» раздел «Почта» не отображается/),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps save disabled until a flag changes', async () => {

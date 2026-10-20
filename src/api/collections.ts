@@ -955,3 +955,19 @@ export function getUnreadNotificationsCount(userId: string) {
 export function markNotificationAsRead(id: string) {
   return pb.collection('notifications').update<INotification>(id, { read: true });
 }
+
+/**
+ * Отметить ВСЕ непрочитанные уведомления пользователя прочитанными одним запросом.
+ *
+ * Вызывает кастомный маршрут из `pb_hooks/notifications.pb.js` через `pb.send`:
+ * бейдж рисуется по количеству непрочитанных строк пользователя на сервере, которое не
+ * ограничено загруженной страницей, поэтому отметка «все» обязана покрывать весь список.
+ * `userId` уходит в тело запроса в информационных целях — по контракту маршрута фильтр
+ * строится из аутентификации (`e.auth.id`), а не из присланного с клиента идентификатора.
+ */
+export function markAllNotificationsAsRead(userId: string) {
+  return pb.send<{ updated: number }>('/api/collections/notifications/mark-all-read', {
+    method: 'POST',
+    body: { userId },
+  });
+}

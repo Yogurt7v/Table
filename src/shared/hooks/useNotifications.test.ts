@@ -24,7 +24,7 @@ import { useNotifications } from './useNotifications';
 type HookResult = ReturnType<typeof useNotifications>;
 type RealtimeEvent = { action: 'create' | 'update' | 'delete'; record: INotification };
 type RealtimeListener = (event: RealtimeEvent) => void;
-type CallKind = 'page' | 'count' | 'write';
+type CallKind = 'page' | 'count' | 'write' | 'markAll';
 
 interface Fixture {
   items: INotification[];
@@ -33,6 +33,7 @@ interface Fixture {
 }
 
 const RECORDS_PATH = '/api/collections/notifications/records';
+const MARK_ALL_PATH = '/api/collections/notifications/mark-all-read';
 
 const h = vi.hoisted(() => ({
   // Stable on purpose: a fresh object per render churns `load`'s identity, so the
@@ -84,6 +85,16 @@ function aborted(): DOMException {
 }
 
 function reply(url: URL, kind: CallKind): Response {
+  if (kind === 'markAll') {
+    // «Прочитать все» — один POST к серверному маршруту, который размечает ВСЕ
+    // непрочитанные строки пользователя: серверный итог после него равен нулю.
+    const status = h.writeStatus;
+    if (typeof status === 'object') throw aborted();
+    if (status >= 400) {
+      return jsonResponse(status, { code: status, message: 'mark all failed', data: {} });
+    }
+    return jsonResponse(200, { updated: h.fixture.unreadTotal });
+  }
   if (kind === 'write') {
     const status = h.writeStatus;
     if (typeof status === 'object') throw aborted();
@@ -118,11 +129,17 @@ function reply(url: URL, kind: CallKind): Response {
 async function wire(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = new URL(typeof input === 'string' ? input : String(input));
   const method = init?.method ?? 'GET';
-  if (!url.pathname.startsWith(RECORDS_PATH)) {
+  if (!url.pathname.startsWith(RECORDS_PATH) && url.pathname !== MARK_ALL_PATH) {
     throw new Error(`unexpected request: ${method} ${url.pathname}`);
   }
   const kind: CallKind =
-    method === 'PATCH' ? 'write' : url.searchParams.get('fields') === 'id' ? 'count' : 'page';
+    url.pathname === MARK_ALL_PATH
+      ? 'markAll'
+      : method === 'PATCH'
+        ? 'write'
+        : url.searchParams.get('fields') === 'id'
+          ? 'count'
+          : 'page';
   h.calls.push({ kind, url: url.href });
   // Yield once so that a concurrent identical request — the SDK's auto-cancel — can
   // abort this one exactly as it would abort a real in-flight request.
@@ -504,7 +521,7 @@ describe('useNotifications', () => {
     expect(requestCount('page')).toBe(1);
   });
 
-  it('mark all read decrements the badge by exactly the number marked', async () => {
+  it('mark all read is one server call and zeroes the badge', async () => {
     const rows = [
       notification('n1'),
       notification('n2'),
@@ -517,10 +534,41 @@ describe('useNotifications', () => {
       result.current.markAllAsRead();
     });
 
-    // 25 - 3, not 0: unread rows outside this page are still unread until loaded.
-    await waitFor(() => expect(result.current.unreadCount).toBe(22));
-    expect(requestCount('write')).toBe(3);
+    // The server marked every unread row of the user, not just the ones on screen:
+    // the badge goes to 0, not to 25 - 3, and one POST replaces the 3 PATCHes.
+    await waitFor(() => expect(result.current.unreadCount).toBe(0));
+    expect(requestCount('markAll')).toBe(1);
+    expect(requestCount('write')).toBe(0);
     expect(result.current.notifications.every((n) => n.read)).toBe(true);
+  });
+
+  it('mark all read fires even when every loaded row is already read', async () => {
+    // The exact incident the server-side mark-all exists for: all unread rows live
+    // above page 1, the server total is 25, and the loaded page 20 is entirely read.
+    const rows = Array.from({ length: 20 }, (_, i) => notification(`n${i + 1}`, { read: true }));
+    const { result } = await mountBell(server(rows, { totalItems: 40, unreadTotal: 25 }));
+    expect(result.current.notifications.every((n) => n.read)).toBe(true);
+
+    await act(async () => {
+      result.current.markAllAsRead();
+    });
+
+    await waitFor(() => expect(result.current.unreadCount).toBe(0));
+    expect(requestCount('markAll')).toBe(1);
+  });
+
+  it('mark all read with nothing unread anywhere does not call the server', async () => {
+    const { result } = await mountBell(
+      server([notification('n1', { read: true })], { totalItems: 1, unreadTotal: 0 }),
+    );
+
+    await act(async () => {
+      result.current.markAllAsRead();
+    });
+
+    expect(requestCount('markAll')).toBe(0);
+    expect(requestCount('write')).toBe(0);
+    expect(result.current.unreadCount).toBe(0);
   });
 
   // --- B: a re-check must not take back the rows the user paged in -----------------------
@@ -657,7 +705,7 @@ describe('useNotifications', () => {
 
     await waitFor(() => expect(result.current.error).not.toBeNull());
     expect(result.current.error).toBe('Не удалось отметить как прочитанное (HTTP 500)');
-    expect(requestCount('write')).toBe(3);
+    expect(requestCount('markAll')).toBe(1);
     expect(result.current.notifications.map((n) => n.read)).toEqual([false, false, false, true]);
     expect(result.current.unreadCount).toBe(25);
   });
@@ -843,7 +891,7 @@ describe('useNotifications', () => {
     expect(result.current.notifications.map((n) => n.read)).toEqual([true, false]);
   });
 
-  it('the echoes of a mark-all-read do not re-charge what its response charged', async () => {
+  it('the echoes of a mark-all-read cannot push the zeroed total back or re-charge', async () => {
     const page = [
       notification('n1'),
       notification('n2'),
@@ -853,15 +901,15 @@ describe('useNotifications', () => {
     const { result } = await mountBell(server(page, { totalItems: 4, unreadTotal: 25 }));
     await waitFor(() => expect(h.listeners).toHaveLength(1));
 
-    const writes = deferred();
-    h.gate = { kind: 'write', until: writes.until };
+    const markAll = deferred();
+    h.gate = { kind: 'markAll', until: markAll.until };
     await act(async () => {
       result.current.markAllAsRead();
     });
-    expect(requestCount('write')).toBe(3);
+    expect(requestCount('markAll')).toBe(1);
 
-    // Each of those three writes echoes while its row is still unread on screen, so each
-    // echo is a real transition and charges one — 25 - 3.
+    // While the single server call is still in flight, each realtime echo of it is a
+    // real read-transition on this page and charges one — 25 - 3.
     await act(async () => {
       h.listeners[0]?.({ action: 'update', record: notification('n1', { read: true }) });
       h.listeners[0]?.({ action: 'update', record: notification('n2', { read: true }) });
@@ -871,14 +919,21 @@ describe('useNotifications', () => {
     });
     await waitFor(() => expect(result.current.unreadCount).toBe(22));
 
-    // The write responses land last and must find all three already charged, so the total
-    // stays at 22 instead of falling to 19.
+    // The response lands last and zeroes the total: the server marked every unread row
+    // of the user. The echoes that charged before it and the already-read rows in the
+    // ref cannot push the total off 0 afterwards.
     await act(async () => {
-      writes.release();
+      markAll.release();
     });
 
-    expect(result.current.unreadCount).toBe(22);
+    expect(result.current.unreadCount).toBe(0);
     expect(result.current.notifications.every((n) => n.read)).toBe(true);
+
+    // A late echo — same write, delivered out of band — finds the row already read.
+    await act(async () => {
+      h.listeners[0]?.({ action: 'update', record: notification('n1', { read: true }) });
+    });
+    expect(result.current.unreadCount).toBe(0);
   });
 
   it('both bells land on the same total when only one of them got the click', async () => {

@@ -365,7 +365,14 @@ describe('InlineRoleCell', () => {
   });
 
   describe('почтовые права', () => {
-    it('скрывает почтовые права у модератора', () => {
+    it('показывает почтовые права администратору и модератору', () => {
+      renderCell({ canManageMailPermissions: true });
+
+      expect(mailButton()).toBeInTheDocument();
+      expect(objectButtons()).toHaveLength(1);
+    });
+
+    it('скрывает почтовые права, когда управление ими запрещено', () => {
       renderCell({ canManageMailPermissions: false });
 
       expect(screen.queryByRole('button', { name: 'Почтовые права: ООО "Тест"' })).toBeNull();

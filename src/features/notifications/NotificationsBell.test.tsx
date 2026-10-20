@@ -19,6 +19,7 @@ const mockHooks = vi.hoisted(() => {
   // Стабильный между рендерами spy: `useNotifications()` вызывается на каждом рендере,
   // и пересозданный `vi.fn()` сделал бы счётчик вызовов бессмысленным.
   const mockMarkAsRead = vi.fn();
+  const mockMarkAllAsRead = vi.fn();
   const mockIsLoadingMore = false;
 
   return {
@@ -38,6 +39,7 @@ const mockHooks = vi.hoisted(() => {
     loadMore: mockLoadMore,
     retryNow: mockRetryNow,
     markAsRead: mockMarkAsRead,
+    markAllAsRead: mockMarkAllAsRead,
     useAuth: () => ({
       user: { id: 'user1', login: 'admin' },
       isAuthenticated: true,
@@ -53,7 +55,7 @@ const mockHooks = vi.hoisted(() => {
       retryNow: mockRetryNow,
       loadMore: mockLoadMore,
       markAsRead: mockMarkAsRead,
-      markAllAsRead: vi.fn(),
+      markAllAsRead: mockMarkAllAsRead,
     }),
   };
 });
@@ -132,6 +134,7 @@ describe('NotificationsBell', () => {
     mockHooks.loadMore.mockClear();
     mockHooks.retryNow.mockClear();
     mockHooks.markAsRead.mockClear();
+    mockHooks.markAllAsRead.mockClear();
   });
 
   it('renders bell icon', () => {
@@ -507,5 +510,67 @@ describe('NotificationsBell', () => {
     await waitFor(() => {
       expect(getInvoice).toHaveBeenCalledWith('inv1');
     });
+  });
+
+  it('кнопка «Прочитать все» считается от серверного итога и вызывает markAllAsRead', async () => {
+    const user = userEvent.setup();
+    // Одна непрочитанная строка загружена, но серверный итог — 150: непрочитанные
+    // лежат и выше страницы «Показать ещё», поэтому 1 на кнопке было бы ложью.
+    mockHooks.setNotifications(
+      [
+        {
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_created',
+          event: 'Создан счёт',
+          message: 'Создан счёт',
+          actor_name: 'Админ',
+          read: false,
+          created: '2026-06-02T10:00:00Z',
+        } as INotification,
+      ],
+      150,
+    );
+    renderBell();
+
+    const bell = document.querySelector('button')!;
+    await user.click(bell);
+
+    const button = await screen.findByRole('button', { name: 'Прочитать все (150)' });
+    await user.click(button);
+    expect(mockHooks.markAllAsRead).toHaveBeenCalledTimes(1);
+  });
+
+  it('кнопка «Прочитать все» скрыта при серверном итоге 0, даже если загруженные строки непрочитаны', async () => {
+    const user = userEvent.setup();
+    mockHooks.setNotifications(
+      [
+        {
+          id: 'n1',
+          organization_id: 'org1',
+          user_id: 'user1',
+          invoice_id: 'inv1',
+          type: 'invoice_created',
+          event: 'Создан счёт',
+          message: 'Создан счёт',
+          actor_name: 'Админ',
+          read: false,
+          created: '2026-06-02T10:00:00Z',
+        } as INotification,
+      ],
+      0,
+    );
+    renderBell();
+
+    const bell = document.querySelector('button')!;
+    await user.click(bell);
+
+    await waitFor(() => {
+      expect(screen.getByText('Создан счёт')).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Прочитать все/)).not.toBeInTheDocument();
+    expect(mockHooks.markAllAsRead).not.toHaveBeenCalled();
   });
 });
