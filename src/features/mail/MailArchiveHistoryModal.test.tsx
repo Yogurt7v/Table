@@ -53,7 +53,7 @@ describe('DeletedMailHistoryModal', () => {
   });
 
   it('показывает Loader во время загрузки', () => {
-    let resolve: (v: unknown) => void = () => {};
+    let resolve: (v: IDeletedMailHistory[]) => void = () => {};
     mockGetIncoming.mockImplementationOnce(
       () => new Promise((r) => { resolve = r; }),
     );
@@ -67,7 +67,8 @@ describe('DeletedMailHistoryModal', () => {
       />,
     );
 
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(document.querySelector('.mantine-Loader-root')).toBeInTheDocument();
+    expect(screen.queryByText('Записей нет')).not.toBeInTheDocument();
 
     resolve([]);
   });
@@ -89,8 +90,22 @@ describe('DeletedMailHistoryModal', () => {
 
   it('отображает записи истории', async () => {
     mockGetIncoming.mockResolvedValueOnce([
-      { type: 'created', changed_at: '2024-01-15', author: 'Иванов' },
-      { type: 'updated', changed_at: '2024-01-16', author: 'Петров' },
+      {
+        id: 'h1',
+        organization_id: 'org1',
+        type: 'created',
+        changed_at: '2024-01-15',
+        author: 'Иванов',
+        previous_data: {},
+      },
+      {
+        id: 'h2',
+        organization_id: 'org1',
+        type: 'updated',
+        changed_at: '2024-01-16',
+        author: 'Петров',
+        previous_data: {},
+      },
     ]);
 
     renderWithProviders(

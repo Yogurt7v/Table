@@ -1,114 +1,109 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { MantineProvider, createTheme } from '@mantine/core';
+import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
-import { AuthContext } from '@/shared/context/AuthContext';
-import { OrgContext } from '@/shared/context/OrgContext';
-import { SearchContext } from '@/shared/context/SearchContext';
-import { InvoiceNavigationContext } from '@/shared/context/InvoiceNavigationContext';
-import type { AuthContextValue } from '@/shared/context/AuthContext';
-import type { OrgContextValue } from '@/shared/context/OrgContext';
-import type { SearchContextValue } from '@/shared/context/SearchContext';
-import type { InvoiceNavigationContextValue } from '@/shared/context/InvoiceNavigationContext';
 
-const theme = createTheme({});
+const mockUseAuth = vi.hoisted(() => vi.fn());
+const mockUseOrg = vi.hoisted(() => vi.fn());
+const mockUseSearch = vi.hoisted(() => vi.fn());
+const mockUseInvoiceNavigation = vi.hoisted(() => vi.fn());
+const mockUseDatePinned = vi.hoisted(() => vi.fn());
+const mockUseBankAccounts = vi.hoisted(() => vi.fn());
+const mockUseCurrentUserRole = vi.hoisted(() => vi.fn());
 
-function renderApp(route = '/') {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
+vi.mock('@/shared/context/AuthContext', () => ({ useAuth: mockUseAuth }));
+vi.mock('@/shared/context/OrgContext', () => ({ useOrg: mockUseOrg }));
+vi.mock('@/shared/context/SearchContext', () => ({ useSearch: mockUseSearch }));
+vi.mock('@/shared/context/InvoiceNavigationContext', () => ({
+  useInvoiceNavigation: mockUseInvoiceNavigation,
+}));
+vi.mock('@/shared/context/DatePinnedContext', () => ({
+  DatePinnedProvider: ({ children }: { children: React.ReactNode }) => children,
+  useDatePinned: mockUseDatePinned,
+}));
+vi.mock('@/shared/hooks/useBankAccounts', () => ({ useBankAccounts: mockUseBankAccounts }));
+vi.mock('@/shared/hooks/useCurrentUserRole', () => ({
+  useCurrentUserRole: mockUseCurrentUserRole,
+}));
 
-  const authValue: AuthContextValue = {
-    user: { id: 'u1', email: 'test@test.com', name: 'Test' },
-    isAuthenticated: true,
+vi.mock('@/features/invoices/InvoiceSearch', () => ({
+  InvoiceSearch: () => <div data-testid="invoice-search" />,
+}));
+vi.mock('@/features/notifications/NotificationsBell', () => ({
+  NotificationsBell: () => <div data-testid="notifications-bell" />,
+}));
+vi.mock('@/shared/components/MainDatePicker', () => ({
+  MainDatePicker: () => <div data-testid="date-picker" />,
+}));
+vi.mock('@/features/accounts/AccountList', () => ({
+  AccountList: () => <div data-testid="account-list" />,
+}));
+vi.mock('@/features/invoices/InvoiceSection', () => ({
+  InvoiceSection: () => <div data-testid="invoice-section" />,
+}));
+
+function setupApp(route: string, { isAuthenticated = true } = {}) {
+  mockUseAuth.mockReturnValue({
+    user: isAuthenticated ? { id: 'u1', email: 'test@test.com', name: 'Test' } : null,
+    isAuthenticated,
     isLoading: false,
     login: vi.fn(),
     logout: vi.fn(),
-  };
-
-  const orgValue: OrgContextValue = {
+  });
+  mockUseOrg.mockReturnValue({
     currentOrgId: 'org1',
     currentOrg: { id: 'org1', name: 'Test Org' },
-    organizations: [],
+    organizations: [{ id: 'org1', name: 'Test Org' }],
     organizationsLoading: false,
-  };
-
-  const searchValue: SearchContextValue = {
+  });
+  mockUseSearch.mockReturnValue({
     searchText: '',
     searchAll: false,
     setSearchText: vi.fn(),
     setSearchAll: vi.fn(),
-  };
-
-  const navValue: InvoiceNavigationContextValue = {
-    selectedDate: new Date(),
+  });
+  mockUseInvoiceNavigation.mockReturnValue({
+    selectedDate: new Date('2024-01-15'),
     setSelectedDate: vi.fn(),
-  };
+  });
+  mockUseDatePinned.mockReturnValue({ pinned: false, registerAnchor: vi.fn() });
+  mockUseBankAccounts.mockReturnValue({ data: [], isLoading: false });
+  mockUseCurrentUserRole.mockReturnValue('admin');
+
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme}>
-        <AuthContext.Provider value={authValue}>
-          <OrgContext.Provider value={orgValue}>
-            <SearchContext.Provider value={searchValue}>
-              <InvoiceNavigationContext.Provider value={navValue}>
-                <MemoryRouter initialEntries={[route]}>
-                  <App />
-                </MemoryRouter>
-              </InvoiceNavigationContext.Provider>
-            </SearchContext.Provider>
-          </OrgContext.Provider>
-        </AuthContext.Provider>
+      <MantineProvider>
+        <MemoryRouter initialEntries={[route]}>
+          <App />
+        </MemoryRouter>
       </MantineProvider>
     </QueryClientProvider>,
   );
 }
 
 describe('App', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('рендерит страницу логина по /login', () => {
-    renderApp('/login');
-    expect(screen.getByText(/Вход|Логин|Email|Пароль/i)).toBeInTheDocument();
+    setupApp('/login');
+    expect(screen.getByPlaceholderText('Ваш логин')).toBeInTheDocument();
   });
 
   it('неавторизованный пользователь перенаправляется на /login', () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    const authValue: AuthContextValue = {
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-      login: vi.fn(),
-      logout: vi.fn(),
-    };
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <MantineProvider theme={theme}>
-          <AuthContext.Provider value={authValue}>
-            <OrgContext.Provider value={{ currentOrgId: null, currentOrg: null, organizations: [], organizationsLoading: false }}>
-              <SearchContext.Provider value={{ searchText: '', searchAll: false, setSearchText: vi.fn(), setSearchAll: vi.fn() }}>
-                <InvoiceNavigationContext.Provider value={{ selectedDate: new Date(), setSelectedDate: vi.fn() }}>
-                  <MemoryRouter initialEntries={['/']}>
-                    <App />
-                  </MemoryRouter>
-                </InvoiceNavigationContext.Provider>
-              </SearchContext.Provider>
-            </OrgContext.Provider>
-          </AuthContext.Provider>
-        </MantineProvider>
-      </QueryClientProvider>,
-    );
-
-    expect(screen.getByText(/Вход|Логин|Email|Пароль/i)).toBeInTheDocument();
+    setupApp('/', { isAuthenticated: false });
+    expect(screen.getByPlaceholderText('Ваш логин')).toBeInTheDocument();
   });
 
   it('неизвестный маршрут перенаправляет на /', () => {
-    renderApp('/unknown-route');
-    // После редиректа на / должна быть главная страница
-    expect(screen.getByText(/Счета|Реестр|Организация/i)).toBeInTheDocument();
+    setupApp('/unknown-route');
+    expect(screen.getByTestId('invoice-section')).toBeInTheDocument();
   });
 });

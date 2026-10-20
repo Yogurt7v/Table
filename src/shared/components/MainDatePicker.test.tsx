@@ -1,58 +1,53 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MantineProvider, createTheme } from '@mantine/core';
-import { InvoiceNavigationContext } from '@/shared/context/InvoiceNavigationContext';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, fireEvent } from '@testing-library/react';
+import { MantineProvider } from '@mantine/core';
 import { MainDatePicker } from './MainDatePicker';
-import type { InvoiceNavigationContextValue } from '@/shared/context/InvoiceNavigationContext';
 
-const theme = createTheme({});
+const mockUseInvoiceNavigation = vi.hoisted(() => vi.fn());
 
-function renderWithProviders(ui: React.ReactNode, navValue: Partial<InvoiceNavigationContextValue> = {}) {
-  const defaultValue: InvoiceNavigationContextValue = {
-    selectedDate: new Date('2024-01-15'),
+vi.mock('@/shared/context/InvoiceNavigationContext', () => ({
+  useInvoiceNavigation: mockUseInvoiceNavigation,
+}));
+
+function setup(variant: 'page' | 'header', selectedDate: Date = new Date('2024-01-15')) {
+  mockUseInvoiceNavigation.mockReturnValue({
+    selectedDate,
     setSelectedDate: vi.fn(),
-    ...navValue,
-  };
+  });
 
-  return render(
-    <MantineProvider theme={theme}>
-      <InvoiceNavigationContext.Provider value={defaultValue}>
-        {ui}
-      </InvoiceNavigationContext.Provider>
+  const utils = render(
+    <MantineProvider>
+      <MainDatePicker variant={variant} />
     </MantineProvider>,
   );
+
+  // Mantine v7 рендерит DatePickerInput как <button type="button">, а не <input>
+  const inputButton = utils.container.querySelector<HTMLButtonElement>(
+    '.mantine-DatePickerInput-input',
+  );
+  if (!inputButton) throw new Error('Кнопка DatePickerInput не найдена');
+  return { inputButton };
 }
 
 describe('MainDatePicker', () => {
-  it('рендерит DatePickerInput', () => {
-    renderWithProviders(<MainDatePicker variant="page" />);
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('variant="page" — отображает дату', () => {
-    renderWithProviders(<MainDatePicker variant="page" />);
-    // DatePickerInput отображает дату в формате D MMMM YYYY, dddd
-    expect(screen.getByRole('textbox')).toHaveValue(/2024/);
+  it('рендерит DatePickerInput с выбранной датой', () => {
+    const { inputButton } = setup('page');
+    expect(inputButton).toHaveTextContent(/2024/);
   });
 
   it('variant="header" — рендерится', () => {
-    renderWithProviders(<MainDatePicker variant="header" />);
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    const { inputButton } = setup('header');
+    expect(inputButton).toBeInTheDocument();
   });
 
-  it('передаёт выбранную дату в setSelectedDate', () => {
-    const setSelectedDate = vi.fn();
-    renderWithProviders(<MainDatePicker variant="page" />, { setSelectedDate });
-
-    // DatePickerInput вызывает onChange при выборе даты
-    // В тесте проверяем, что контекст передаётся корректно
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
-  });
-
-  it('maxDate — сегодняшняя дата', () => {
-    renderWithProviders(<MainDatePicker variant="page" />);
-    // DatePickerInput ограничивает выбор будущих дат
-    // Проверяем рендер — детали maxDate проверяются в интеграционных тестах
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
+  it('клик по инпуту открывает календарь', () => {
+    const { inputButton } = setup('page');
+    expect(inputButton).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(inputButton);
+    expect(inputButton).toHaveAttribute('aria-expanded', 'true');
   });
 });

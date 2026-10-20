@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useMailLinkChange } from './useMailLinkChange';
 import { notifications } from '@mantine/notifications';
 import type { LinkChangePlan } from './mail-parent';
-import type { MailRelationSide } from '@/shared/types';
+import type { IMailRelation, MailRelationSide } from '@/shared/types';
 
 vi.mock('@/api/mail', () => ({
   createCrossMailRelation: vi.fn().mockResolvedValue(undefined),
@@ -38,8 +38,23 @@ describe('useMailLinkChange', () => {
 
     const child: MailRelationSide = { type: 'incoming', id: 'mail1' };
     const plan: LinkChangePlan = {
-      drop: [{ relationId: 'rel1', parent: { type: 'outgoing', id: 'mail2' } }],
-      create: { type: 'outgoing', id: 'mail3' },
+      drop: [
+        {
+          relationId: 'rel1',
+          parent: { key: 'outgoing:mail2', type: 'outgoing', id: 'mail2' },
+          child: { key: 'incoming:mail1', type: 'incoming', id: 'mail1' },
+        },
+      ],
+      create: {
+        key: 'outgoing:mail3',
+        type: 'outgoing',
+        id: 'mail3',
+        number: '300',
+        counterparty: 'ООО Ромашка',
+        dateKey: '2024-01-17',
+        subject: 'Тема 3',
+        seq: 3,
+      },
     };
 
     await result.current.changeLink({ child, plan });
@@ -59,7 +74,13 @@ describe('useMailLinkChange', () => {
 
     const child: MailRelationSide = { type: 'incoming', id: 'mail1' };
     const plan: LinkChangePlan = {
-      drop: [{ relationId: 'rel1', parent: { type: 'outgoing', id: 'mail2' } }],
+      drop: [
+        {
+          relationId: 'rel1',
+          parent: { key: 'outgoing:mail2', type: 'outgoing', id: 'mail2' },
+          child: { key: 'incoming:mail1', type: 'incoming', id: 'mail1' },
+        },
+      ],
       create: null,
     };
 
@@ -78,8 +99,23 @@ describe('useMailLinkChange', () => {
 
     const child: MailRelationSide = { type: 'incoming', id: 'mail1' };
     const plan: LinkChangePlan = {
-      drop: [{ relationId: 'rel1', parent: { type: 'outgoing', id: 'mail2' } }],
-      create: { type: 'outgoing', id: 'mail3' },
+      drop: [
+        {
+          relationId: 'rel1',
+          parent: { key: 'outgoing:mail2', type: 'outgoing', id: 'mail2' },
+          child: { key: 'incoming:mail1', type: 'incoming', id: 'mail1' },
+        },
+      ],
+      create: {
+        key: 'outgoing:mail3',
+        type: 'outgoing',
+        id: 'mail3',
+        number: '300',
+        counterparty: 'ООО Ромашка',
+        dateKey: '2024-01-17',
+        subject: 'Тема 3',
+        seq: 3,
+      },
     };
 
     await expect(result.current.changeLink({ child, plan })).rejects.toThrow(
@@ -87,7 +123,7 @@ describe('useMailLinkChange', () => {
     );
 
     expect(mockCreate).toHaveBeenCalledWith(
-      { id: 'mail2', type: 'outgoing' },
+      { key: 'outgoing:mail2', type: 'outgoing', id: 'mail2' },
       child,
       'org1',
     );
@@ -102,8 +138,23 @@ describe('useMailLinkChange', () => {
 
     const child: MailRelationSide = { type: 'incoming', id: 'mail1' };
     const plan: LinkChangePlan = {
-      drop: [{ relationId: 'rel1', parent: { type: 'outgoing', id: 'mail2' } }],
-      create: { type: 'outgoing', id: 'mail3' },
+      drop: [
+        {
+          relationId: 'rel1',
+          parent: { key: 'outgoing:mail2', type: 'outgoing', id: 'mail2' },
+          child: { key: 'incoming:mail1', type: 'incoming', id: 'mail1' },
+        },
+      ],
+      create: {
+        key: 'outgoing:mail3',
+        type: 'outgoing',
+        id: 'mail3',
+        number: '300',
+        counterparty: 'ООО Ромашка',
+        dateKey: '2024-01-17',
+        subject: 'Тема 3',
+        seq: 3,
+      },
     };
 
     await expect(result.current.changeLink({ child, plan })).rejects.toThrow(
@@ -116,7 +167,7 @@ describe('useMailLinkChange', () => {
   });
 
   it('isPending=true во время выполнения', async () => {
-    let resolveCreate: (v: unknown) => void = () => {};
+    let resolveCreate: (v: IMailRelation) => void = () => {};
     mockCreate.mockImplementationOnce(
       () => new Promise((r) => { resolveCreate = r; }),
     );
@@ -128,14 +179,23 @@ describe('useMailLinkChange', () => {
     const child: MailRelationSide = { type: 'incoming', id: 'mail1' };
     const plan: LinkChangePlan = {
       drop: [],
-      create: { type: 'outgoing', id: 'mail3' },
+      create: {
+        key: 'outgoing:mail3',
+        type: 'outgoing',
+        id: 'mail3',
+        number: '300',
+        counterparty: 'ООО Ромашка',
+        dateKey: '2024-01-17',
+        subject: 'Тема 3',
+        seq: 3,
+      },
     };
 
     const promise = result.current.changeLink({ child, plan });
-    expect(result.current.isPending).toBe(true);
+    await waitFor(() => expect(result.current.isPending).toBe(true));
 
-    resolveCreate(undefined);
+    resolveCreate({ id: 'new1', organization_id: 'org1' });
+    await waitFor(() => expect(result.current.isPending).toBe(false));
     await promise;
-    expect(result.current.isPending).toBe(false);
   });
 });

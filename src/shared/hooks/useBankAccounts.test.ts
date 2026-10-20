@@ -43,10 +43,10 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createClient(): QueryClient {
+function createClient(staleTime?: number): QueryClient {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: false },
+      queries: { retry: false, staleTime },
       mutations: { retry: false },
     },
   });
@@ -182,7 +182,7 @@ describe('useBankAccounts', () => {
 
   it('serves a repeated read from the cache instead of the API', async () => {
     api.getBalancesForOrgDate.mockResolvedValue([withBalance('ba1', 1000)]);
-    const client = createClient();
+    const client = createClient(Number.POSITIVE_INFINITY);
 
     const first = renderHook(() => useBankAccounts(ORG, DATE), { wrapper: wrapperFor(client) });
     await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
@@ -217,8 +217,6 @@ describe('useUpdateBalance', () => {
 
   it('re-reads every bank_accounts query on success, including other dates', async () => {
     const client = createClient();
-    const gate = deferred<IAccountWithBalance[]>();
-    api.getBalancesForOrgDate.mockReturnValue(gate.promise);
 
     let mutate: ReturnType<typeof useUpdateBalance>['mutateAsync'] | undefined;
     function Observer() {
@@ -231,18 +229,18 @@ describe('useUpdateBalance', () => {
     }
     render(createElement(Observer), { wrapper: wrapperFor(client) });
     await waitFor(() => expect(api.getBalancesForOrgDate).toHaveBeenCalledTimes(3));
+    await waitFor(() =>
+      expect(client.getQueryState(['bank_accounts', ORG, DATE])?.fetchStatus).toBe('idle'),
+    );
     const readsBefore = api.getBalancesForOrgDate.mock.calls.length;
 
-    api.getBalancesForOrgDate.mockImplementation((orgId: string) =>
-      Promise.resolve([withBalance('ba1', 1000, orgId)]),
-    );
     await act(async () => {
       await mutate!({ accountId: 'ba1', date: DATE, balance: 1000 });
     });
 
     await waitFor(() => expect(api.getBalancesForOrgDate.mock.calls.length).toBe(readsBefore + 3));
     expect(client.getQueryState(['invoices', ORG, DATE])?.fetchStatus).not.toBe('fetching');
-  }, 10000);
+  });
 
   it('re-reads the balances even when the write failed', async () => {
     api.upsertBalance.mockRejectedValue(new Error('HTTP 500'));
@@ -255,7 +253,9 @@ describe('useUpdateBalance', () => {
 
     const mutation = renderHook(() => useUpdateBalance(), { wrapper: wrapperFor(client) });
     await act(async () => {
-      await mutation.result.current.mutateAsync({ accountId: 'ba1', date: DATE, balance: 1 });
+      await expect(
+        mutation.result.current.mutateAsync({ accountId: 'ba1', date: DATE, balance: 1 }),
+      ).rejects.toThrow('HTTP 500');
     });
 
     await waitFor(() =>

@@ -147,8 +147,10 @@ describe('RoleManager', () => {
 
     renderWithProviders(<RoleManager userId="u1" />);
 
-    expect(screen.queryByText('Администратор')).not.toBeInTheDocument();
-    expect(screen.getByText('Модератор')).toBeInTheDocument();
+    // Опции Select ролей всегда присутствуют в DOM, поэтому проверяем бейджи, а не текст.
+    const badges = Array.from(document.querySelectorAll('.mantine-Badge-root'));
+    expect(badges.map((b) => b.textContent)).toEqual(['Модератор']);
+
     expect(screen.queryByText('Нет назначений')).not.toBeInTheDocument();
     // org1 свободна для назначения — форма добавления на месте.
     expect(screen.getByText('Добавить')).toBeInTheDocument();

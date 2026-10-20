@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useOrgMailThread } from './useOrgMailThread';
+import type { IMailRelation } from '@/shared/types';
 
 vi.mock('./mail-thread', () => ({
   buildLetterIndex: vi.fn((incoming: unknown[], outgoing: unknown[]) => ({
@@ -41,11 +42,36 @@ describe('useOrgMailThread', () => {
 
   it('успешная загрузка: возвращает данные с ключами', async () => {
     mockFetchRelations.mockResolvedValue([
-      { id: 'r1', parent: { type: 'incoming', id: 'm1' }, child: { type: 'outgoing', id: 'm2' } },
+      {
+        id: 'r1',
+        parent_incoming_mail_id: 'm1',
+        child_outgoing_mail_id: 'm2',
+        organization_id: 'org1',
+      },
     ]);
     mockFetchLetters.mockResolvedValue({
-      incoming: [{ id: 'm1', number: '100' }],
-      outgoing: [{ id: 'm2', number: '200' }],
+      incoming: [
+        {
+          id: 'm1',
+          organization_id: 'org1',
+          number: '100',
+          date: '2024-01-15',
+          subject: 'Тема 1',
+          sender: 'ООО Ромашка',
+          responsible: 'u1',
+        },
+      ],
+      outgoing: [
+        {
+          id: 'm2',
+          organization_id: 'org1',
+          outgoing_number: '200',
+          date: '2024-01-16',
+          subject: 'Тема 2',
+          recipient: 'ИП Иванов',
+          responsible: 'u1',
+        },
+      ],
     });
 
     const { result } = renderHook(() => useOrgMailThread('org1'), {
@@ -61,7 +87,7 @@ describe('useOrgMailThread', () => {
   });
 
   it('isLoading=true во время запроса', () => {
-    let resolveRelations: (v: unknown) => void = () => {};
+    let resolveRelations: (v: IMailRelation[]) => void = () => {};
     mockFetchRelations.mockImplementationOnce(
       () => new Promise((r) => { resolveRelations = r; }),
     );

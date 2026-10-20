@@ -260,6 +260,6 @@ describe('useOrgCounterparties: постоянная пустая ссылка �
     expect(result.current.editor.counterpartyOptions).toBe(result.current.form.counterpartyOptions);
 
     const cached = client.getQueryCache().find({ queryKey: ['mailCounterpartyVocabulary', ORG] });
-    expect(cached?.options.staleTime).toBe(10 * 60_000);
+    expect(cached?.options).toMatchObject({ staleTime: 10 * 60_000 });
   });
 });
