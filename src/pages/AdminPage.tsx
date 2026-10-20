@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Container, Title, Group, Text, Stack, Tabs } from '@mantine/core';
+import { Anchor, Container, Title, Group, Text, Stack, Tabs } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOrg } from '@/shared/context/OrgContext';
@@ -248,6 +248,13 @@ export function AdminPage() {
           </Tabs.Panel>
         )}
       </Tabs>
+
+      <Text size="sm" c="dimmed" ta="center" mt="xl">
+        © {new Date().getFullYear()} Реестры счетов ·{' '}
+        <Anchor href="https://github.com/Yogurt7v/Table" target="_blank" rel="noreferrer">
+          Исходный код
+        </Anchor>
+      </Text>
 
       <CreateUserModal opened={createOpened} onClose={() => setCreateOpened(false)} />
       <EditUserModal
