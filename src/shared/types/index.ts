@@ -28,6 +28,8 @@ export interface IAccountingObject {
   name: string;
   sort?: number;
   counterparty_order?: string[];
+  /** false — объект скрыт из реестра счетов (админ может вернуть через админку); почту флаг не затрагивает */
+  is_active?: boolean;
 }
 
 export type PaymentMarkStatus = 'proposed' | 'approved' | 'partial';

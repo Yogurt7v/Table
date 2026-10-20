@@ -14,6 +14,7 @@ import {
   Button,
   Loader,
   Center,
+  Collapse,
   useMantineTheme,
   Anchor,
 } from '@mantine/core';
@@ -23,6 +24,8 @@ import {
   IconFileExport,
   IconChevronsDown,
   IconChevronsUp,
+  IconChevronDown,
+  IconChevronRight,
   IconX,
   IconFilter,
   IconCheck,
@@ -114,6 +117,8 @@ interface ObjectsListProps {
   orgId: string;
   date: string;
   objects: IAccountingObject[];
+  hiddenObjects: IAccountingObject[];
+  allObjects: IAccountingObject[];
   invoices: IInvoice[] | undefined;
   highlightedIds: string[];
   hasSearch: boolean;
@@ -138,6 +143,8 @@ function ObjectsList({
   orgId,
   date,
   objects,
+  hiddenObjects,
+  allObjects,
   invoices,
   activeFilters,
   highlightedIds,
@@ -158,6 +165,7 @@ function ObjectsList({
   paidTodayTotal,
 }: ObjectsListProps) {
   const { collapsedIds, collapseAll, expandAll } = useCollapsedObjects();
+  const [hiddenOpen, setHiddenOpen] = useState(false);
   const allCollapsed = objects.length > 0 && objects.every((o) => collapsedIds.has(o.id));
   const isFullAccess =
     permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
@@ -169,9 +177,35 @@ function ObjectsList({
 
   const prevHasSearchRef = useRef(hasSearch);
   useEffect(() => {
-    if (hasSearch && !prevHasSearchRef.current) expandAll();
+    if (hasSearch && !prevHasSearchRef.current) {
+      expandAll();
+      setHiddenOpen(true);
+    }
     prevHasSearchRef.current = hasSearch;
   }, [hasSearch, expandAll]);
+
+  const renderObjectBlock = (obj: IAccountingObject) => (
+    <InvoiceObjectBlock
+      key={obj.id}
+      obj={obj}
+      invoices={invoices}
+      activeFilters={activeFilters}
+      orgId={orgId}
+      date={date}
+      highlightedIds={highlightedIds}
+      hasSearch={hasSearch}
+      draftObjectId={draftObjectId}
+      permissions={{ canCreate: permissions.canCreate }}
+      accountingObjects={allObjects}
+      paymentMarks={paymentMarks}
+      filesByInvoice={filesByInvoice}
+      visibleColumns={visibleColumns}
+      onOpenDraft={onOpenDraft}
+      onCancelDraft={onCancelDraft}
+      onPrint={onPrint}
+      onExport={onExport}
+    />
+  );
 
   const filterMenu = (
     <Menu shadow="md" width={240} closeOnItemClick={false}>
@@ -363,28 +397,46 @@ function ObjectsList({
           {paidTodayTotal > 0 && <Text size="lg">Оплачено: {formatAmountRub(paidTodayTotal)}</Text>}
         </Group>
       </Box>
-      {objects.map((obj) => (
-        <InvoiceObjectBlock
-          key={obj.id}
-          obj={obj}
-          invoices={invoices}
-          activeFilters={activeFilters}
-          orgId={orgId}
-          date={date}
-          highlightedIds={highlightedIds}
-          hasSearch={hasSearch}
-          draftObjectId={draftObjectId}
-          permissions={{ canCreate: permissions.canCreate }}
-          accountingObjects={objects}
-          paymentMarks={paymentMarks}
-          filesByInvoice={filesByInvoice}
-          visibleColumns={visibleColumns}
-          onOpenDraft={onOpenDraft}
-          onCancelDraft={onCancelDraft}
-          onPrint={onPrint}
-          onExport={onExport}
-        />
-      ))}
+      {objects.map(renderObjectBlock)}
+      {hiddenObjects.length > 0 && (
+        <Paper
+          withBorder
+          p={0}
+          style={{
+            borderLeft: '3px dashed var(--mantine-color-gray-4)',
+            boxShadow: 'var(--mantine-shadow-sm)',
+          }}
+        >
+          <Group
+            gap={4}
+            onClick={() => setHiddenOpen((v) => !v)}
+            style={{
+              cursor: 'pointer',
+              userSelect: 'none',
+              padding: 'var(--mantine-spacing-xs)',
+              height: 48,
+              display: 'flex',
+              alignItems: 'center',
+              color: 'var(--mantine-color-dimmed)',
+            }}
+            role="button"
+            aria-expanded={hiddenOpen}
+            aria-label={
+              hiddenOpen ? 'Свернуть объекты без счетов' : 'Развернуть объекты без счетов'
+            }
+          >
+            {hiddenOpen ? <IconChevronDown size={18} /> : <IconChevronRight size={18} />}
+            <Title order={5} c="dimmed">
+              Объекты без счетов ({hiddenObjects.length})
+            </Title>
+          </Group>
+          <Collapse in={hiddenOpen}>
+            <Stack gap="sm" p="sm">
+              {hiddenObjects.map(renderObjectBlock)}
+            </Stack>
+          </Collapse>
+        </Paper>
+      )}
     </>
   );
 }
@@ -456,6 +508,14 @@ export function InvoiceSection({
   const { debouncedSearchText } = useSearch();
   const { highlightedInvoiceId, highlightRequestId, clearHighlight } = useInvoiceNavigation();
   const objects = useAccessibleObjects(orgId);
+  const { visibleObjects, hiddenObjects } = useMemo(() => {
+    const visible: IAccountingObject[] = [];
+    const hidden: IAccountingObject[] = [];
+    for (const o of objects ?? []) {
+      (o.is_active === false ? hidden : visible).push(o);
+    }
+    return { visibleObjects: visible, hiddenObjects: hidden };
+  }, [objects]);
   const { data: invoices } = useInvoices(orgId, date);
   const displayInvoices = useMemo(
     () => (invoices ?? []).map((inv) => normalizeInvoiceForDate(inv, date)),
@@ -531,31 +591,41 @@ export function InvoiceSection({
 
   const markedTotal = useMemo(() => {
     if (!displayInvoices || !paymentMarks) return 0;
-    return displayInvoices.reduce((sum, inv) => {
+    const visibleIds = new Set(visibleObjects.map((o) => o.id));
+    const registryInvoices = displayInvoices.filter((inv) =>
+      visibleIds.has(normalizeRelationId(inv.accounting_object_id)),
+    );
+    return registryInvoices.reduce((sum, inv) => {
       const mark = paymentMarks.find((m) => m.invoice_id === inv.id);
       if (!mark) return sum;
       return sum + (mark.amount ?? inv.amount);
     }, 0);
-  }, [displayInvoices, paymentMarks]);
+  }, [displayInvoices, paymentMarks, visibleObjects]);
 
   const isOverBalance = markedTotal > bankTotal;
 
   const paidTodayTotal = useMemo(() => {
     if (!displayInvoices) return 0;
-    return displayInvoices
-      .filter((inv) => inv.paid && inv.paid_date === date)
-      .reduce((sum, inv) => {
-        if (inv.payment_amounts?.length) {
-          return sum + inv.payment_amounts.reduce((s, a) => s + a, 0);
-        }
-        return sum + (inv.paid_amount ?? inv.amount);
-      }, 0);
-  }, [displayInvoices, date]);
+    const visibleIds = new Set(visibleObjects.map((o) => o.id));
+    const registryInvoices = displayInvoices.filter(
+      (inv) => inv.paid && inv.paid_date === date && visibleIds.has(normalizeRelationId(inv.accounting_object_id)),
+    );
+    return registryInvoices.reduce((sum, inv) => {
+      if (inv.payment_amounts?.length) {
+        return sum + inv.payment_amounts.reduce((s, a) => s + a, 0);
+      }
+      return sum + (inv.paid_amount ?? inv.amount);
+    }, 0);
+  }, [displayInvoices, date, visibleObjects]);
 
-  const printInvoices = useMemo(
-    () => filterInvoices(displayInvoices, paymentMarks, activeFilters),
-    [displayInvoices, paymentMarks, activeFilters],
-  );
+  const printInvoices = useMemo(() => {
+    const visibleIds = new Set(visibleObjects.map((o) => o.id));
+    return filterInvoices(
+      displayInvoices.filter((inv) => visibleIds.has(normalizeRelationId(inv.accounting_object_id))),
+      paymentMarks,
+      activeFilters,
+    );
+  }, [displayInvoices, paymentMarks, activeFilters, visibleObjects]);
 
   const grandTotal = useMemo(() => {
     return printInvoices.reduce((sum, inv) => {
@@ -566,7 +636,7 @@ export function InvoiceSection({
 
   const handleExportExcel = (objectId?: string) => {
     if (!currentOrg || !displayInvoices || !objects) return;
-    const targetObjects = objectId ? objects.filter((obj) => obj.id === objectId) : objects;
+    const targetObjects = objectId ? objects.filter((obj) => obj.id === objectId) : visibleObjects;
     const targetInvoices = objectId
       ? printInvoices.filter((inv) => normalizeRelationId(inv.accounting_object_id) === objectId)
       : printInvoices;
@@ -628,7 +698,8 @@ export function InvoiceSection({
   }
 
   if (isPrinting) {
-    const printObjects = objects.filter(
+    const baseObjects = printingTarget === 'all' ? visibleObjects : objects;
+    const printObjects = baseObjects.filter(
       (obj) => printingTarget === 'all' || obj.id === printingTarget,
     );
     const printInvoicesFiltered =
@@ -664,7 +735,9 @@ export function InvoiceSection({
         <ObjectsList
           orgId={orgId}
           date={date}
-          objects={objects}
+          objects={visibleObjects}
+          hiddenObjects={hiddenObjects}
+          allObjects={objects}
           invoices={displayInvoices}
           activeFilters={activeFilters}
           highlightedIds={highlightedIds}

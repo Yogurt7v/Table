@@ -509,4 +509,67 @@ describe('InvoiceSection', () => {
       expect(within(dialog).queryByLabelText('Действия')).not.toBeInTheDocument();
     });
   });
+
+  describe('скрытые объекты', () => {
+    const hiddenAccObj1: IAccountingObject = { ...accObj1, is_active: false };
+    const hiddenAccObj2: IAccountingObject = { ...accObj2, is_active: false };
+
+    it('не показывает скрытый объект в основном списке, но показывает свёрнутую секцию', async () => {
+      setupHandlers({ objects: [accObj1, hiddenAccObj2] });
+
+      await renderLoaded();
+
+      expect(screen.getAllByText('Основная деятельность').length).toBeGreaterThan(0);
+      expect(screen.getByLabelText('Развернуть объекты без счетов')).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+      // Mantine Collapse держит содержимое смонтированным (opacity: 0): имя остаётся
+      // в дереве DOM, но не видно — проверяем видимость, а не отсутствие.
+      expect(screen.getByText('Капитальные вложения')).not.toBeVisible();
+    });
+
+    it('по умолчанию показывает объект без флага is_active в основном списке', async () => {
+      setupHandlers({ objects: [accObj1, { ...accObj2, is_active: true }] });
+
+      await renderLoaded();
+
+      expect(screen.getAllByText('Основная деятельность').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Капитальные вложения').length).toBeGreaterThan(0);
+      expect(screen.queryByText('Объекты без счетов')).not.toBeInTheDocument();
+    });
+
+    it('разворачивает секцию и даёт добавить счёт в скрытый объект', async () => {
+      const user = userEvent.setup();
+      setupHandlers({ objects: [accObj1, hiddenAccObj2] });
+
+      await renderLoaded();
+
+      const trigger = screen.getByRole('button', { name: 'Развернуть объекты без счетов' });
+      await user.click(trigger);
+
+      expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      await waitFor(() => {
+        expect(screen.getByText('Капитальные вложения')).toBeVisible();
+      });
+      const hiddenBlockSection = trigger.parentElement!;
+      expect(
+        within(hiddenBlockSection).getAllByRole('button', { name: 'Добавить счёт' }).length,
+      ).toBeGreaterThan(0);
+    });
+
+    it('показывает одну секцию, когда скрыты все объекты', async () => {
+      setupHandlers({ objects: [hiddenAccObj1, hiddenAccObj2] });
+
+      await renderLoaded();
+
+      // Оба блока смонтированы внутри свёрнутой секции — видим, что названий из
+      // основного списка на экране нет (collapse-содержимое opacity: 0).
+      expect(screen.getByText('Основная деятельность')).not.toBeVisible();
+      expect(screen.getByText('Капитальные вложения')).not.toBeVisible();
+      expect(screen.getByText('Объекты без счетов (2)')).toBeInTheDocument();
+      // Счета скрытых объектов не попадают в общий итог реестра.
+      expect(totalText(/ИТОГО:/)).toBeNull();
+    });
+  });
 });

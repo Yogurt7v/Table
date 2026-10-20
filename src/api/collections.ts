@@ -132,8 +132,11 @@ export async function createAccountingObject(organizationId: string, name: strin
   });
 }
 
-export function updateAccountingObject(id: string, name: string) {
-  return pb.collection('accounting_objects').update<IAccountingObject>(id, { name });
+export function updateAccountingObject(id: string, name: string, isActive?: boolean) {
+  return pb.collection('accounting_objects').update<IAccountingObject>(id, {
+    name,
+    ...(isActive === undefined ? {} : { is_active: isActive }),
+  });
 }
 
 export function deleteAccountingObject(id: string) {

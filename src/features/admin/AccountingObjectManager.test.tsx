@@ -19,16 +19,22 @@ const objects: IAccountingObject[] = [
   { id: 'obj2', organization_id: 'org1', name: 'Объект Б' },
 ];
 
-function renderManager(canEdit: boolean) {
+function renderManager(canEdit: boolean, objectsArg?: IAccountingObject[]) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <MantineProvider>
-        <AccountingObjectManager organizationId="org1" objects={objects} canEdit={canEdit} />
+        <AccountingObjectManager
+          organizationId="org1"
+          objects={objectsArg ?? objects}
+          canEdit={canEdit}
+        />
       </MantineProvider>
     </QueryClientProvider>,
   );
 }
+
+const visibilitySwitch = (name: string) => screen.getByRole('switch', { name: `Показывать в реестре: ${name}` });
 
 describe('AccountingObjectManager', () => {
   beforeEach(() => {
@@ -64,5 +70,54 @@ describe('AccountingObjectManager', () => {
       expect(inputs.length).toBeGreaterThanOrEqual(2);
     });
     expect(screen.getByDisplayValue('Объект А')).toBeInTheDocument();
+  });
+
+  it('shows visibility switch checked for objects without is_active flag', () => {
+    renderManager(true);
+
+    expect(visibilitySwitch('Объект А')).toBeChecked();
+    expect(visibilitySwitch('Объект Б')).toBeChecked();
+  });
+
+  it('hides visibility switch for non-editing users', () => {
+    renderManager(false);
+
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+  });
+
+  it('unchecks the switch for an object hidden from the registry', () => {
+    renderManager(true, [
+      { id: 'obj1', organization_id: 'org1', name: 'Объект А' },
+      { id: 'obj2', organization_id: 'org1', name: 'Скрытый объект', is_active: false },
+    ]);
+
+    expect(visibilitySwitch('Объект А')).toBeChecked();
+    expect(visibilitySwitch('Скрытый объект')).not.toBeChecked();
+  });
+
+  it('hides an object from the registry on switch off', async () => {
+    const user = userEvent.setup();
+    const { updateAccountingObject } = await import('@/api/collections');
+    renderManager(true);
+
+    await user.click(visibilitySwitch('Объект А'));
+
+    await waitFor(() => {
+      expect(updateAccountingObject).toHaveBeenCalledWith('obj1', 'Объект А', false);
+    });
+  });
+
+  it('returns a hidden object to the registry on switch on', async () => {
+    const user = userEvent.setup();
+    const { updateAccountingObject } = await import('@/api/collections');
+    renderManager(true, [
+      { id: 'obj1', organization_id: 'org1', name: 'Скрытый объект', is_active: false },
+    ]);
+
+    await user.click(visibilitySwitch('Скрытый объект'));
+
+    await waitFor(() => {
+      expect(updateAccountingObject).toHaveBeenCalledWith('obj1', 'Скрытый объект', true);
+    });
   });
 });

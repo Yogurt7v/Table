@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Group, Stack, Button, TextInput, Text, ActionIcon } from '@mantine/core';
+import { Group, Stack, Button, TextInput, Text, ActionIcon, Switch } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
   IconTrash,
@@ -52,6 +52,16 @@ export function AccountingObjectManager({
     await updateAccountingObject(id, editName.trim());
     setEditingId(null);
     refresh();
+  };
+
+  const handleToggleVisible = async (obj: IAccountingObject, visible: boolean) => {
+    try {
+      await updateAccountingObject(obj.id, obj.name, visible);
+      refresh();
+    } catch {
+      notifications.show({ color: 'red', message: 'Не удалось изменить видимость объекта' });
+      refresh();
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -140,6 +150,13 @@ export function AccountingObjectManager({
               </Text>
               {canEdit && (
                 <>
+                  <Switch
+                    size="xs"
+                    aria-label={`Показывать в реестре: ${obj.name}`}
+                    title="Показывать в реестре счетов"
+                    checked={obj.is_active !== false}
+                    onChange={(e) => void handleToggleVisible(obj, e.currentTarget.checked)}
+                  />
                   <ActionIcon
                     size="sm"
                     color="gray"
