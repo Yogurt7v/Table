@@ -95,6 +95,8 @@ function setupMocks() {
     });
   });
   getAllDeletedInvoices.mockResolvedValue(archiveData);
+  getDeletedInvoiceHistory.mockResolvedValue([]);
+  getDeletedInvoiceFiles.mockResolvedValue([]);
 }
 
 function renderSection(props?: Partial<React.ComponentProps<typeof DeletedInvoicesSection>>) {

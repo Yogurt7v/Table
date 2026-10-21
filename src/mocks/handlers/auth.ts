@@ -1,9 +1,12 @@
 import { http, HttpResponse } from 'msw';
 import type { DB } from '@/mocks/db';
 import type { IUser } from '@/shared/types';
+import { createListHandler } from './utils';
 
 export function createAuthHandlers(db: DB) {
   return [
+    createListHandler(db, 'users' as const),
+
     http.post(
       'http://127.0.0.1:8090/api/collections/users/auth-with-password',
       async ({ request }) => {

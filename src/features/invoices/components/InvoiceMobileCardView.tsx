@@ -168,7 +168,7 @@ export function InvoiceMobileCardView({
             >
               {group.counterparty}
               {group.invoices.length > 1 && (
-                <Text size="sm" fw={400} c="dimmed">
+                <Text component="span" size="sm" fw={400} c="dimmed">
                   Итого: {formatAmountRub(unpaidTotal)}
                 </Text>
               )}
