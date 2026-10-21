@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Checkbox, Group, Stack, Table, Text } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { Button, Checkbox, Group, Stack, Table, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateOrganizationUserMailPermissions } from '@/api/mail';
