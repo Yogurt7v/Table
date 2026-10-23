@@ -25,6 +25,7 @@ export default defineConfig({
       'e2e/**',
       '**/test-results/**',
       '**/playwright-report/**',
+      '**/*.integration.test.ts',
     ],
   },
 });
