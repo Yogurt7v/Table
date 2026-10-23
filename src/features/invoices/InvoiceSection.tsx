@@ -164,9 +164,11 @@ function ObjectsList({
   onActiveFiltersChange,
   paidTodayTotal,
 }: ObjectsListProps) {
-  const { collapsedIds, collapseAll, expandAll } = useCollapsedObjects();
-  const [hiddenOpen, setHiddenOpen] = useState(false);
-  const allCollapsed = objects.length > 0 && objects.every((o) => collapsedIds.has(o.id));
+  const { collapsedIds, collapseAll, expand, expandAll } = useCollapsedObjects();
+  const [hiddenOpen, setHiddenOpen] = useState(hasSearch);
+  const allCollapsed =
+    objects.length > 0 && !hiddenOpen && objects.every((o) => collapsedIds.has(o.id));
+  const showCollapseButton = objects.length > 1 || (objects.length > 0 && hiddenObjects.length > 0);
   const isFullAccess =
     permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
 
@@ -176,13 +178,26 @@ function ObjectsList({
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
   const prevHasSearchRef = useRef(hasSearch);
+
+  useEffect(() => {
+    if (hasSearch) expandAll();
+  }, [hasSearch, expandAll]);
+
   useEffect(() => {
     if (hasSearch && !prevHasSearchRef.current) {
-      expandAll();
       setHiddenOpen(true);
     }
     prevHasSearchRef.current = hasSearch;
-  }, [hasSearch, expandAll]);
+  }, [hasSearch]);
+
+  const handleCollapseAll = () => {
+    collapseAll();
+    setHiddenOpen(false);
+  };
+
+  const handleExpandAll = () => {
+    expand(objects.map((o) => o.id));
+  };
 
   const renderObjectBlock = (obj: IAccountingObject) => (
     <InvoiceObjectBlock
@@ -259,20 +274,19 @@ function ObjectsList({
     </Menu>
   );
 
-  const collapseButton =
-    objects.length > 1 ? (
-      <Button
-        size="compact-sm"
-        variant="light"
-        color="gray"
-        flex="1"
-        rightSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
-        onClick={allCollapsed ? expandAll : collapseAll}
-        leftSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
-      >
-        {allCollapsed ? 'Развернуть' : 'Свернуть'}
-      </Button>
-    ) : null;
+  const collapseButton = showCollapseButton ? (
+    <Button
+      size="compact-sm"
+      variant="light"
+      color="gray"
+      flex="1"
+      rightSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
+      onClick={allCollapsed ? handleExpandAll : handleCollapseAll}
+      leftSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
+    >
+      {allCollapsed ? 'Развернуть' : 'Свернуть'}
+    </Button>
+  ) : null;
 
   return (
     <>
@@ -608,7 +622,10 @@ export function InvoiceSection({
     if (!displayInvoices) return 0;
     const visibleIds = new Set(visibleObjects.map((o) => o.id));
     const registryInvoices = displayInvoices.filter(
-      (inv) => inv.paid && inv.paid_date === date && visibleIds.has(normalizeRelationId(inv.accounting_object_id)),
+      (inv) =>
+        inv.paid &&
+        inv.paid_date === date &&
+        visibleIds.has(normalizeRelationId(inv.accounting_object_id)),
     );
     return registryInvoices.reduce((sum, inv) => {
       if (inv.payment_amounts?.length) {
@@ -621,7 +638,9 @@ export function InvoiceSection({
   const printInvoices = useMemo(() => {
     const visibleIds = new Set(visibleObjects.map((o) => o.id));
     return filterInvoices(
-      displayInvoices.filter((inv) => visibleIds.has(normalizeRelationId(inv.accounting_object_id))),
+      displayInvoices.filter((inv) =>
+        visibleIds.has(normalizeRelationId(inv.accounting_object_id)),
+      ),
       paymentMarks,
       activeFilters,
     );

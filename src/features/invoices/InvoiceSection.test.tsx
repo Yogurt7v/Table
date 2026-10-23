@@ -169,6 +169,9 @@ async function renderLoaded(options?: Parameters<typeof renderSection>[0]) {
 
 const columnSettingsButton = () => screen.getAllByLabelText('Настройка колонок')[0]!;
 
+const globalCollapseButton = (name: 'Свернуть' | 'Развернуть') =>
+  screen.getAllByRole('button', { name })[0]!;
+
 /** Неразрывный пробел, который `toLocaleString('ru-RU')` ставит между разрядами. */
 const NBSP = '\u00a0';
 
@@ -181,11 +184,21 @@ function totalText(anchor: RegExp): string | null {
   return screen.queryByText(anchor)?.textContent ?? null;
 }
 
+function expectAllText(text: string, visible: boolean) {
+  const nodes = screen.getAllByText(text);
+  expect(nodes.length).toBeGreaterThan(0);
+  for (const node of nodes) {
+    if (visible) expect(node).toBeVisible();
+    else expect(node).not.toBeVisible();
+  }
+}
+
 describe('InvoiceSection', () => {
   beforeEach(() => {
     state.user = adminUser;
     state.searchText = '';
     state.searchAll = false;
+    localStorage.clear();
   });
 
   describe('состояние загрузки', () => {
@@ -570,6 +583,62 @@ describe('InvoiceSection', () => {
       expect(screen.getByText('Объекты без счетов (2)')).toBeInTheDocument();
       // Счета скрытых объектов не попадают в общий итог реестра.
       expect(totalText(/ИТОГО:/)).toBeNull();
+    });
+
+    it('Свернуть сворачивает видимые объекты и закрывает секцию скрытых', async () => {
+      const user = userEvent.setup();
+      setupHandlers({ objects: [accObj1, hiddenAccObj2] });
+
+      await renderLoaded();
+
+      await user.click(screen.getByRole('button', { name: 'Развернуть объекты без счетов' }));
+      expectAllText('ООО "Поставщик Б"', true);
+
+      await user.click(globalCollapseButton('Свернуть'));
+
+      expect(screen.getByRole('button', { name: 'Развернуть объекты без счетов' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+      expectAllText('ООО "Контрагент А"', false);
+      expectAllText('ООО "Поставщик Б"', false);
+      expect(globalCollapseButton('Развернуть')).toBeInTheDocument();
+    });
+
+    it('Развернуть разворачивает видимые объекты, но не открывает секцию скрытых', async () => {
+      const user = userEvent.setup();
+      setupHandlers({ objects: [accObj1, hiddenAccObj2] });
+
+      await renderLoaded();
+
+      await user.click(globalCollapseButton('Свернуть'));
+      expect(screen.getByRole('button', { name: 'Развернуть объекты без счетов' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+
+      await user.click(globalCollapseButton('Развернуть'));
+
+      expect(screen.getByRole('button', { name: 'Развернуть объекты без счетов' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+      expectAllText('ООО "Контрагент А"', true);
+      expectAllText('ООО "Поставщик Б"', false);
+    });
+
+    it('при активном поиске принудительно разворачивает все, включая скрытые объекты', async () => {
+      state.searchText = 'ООО';
+      setupHandlers({ objects: [accObj1, hiddenAccObj2] });
+
+      await renderLoaded();
+
+      expect(screen.getByRole('button', { name: 'Свернуть объекты без счетов' })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
+      expectAllText('ООО "Поставщик Б"', true);
+      expectAllText('ООО "Контрагент А"', true);
     });
   });
 });
