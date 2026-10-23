@@ -1,31 +1,34 @@
 import { useState } from 'react';
 import {
-  Group,
-  Stack,
-  Select,
-  Button,
-  Text,
-  Badge,
   ActionIcon,
-  Popover,
+  Button,
   Checkbox,
   CheckboxGroup,
+  Group,
   Loader,
-  Table,
+  Popover,
+  ScrollArea,
+  Select,
+  Stack,
+  Text,
+  TextInput,
 } from '@mantine/core';
-import { IconTrash, IconPlus, IconAdjustments, IconMail } from '@tabler/icons-react';
+import { IconAdjustments, IconMail, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
 import {
   useCreateOrganizationUser,
   useDeleteOrganizationUser,
   useUpdateOrganizationUser,
 } from '@/shared/hooks/useOrganizationUsers';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
+import { getAccountingObjects } from '@/api/collections';
 import { useOrg } from '@/shared/context/OrgContext';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { OrganizationUserMailPermissions } from './OrganizationUserMailPermissions';
 import type { IOrganizationUser } from '@/shared/types';
 
-const ROLE_COLORS: Record<IOrganizationUser['role'], string> = {
+type Role = IOrganizationUser['role'];
+
+const ROLE_COLORS: Record<Role, string> = {
   admin: 'red',
   moderator: 'blue',
   user: 'green',
@@ -33,13 +36,22 @@ const ROLE_COLORS: Record<IOrganizationUser['role'], string> = {
   guest: 'gray',
 };
 
-const ROLE_LABELS: Record<IOrganizationUser['role'], string> = {
+const ROLE_LABELS: Record<Role, string> = {
   admin: 'Администратор',
   moderator: 'Модератор',
   user: 'Пользователь',
   boss: 'Босс',
   guest: 'Гость',
 };
+
+const ROLE_OPTIONS = (Object.keys(ROLE_LABELS) as Role[]).map((role) => ({
+  value: role,
+  label: ROLE_LABELS[role],
+}));
+
+function roleInputStyles(role: Role) {
+  return { input: { backgroundColor: `var(--mantine-color-${ROLE_COLORS[role]}-0)` } };
+}
 
 interface InlineRoleCellProps {
   userId: string;
@@ -48,7 +60,7 @@ interface InlineRoleCellProps {
   canManageMailPermissions: boolean;
 }
 
-function ObjectCheckboxList({
+function ObjectPicker({
   orgId,
   selected,
   onChange,
@@ -58,6 +70,7 @@ function ObjectCheckboxList({
   onChange: (ids: string[]) => void;
 }) {
   const { data: objects, isLoading } = useAccountingObjects(orgId);
+  const [search, setSearch] = useState('');
 
   if (isLoading) return <Loader size="xs" />;
 
@@ -69,34 +82,194 @@ function ObjectCheckboxList({
     );
   }
 
+  const query = search.trim().toLowerCase();
+  const filtered = query
+    ? objects.filter((object) => object.name.toLowerCase().includes(query))
+    : objects;
+  const selectedIds = new Set(selected);
+  const allFilteredSelected = filtered.every((object) => selectedIds.has(object.id));
+
+  const toggleAll = () => {
+    if (allFilteredSelected) {
+      const filteredIds = new Set(filtered.map((object) => object.id));
+      onChange(selected.filter((id) => !filteredIds.has(id)));
+      return;
+    }
+
+    const next = new Set(selected);
+    for (const object of filtered) next.add(object.id);
+    onChange(Array.from(next));
+  };
+
   return (
-    <CheckboxGroup value={selected} onChange={onChange}>
-      <Stack gap={4}>
-        {objects?.map((obj) => (
-          <Checkbox key={obj.id} value={obj.id} label={obj.name} size="xs" />
-        ))}
-      </Stack>
-    </CheckboxGroup>
+    <Stack gap="xs" w={300}>
+      <TextInput
+        size="xs"
+        placeholder="Поиск объекта"
+        aria-label="Поиск объекта"
+        leftSection={<IconSearch size={14} />}
+        value={search}
+        onChange={(event) => setSearch(event.currentTarget.value)}
+      />
+      <Group justify="space-between" wrap="nowrap">
+        <Text size="xs" c="dimmed">
+          Выбрано {selected.length} из {objects.length}
+        </Text>
+        <Button size="compact-xs" variant="subtle" onClick={toggleAll}>
+          {allFilteredSelected ? 'Снять все' : 'Выбрать все'}
+        </Button>
+      </Group>
+      <ScrollArea.Autosize mah={240} type="auto">
+        <CheckboxGroup value={selected} onChange={onChange}>
+          <Stack gap={4}>
+            {filtered.map((object) => (
+              <Checkbox key={object.id} value={object.id} label={object.name} size="xs" />
+            ))}
+          </Stack>
+        </CheckboxGroup>
+      </ScrollArea.Autosize>
+      {filtered.length === 0 && (
+        <Text size="xs" c="dimmed">
+          Ничего не найдено
+        </Text>
+      )}
+    </Stack>
   );
 }
 
-function ObjectLabels({ orgId, objectIds }: { orgId: string; objectIds: string[] }) {
-  const { data: objects } = useAccountingObjects(orgId);
-  if (!objects) return null;
+interface AssignmentRowProps {
+  assignment: IOrganizationUser;
+  orgName: string;
+  canManageMailPermissions: boolean;
+  onDelete: () => void;
+}
 
-  const names = objectIds
-    .map((id) => objects.find((o) => o.id === id)?.name)
-    .filter((n): n is string => !!n);
+function AssignmentRow({
+  assignment,
+  orgName,
+  canManageMailPermissions,
+  onDelete,
+}: AssignmentRowProps) {
+  const updateOrgUser = useUpdateOrganizationUser();
+  const [objectsOpen, setObjectsOpen] = useState(false);
+  const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
+  const [mailOpen, setMailOpen] = useState(false);
 
-  if (names.length === 0) return null;
+  const isAdmin = assignment.role === 'admin';
+  const selectedCount = assignment.objects?.length ?? 0;
+
+  const handleRoleChange = async (value: string | null) => {
+    if (!value || value === assignment.role) return;
+
+    try {
+      await updateOrgUser.mutateAsync({ id: assignment.id, data: { role: value as Role } });
+    } catch {
+      /* тост об ошибке показывает onError в useUpdateOrganizationUser */
+    }
+  };
+
+  const handleObjectsSave = async () => {
+    try {
+      await updateOrgUser.mutateAsync({ id: assignment.id, data: { objects: selectedObjects } });
+      setObjectsOpen(false);
+    } catch {
+      /* тост об ошибке показывает onError в useUpdateOrganizationUser */
+    }
+  };
 
   return (
-    <Group gap={2} wrap="nowrap">
-      {names.map((name) => (
-        <Badge key={name} color="gray" size="xs" variant="light">
-          {name}
-        </Badge>
-      ))}
+    <Group gap="xs" wrap="nowrap" py={2}>
+      <Text size="sm" style={{ flex: 1, minWidth: 0 }} truncate>
+        {orgName}
+      </Text>
+
+      <Select
+        size="xs"
+        w={170}
+        data={ROLE_OPTIONS}
+        value={assignment.role}
+        onChange={handleRoleChange}
+        allowDeselect={false}
+        aria-label={`Роль: ${orgName}`}
+        styles={roleInputStyles(assignment.role)}
+        disabled={updateOrgUser.isPending}
+      />
+
+      {isAdmin ? (
+        <Text size="xs" c="dimmed" w={110} ta="center">
+          Все объекты
+        </Text>
+      ) : (
+        <Popover
+          opened={objectsOpen}
+          onClose={() => setObjectsOpen(false)}
+          closeOnClickOutside={false}
+          position="bottom-end"
+        >
+          <Popover.Target>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              color={selectedCount > 0 ? 'blue' : 'red'}
+              leftSection={<IconAdjustments size={14} />}
+              onClick={() => {
+                setSelectedObjects(assignment.objects ?? []);
+                setObjectsOpen((open) => !open);
+              }}
+            >
+              Объекты: {selectedCount}
+            </Button>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <ObjectPicker
+              orgId={assignment.organization_id}
+              selected={selectedObjects}
+              onChange={setSelectedObjects}
+            />
+            <Group justify="flex-end" mt="xs">
+              <Button size="compact-xs" variant="light" onClick={() => setObjectsOpen(false)}>
+                Отмена
+              </Button>
+              <Button size="compact-xs" onClick={handleObjectsSave} loading={updateOrgUser.isPending}>
+                Сохранить
+              </Button>
+            </Group>
+          </Popover.Dropdown>
+        </Popover>
+      )}
+
+      {canManageMailPermissions && (
+        <Popover
+          opened={mailOpen}
+          onClose={() => setMailOpen(false)}
+          closeOnClickOutside={false}
+          width="min(460px, calc(100vw - 24px))"
+          position="bottom-end"
+        >
+          <Popover.Target>
+            <ActionIcon
+              size="sm"
+              variant="subtle"
+              color={assignment.can_view_mails === true ? 'blue' : 'gray'}
+              aria-label={`Почтовые права: ${orgName}`}
+              onClick={() => setMailOpen((open) => !open)}
+            >
+              <IconMail size={24} />
+            </ActionIcon>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <OrganizationUserMailPermissions
+              assignment={assignment}
+              canEdit={canManageMailPermissions}
+              onSaved={() => setMailOpen(false)}
+            />
+          </Popover.Dropdown>
+        </Popover>
+      )}
+
+      <ActionIcon size="md" color="red" variant="subtle" aria-label={`Убрать доступ: ${orgName}`} onClick={onDelete}>
+        <IconTrash size={18} />
+      </ActionIcon>
     </Group>
   );
 }
@@ -108,24 +281,31 @@ export function InlineRoleCell({
 }: InlineRoleCellProps) {
   const createOrgUser = useCreateOrganizationUser();
   const deleteOrgUser = useDeleteOrganizationUser();
-  const updateOrgUser = useUpdateOrganizationUser();
   const { organizations } = useOrg();
   const [showForm, setShowForm] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState<IOrganizationUser['role']>('guest');
+  const [selectedRole, setSelectedRole] = useState<Role>('guest');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; orgName: string } | null>(null);
-  const [objectsPopoverId, setObjectsPopoverId] = useState<string | null>(null);
-  const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
-  const [mailPopoverId, setMailPopoverId] = useState<string | null>(null);
 
   const availableOrgs = organizations.filter(
-    (o) => !assignments.some((a) => a.organization_id === o.id),
+    (organization) => !assignments.some((a) => a.organization_id === organization.id),
   );
 
   const handleAdd = async () => {
     if (!selectedOrg) return;
+
     try {
-      await createOrgUser.mutateAsync({ userId, organizationId: selectedOrg, role: selectedRole });
+      const objectIds =
+        selectedRole === 'admin'
+          ? undefined
+          : (await getAccountingObjects(selectedOrg)).map((object) => object.id);
+
+      await createOrgUser.mutateAsync({
+        userId,
+        organizationId: selectedOrg,
+        role: selectedRole,
+        objectIds,
+      });
       setSelectedOrg(null);
       setSelectedRole('guest');
     } catch {
@@ -148,166 +328,54 @@ export function InlineRoleCell({
           Нет ролей
         </Text>
       ) : (
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Организация</Table.Th>
-              <Table.Th w={120}>Роль</Table.Th>
-              <Table.Th>Объекты</Table.Th>
-              <Table.Th w={50}>Почта</Table.Th>
-              <Table.Th w={50} />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {assignments.map((a) => {
-              const orgName =
-                organizations.find((o) => o.id === a.organization_id)?.name ?? a.organization_id;
-              return (
-                <Table.Tr key={a.id}>
-                  <Table.Td>
-                    <Text size="sm">{orgName}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge color={ROLE_COLORS[a.role]} size="sm" variant="light">
-                      {ROLE_LABELS[a.role]}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap={4} wrap="nowrap">
-                      {a.objects && a.objects.length > 0 && a.role !== 'admin' && (
-                        <ObjectLabels orgId={a.organization_id} objectIds={a.objects} />
-                      )}
-                      {a.role !== 'admin' && (
-                        <Popover
-                          opened={objectsPopoverId === a.id}
-                          onClose={() => setObjectsPopoverId(null)}
-                          closeOnClickOutside={false}
-                        >
-                          <Popover.Target>
-                            <ActionIcon
-                              size="sm"
-                              variant="subtle"
-                              color={a.objects && a.objects.length > 0 ? 'blue' : 'gray'}
-                              onClick={() => {
-                                setObjectsPopoverId(objectsPopoverId === a.id ? null : a.id);
-                                setSelectedObjects(a.objects ?? []);
-                              }}
-                            >
-                              <IconAdjustments size={24} />
-                            </ActionIcon>
-                          </Popover.Target>
-                          <Popover.Dropdown>
-                            <ObjectCheckboxList
-                              orgId={a.organization_id}
-                              selected={selectedObjects}
-                              onChange={setSelectedObjects}
-                            />
-                            <Group justify="flex-end" mt="xs">
-                              <Button
-                                size="compact-xs"
-                                variant="light"
-                                onClick={() => setObjectsPopoverId(null)}
-                              >
-                                Отмена
-                              </Button>
-                              <Button
-                                size="compact-xs"
-                                onClick={async () => {
-                                  try {
-                                    await updateOrgUser.mutateAsync({
-                                      id: a.id,
-                                      data: { objects: selectedObjects },
-                                    });
-                                    setObjectsPopoverId(null);
-                                  } catch {
-                                    /* тост об ошибке показывает onError в useUpdateOrganizationUser */
-                                  }
-                                }}
-                                loading={updateOrgUser.isPending}
-                              >
-                                Сохранить
-                              </Button>
-                            </Group>
-                          </Popover.Dropdown>
-                        </Popover>
-                      )}
-                    </Group>
-                  </Table.Td>
-                  <Table.Td>
-                    {canManageMailPermissions && (
-                      <Popover
-                        opened={mailPopoverId === a.id}
-                        onClose={() => setMailPopoverId(null)}
-                        closeOnClickOutside={false}
-                        width="min(460px, calc(100vw - 24px))"
-                      >
-                        <Popover.Target>
-                          <ActionIcon
-                            size="sm"
-                            variant="subtle"
-                            color={a.can_view_mails === true ? 'blue' : 'gray'}
-                            aria-label={`Почтовые права: ${orgName}`}
-                            onClick={() => setMailPopoverId(mailPopoverId === a.id ? null : a.id)}
-                          >
-                            <IconMail size={24} />
-                          </ActionIcon>
-                        </Popover.Target>
-                        <Popover.Dropdown>
-                          <OrganizationUserMailPermissions
-                            assignment={a}
-                            canEdit={canManageMailPermissions}
-                            onSaved={() => setMailPopoverId(null)}
-                          />
-                        </Popover.Dropdown>
-                      </Popover>
-                    )}
-                  </Table.Td>
-                  <Table.Td>
-                    <ActionIcon
-                      size="md"
-                      color="red"
-                      variant="subtle"
-                      onClick={() => setDeleteTarget({ id: a.id, orgName })}
-                    >
-                      <IconTrash size={18} />
-                    </ActionIcon>
-                  </Table.Td>
-                </Table.Tr>
-              );
-            })}
-          </Table.Tbody>
-        </Table>
+        <Stack gap={2}>
+          {assignments.map((assignment) => {
+            const orgName =
+              organizations.find((organization) => organization.id === assignment.organization_id)
+                ?.name ?? assignment.organization_id;
+
+            return (
+              <AssignmentRow
+                key={assignment.id}
+                assignment={assignment}
+                orgName={orgName}
+                canManageMailPermissions={canManageMailPermissions}
+                onDelete={() => setDeleteTarget({ id: assignment.id, orgName })}
+              />
+            );
+          })}
+        </Stack>
       )}
 
       {showForm && (
         <Group gap={6} wrap="nowrap" mt="sm">
           <Select
-            data={availableOrgs.map((o) => ({ value: o.id, label: o.name }))}
+            data={availableOrgs.map((organization) => ({
+              value: organization.id,
+              label: organization.name,
+            }))}
             value={selectedOrg}
             onChange={setSelectedOrg}
             placeholder="Организация"
+            aria-label="Новая организация"
             size="xs"
             style={{ flex: 1, minWidth: 0 }}
             comboboxProps={{ withinPortal: false }}
           />
           <Select
-            data={[
-              { value: 'admin', label: 'Админ' },
-              { value: 'moderator', label: 'Модератор' },
-              { value: 'user', label: 'Пользователь' },
-              { value: 'boss', label: 'Босс' },
-              { value: 'guest', label: 'Гость' },
-            ]}
+            data={ROLE_OPTIONS}
             value={selectedRole}
-            onChange={(v) => v && setSelectedRole(v as IOrganizationUser['role'])}
+            onChange={(value) => value && setSelectedRole(value as Role)}
+            aria-label="Новая роль"
             size="xs"
-            w={110}
+            w={170}
             comboboxProps={{ withinPortal: false }}
           />
           <ActionIcon
             size="sm"
             color="green"
             variant="light"
+            aria-label="Добавить назначение"
             onClick={async () => {
               await handleAdd();
               setShowForm(false);

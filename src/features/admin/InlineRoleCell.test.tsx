@@ -124,7 +124,16 @@ function addAssignmentButton(): HTMLButtonElement {
 }
 
 const orgSelect = () => screen.getByPlaceholderText('Организация');
-const roleSelect = () => screen.getByDisplayValue('Гость');
+/* Mantine Select вешает aria-label и на input, и на combobox-обёртку. */
+function labeledInput(label: string): HTMLInputElement {
+  const input = screen
+    .getAllByLabelText(label)
+    .find((node): node is HTMLInputElement => node instanceof HTMLInputElement);
+  if (!input) throw new Error(`поле «${label}» не найдено`);
+  return input;
+}
+
+const roleSelect = () => labeledInput('Новая роль');
 const mailButton = () => screen.getByRole('button', { name: 'Почтовые права: ООО "Тест"' });
 
 async function pickOrg(user: User, label: string) {
@@ -186,11 +195,11 @@ describe('InlineRoleCell', () => {
         ],
       });
 
-      expect(screen.getByText('Администратор')).toBeInTheDocument();
-      expect(screen.getByText('Пользователь')).toBeInTheDocument();
-      expect(screen.getByText('Гость')).toBeInTheDocument();
-      expect(screen.getByText('Босс')).toBeInTheDocument();
-      expect(screen.getByText('Модератор')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Администратор')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Пользователь')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Гость')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Босс')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Модератор')).toBeInTheDocument();
     });
 
     it('подставляет название организации, а для неизвестной — её идентификатор', () => {
@@ -216,11 +225,10 @@ describe('InlineRoleCell', () => {
       expect(objectButtons()).toHaveLength(1);
     });
 
-    it('подписывает объекты участника их названиями', async () => {
+    it('показывает количество объектов участника', async () => {
       renderCell({ assignments: [{ ...orgUserUser, objects: ['ao1', 'ao2'] }] });
 
-      expect(await screen.findByText('Основная деятельность')).toBeInTheDocument();
-      expect(screen.getByText('Капитальные вложения')).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Объекты: 2' })).toBeInTheDocument();
     });
 
     it('не предлагает добавить роль, когда пользователь уже состоит во всех организациях', () => {
@@ -247,7 +255,7 @@ describe('InlineRoleCell', () => {
         user_id: 'user1',
         organization_id: 'org2',
         role: 'boss',
-        objects: undefined,
+        objects: ['ao1', 'ao2'],
       });
     });
 
@@ -293,7 +301,7 @@ describe('InlineRoleCell', () => {
       await user.click(roleSelect());
 
       const labels = (await screen.findAllByRole('option')).map((option) => option.textContent);
-      expect(labels).toEqual(['Админ', 'Модератор', 'Пользователь', 'Босс', 'Гость']);
+      expect(labels).toEqual(['Администратор', 'Модератор', 'Пользователь', 'Босс', 'Гость']);
     });
 
     it('не применяет роль до ответа сервера и сообщает об отказе', async () => {
@@ -312,8 +320,8 @@ describe('InlineRoleCell', () => {
         ),
       );
       expect(createdIn('organization_users')['role']).toBe('boss');
-      expect(screen.queryByText('Босс')).not.toBeInTheDocument();
-      expect(screen.getByText('Пользователь')).toBeInTheDocument();
+      expect(screen.queryByDisplayValue('Босс')).not.toBeInTheDocument();
+      expect(screen.getByDisplayValue('Пользователь')).toBeInTheDocument();
     });
 
     it('закрывает форму после неудачного назначения', async () => {
@@ -361,6 +369,39 @@ describe('InlineRoleCell', () => {
       await user.click(objectButtons()[0]!);
 
       expect(await screen.findByText('У организации нет объектов')).toBeInTheDocument();
+    });
+
+    it('фильтрует список объектов по поиску', async () => {
+      const user = userEvent.setup();
+      renderCell();
+
+      await user.click(objectButtons()[0]!);
+      expect(await screen.findByLabelText('Основная деятельность')).toBeInTheDocument();
+
+      await user.type(screen.getByLabelText('Поиск объекта'), 'капитал');
+
+      expect(screen.queryByLabelText('Основная деятельность')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Капитальные вложения')).toBeInTheDocument();
+    });
+
+    it('выбирает все объекты по кнопке и показывает счётчик', async () => {
+      const user = userEvent.setup();
+      renderCell({ assignments: [{ ...orgUserUser, objects: [] }] });
+
+      await user.click(objectButtons()[0]!);
+      expect(await screen.findByText('Выбрано 0 из 2')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Выбрать все' }));
+      expect(screen.getByText('Выбрано 2 из 2')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+
+      await waitFor(() => expect(updatedIn('organization_users')).toBeDefined());
+      expect(updatedIn('organization_users')).toEqual({
+        collection: 'organization_users',
+        id: 'ou2',
+        body: { objects: ['ao1', 'ao2'] },
+      });
     });
   });
 
@@ -439,6 +480,23 @@ describe('InlineRoleCell', () => {
 
       await waitFor(() => expect(updatedIn('organization_users')).toBeDefined());
       expect(updatedIn('organization_users').body).not.toHaveProperty('role');
+    });
+  });
+
+  describe('изменение роли', () => {
+    it('пишет только новую роль в тело запроса', async () => {
+      const user = userEvent.setup();
+      renderCell();
+
+      await user.click(labeledInput('Роль: ООО "Тест"'));
+      await user.click(await screen.findByRole('option', { name: 'Модератор' }));
+
+      await waitFor(() => expect(updatedIn('organization_users')).toBeDefined());
+      expect(updatedIn('organization_users')).toEqual({
+        collection: 'organization_users',
+        id: 'ou2',
+        body: { role: 'moderator' },
+      });
     });
   });
 
