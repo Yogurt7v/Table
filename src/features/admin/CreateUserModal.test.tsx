@@ -20,6 +20,7 @@ type Payload = Record<string, unknown>;
 
 const h = vi.hoisted(() => ({
   orgs: [] as IOrganization[],
+  objects: [] as Array<{ id: string; organization_id: string; name: string }>,
   failing: new Map<string, string>(),
   creates: [] as Array<{ collection: string; body: Payload }>,
 }));
@@ -28,7 +29,7 @@ vi.mock('@/api/client', () => ({
   pb: {
     authStore: { model: null, token: '', isValid: false },
     collection: (name: string) => ({
-      getFullList: () => Promise.resolve([]),
+      getFullList: () => Promise.resolve(h.objects),
       create: (body: Payload) => {
         h.creates.push({ collection: name, body });
         const failure = h.failing.get(name);
@@ -111,6 +112,7 @@ const assignments = () => h.creates.filter((call) => call.collection === 'organi
 describe('CreateUserModal', () => {
   beforeEach(() => {
     h.orgs = [org1, org2];
+    h.objects = [];
     h.failing = new Map();
     h.creates = [];
   });
@@ -290,7 +292,28 @@ describe('CreateUserModal', () => {
         user_id: 'users_new_1',
         organization_id: 'org1',
         role: 'boss',
-        objects: undefined,
+        objects: [],
+      });
+    });
+
+    it('выдаёт новому пользователю все объекты организации по умолчанию', async () => {
+      const user = userEvent.setup();
+      h.objects = [
+        { id: 'ao1', organization_id: 'org1', name: 'Основная деятельность' },
+        { id: 'ao2', organization_id: 'org1', name: 'Капитальные вложения' },
+      ];
+      renderModal();
+
+      await fillIdentity(user);
+      await addAssignment(user);
+      await user.click(submitButton());
+
+      await waitFor(() => expect(assignments()).toHaveLength(1));
+      expect(assignments()[0]?.body).toEqual({
+        user_id: 'users_new_1',
+        organization_id: 'org1',
+        role: 'guest',
+        objects: ['ao1', 'ao2'],
       });
     });
 
@@ -317,7 +340,7 @@ describe('CreateUserModal', () => {
           user_id: 'users_new_1',
           organization_id: 'org2',
           role: 'moderator',
-          objects: undefined,
+          objects: [],
         },
       ]);
     });

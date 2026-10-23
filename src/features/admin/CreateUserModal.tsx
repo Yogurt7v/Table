@@ -15,7 +15,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconTrash, IconPlus, IconCopy, IconEye, IconEyeOff, IconX } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { createUser } from '@/api/collections';
-import { createOrganizationUser } from '@/api/collections';
+import { createOrganizationUser, getAccountingObjects } from '@/api/collections';
 import { generatePassword } from '@/shared/utils/generate-password';
 import { useOrg } from '@/shared/context/OrgContext';
 import type { IOrganizationUser } from '@/shared/types';
@@ -89,7 +89,13 @@ export function CreateUserModal({ opened, onClose }: CreateUserModalProps) {
     try {
       const user = await createUser(login, password, name);
       for (const a of assignments) {
-        await createOrganizationUser(user.id, a.orgId, a.role);
+        // Новый пользователь должен сразу видеть объекты организации: иначе
+        // назначенная роль открывает пустой реестр, пока админ не расставит галочки.
+        const objectIds =
+          a.role === 'admin'
+            ? undefined
+            : (await getAccountingObjects(a.orgId)).map((object) => object.id);
+        await createOrganizationUser(user.id, a.orgId, a.role, objectIds);
       }
       qc.resetQueries({ queryKey: ['users'] });
       qc.resetQueries({ queryKey: ['organization_users'] });
