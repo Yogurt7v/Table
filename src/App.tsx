@@ -5,6 +5,7 @@ import { MainPage } from './pages/MainPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
 import { MailPage } from './pages/MailPage.tsx';
 import { AdminPage } from './pages/AdminPage.tsx';
+import { DocsPage } from './pages/DocsPage.tsx';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<MainPage />} />
           <Route path="/mail" element={<MailPage />} />
+          <Route path="/docs" element={<DocsPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Route>
       </Route>

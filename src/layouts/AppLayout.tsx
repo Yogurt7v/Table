@@ -12,7 +12,12 @@ import {
   Tooltip,
   Collapse,
 } from '@mantine/core';
-import { IconHome, IconChevronUp, IconSettings, IconLogout } from '@tabler/icons-react';
+import {
+  IconHome,
+  IconChevronUp,
+  IconSettings,
+  IconLogout,
+} from '@tabler/icons-react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
@@ -50,6 +55,7 @@ function AppLayoutContent() {
 
   const isHomePage = pathname === '/';
   const isMailPage = pathname === '/mail';
+  const isDocsName = pathname === '/docs'
   const showScrollUp = isHomePage && scrolled;
 
   useEffect(() => {
@@ -177,7 +183,7 @@ function AppLayoutContent() {
                 </Tooltip>
               </Group>
             </Group>
-            {!isMailPage && <InvoiceSearch stretch />}
+            {!isMailPage && !isDocsName && <InvoiceSearch stretch />}
             <Collapse in={pinned} transitionDuration={200}>
               <Box className="date-pinned-row" py={2}>
                 <MainDatePicker variant="header" />
@@ -254,7 +260,7 @@ function AppLayoutContent() {
                   </Group>
                 )}
               />
-              {!isMailPage && <InvoiceSearch />}
+              {!isMailPage && !isDocsName &&<InvoiceSearch />}
             </Group>
             <Group>
               {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (

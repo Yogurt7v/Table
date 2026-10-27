@@ -194,3 +194,121 @@ export async function deleteInvoiceSoft(client: PocketBase, invoiceId: string): 
 export function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
+
+// ── Документы ──
+
+export async function findDocumentByMarker(
+  client: PocketBase,
+  marker: string,
+): Promise<Record<string, unknown> | undefined> {
+  const list = await client
+    .collection('documents')
+    .getFullList({ filter: byCounterparty(marker), sort: '-created' });
+  return list[0] as unknown as Record<string, unknown> | undefined;
+}
+
+export async function findArchivedDocumentByMarker(
+  client: PocketBase,
+  marker: string,
+): Promise<Record<string, unknown> | undefined> {
+  const list = await client
+    .collection('documents')
+    .getFullList({ filter: `${byCounterparty(marker)} && is_deleted = true`, sort: '-deleted_at' });
+  return list[0] as unknown as Record<string, unknown> | undefined;
+}
+
+export async function cancelInvoicePayment(invoiceId: string): Promise<void> {
+  const pb = pbAdmin();
+  return pb.collection('invoices').update(invoiceId, { paid: false });
+}
+
+// ── Документы ──
+
+export async function createDocumentManually(
+  client: PocketBase,
+  data: {
+    orgId: string;
+    objectId: string;
+    paymentDate: string;
+    counterparty: string;
+    purpose?: string;
+    contractNo?: string;
+    invoiceNo?: string;
+    amount?: number;
+    responsibleId: string;
+    responsibleName?: string;
+    sourceInvoiceId?: string;
+    sourceInvoiceNo?: string;
+  },
+): Promise<Record<string, unknown>> {
+  return client.collection('documents').create({
+    organization_id: data.orgId,
+    accounting_object_id: data.objectId,
+    payment_date: data.paymentDate,
+    counterparty: data.counterparty,
+    purpose: data.purpose ?? '',
+    contract_no: data.contractNo ?? '',
+    invoice_no: data.invoiceNo ?? '',
+    amount: data.amount ?? 0,
+    responsible_id: data.responsibleId,
+    responsible_name: data.responsibleName ?? '',
+    creation_mode: 'manual',
+    sync_locked: true,
+    provided: false,
+    confirmed: false,
+    payment_cancelled: false,
+    is_deleted: false,
+    source_invoice_id: data.sourceInvoiceId ?? '',
+    source_invoice_no: data.sourceInvoiceNo ?? '',
+  });
+}
+
+export async function archiveDocument(
+  client: PocketBase,
+  documentId: string,
+  reason: string,
+): Promise<Record<string, unknown>> {
+  return client.collection('documents').update(documentId, {
+    is_deleted: true,
+    deleted_by: client.authStore.model?.id ?? '',
+    deleted_by_name: client.authStore.model?.name || client.authStore.model?.email || '',
+    deleted_at: new Date().toISOString(),
+    deletion_reason: reason,
+  });
+}
+
+export async function restoreDocument(
+  client: PocketBase,
+  documentId: string,
+  orgId: string,
+  objectId: string,
+): Promise<Record<string, unknown>> {
+  const list = await client.collection('documents').getFullList({
+    filter: `organization_id = "${orgId}" && accounting_object_id = "${objectId}"`,
+    fields: 'seq',
+  });
+  const maxSeq = list.reduce((max, doc) => Math.max(max, Number(doc.seq) || 0), 0);
+  return client.collection('documents').update(documentId, {
+    is_deleted: false,
+    deleted_by: '',
+    deleted_by_name: '',
+    deleted_at: '',
+    deletion_reason: '',
+    seq: maxSeq + 1,
+  });
+}
+
+export async function addDocumentComment(
+  client: PocketBase,
+  documentId: string,
+  orgId: string,
+  text: string,
+): Promise<Record<string, unknown>> {
+  return client.collection('document_comments').create({
+    document_id: documentId,
+    organization_id: orgId,
+    author: client.authStore.model?.id ?? '',
+    author_name: client.authStore.model?.name || client.authStore.model?.email || '',
+    text,
+  });
+}

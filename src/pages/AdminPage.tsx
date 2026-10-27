@@ -22,6 +22,7 @@ import { OrganizationAdminTable } from '@/features/admin/OrganizationAdminTable'
 import { UserAdminTable } from '@/features/admin/UserAdminTable';
 import { DeletedInvoicesSection } from '@/features/admin/DeletedInvoicesSection';
 import { DeletedMailsSection } from '@/features/admin/DeletedMailsSection';
+import { DeletedDocumentsSection } from '@/features/admin/DeletedDocumentsSection';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { buildUserDeleteConsequences } from '@/features/admin/user-delete-consequences';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -168,6 +169,9 @@ export function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ['deletedIncomingMails'] });
       queryClient.invalidateQueries({ queryKey: ['deletedOutgoingMails'] });
     }
+    if (value === 'documents-archive') {
+      queryClient.invalidateQueries({ queryKey: ['documents-archive'] });
+    }
   };
 
   const clearHighlightParam = () => {
@@ -206,6 +210,7 @@ export function AdminPage() {
           <Tabs.Tab value="organizations">Организации</Tabs.Tab>
           <Tabs.Tab value="users">Пользователи</Tabs.Tab>
           <Tabs.Tab value="archive">Архив счетов</Tabs.Tab>
+          <Tabs.Tab value="documents-archive">Архив документов</Tabs.Tab>
           {canViewMailArchive && <Tabs.Tab value="mail-archive">Архив писем</Tabs.Tab>}
         </Tabs.List>
 
@@ -245,6 +250,10 @@ export function AdminPage() {
               onHighlightConsumed={clearHighlightParam}
             />
           )}
+        </Tabs.Panel>
+
+        <Tabs.Panel value="documents-archive" pt="md">
+          {currentOrgId && <DeletedDocumentsSection orgId={currentOrgId} />}
         </Tabs.Panel>
 
         {canViewMailArchive && (

@@ -629,7 +629,7 @@ export function MailSection({ orgId }: MailSectionProps) {
               Счета
             </Anchor>
             /{' '}
-            <Title order={5}>Почта</Title>
+            <Title order={3}>Почта</Title>
             <Tooltip label="Настройка колонок">
               <ActionIcon
                 size="md"

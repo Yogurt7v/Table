@@ -367,8 +367,28 @@ function ObjectsList({
                 /{' '}
               </Group>
             )}
+            {permissions.role !== 'guest' && (
+              <Group gap={6} wrap="nowrap">
+                <Anchor
+                  size="sm"
+                  component={Link}
+                  to="/docs"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    color: 'black',
+                    fontWeight: 'bolder',
+                    fontSize: '16px',
+                  }}
+                >
+                  Документы
+                </Anchor>
+                /{' '}
+              </Group>
+            )}
 
-            <Title order={5}>Счета</Title>
+            <Title order={3}>Счета</Title>
             <Tooltip label="Настройка колонок">
               <ActionIcon
                 size="md"

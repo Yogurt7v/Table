@@ -54,3 +54,44 @@ export async function createInvoiceViaUi(
 export async function logoutViaUi(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Выйти' }).click();
 }
+
+/** Открывает реестр документов и ждёт заголовок «Документы». */
+export async function openDocumentsPage(page: Page) {
+  await page.goto(`${APP}docs`);
+  await expect(page.getByRole('heading', { name: 'Документы' })).toBeVisible({ timeout: 15000 });
+}
+
+/** Открывает карточку документа по маркеру контрагента в строке таблицы. */
+export async function openDocumentCard(page: Page, marker: string) {
+  const row = page.locator('tr').filter({ hasText: marker });
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+}
+
+/** Загружает файл в карточке документа (вкладка «Файлы»). */
+export async function uploadDocumentFile(page: Page, filePath: string) {
+  const modal = page.getByRole('dialog');
+  await modal.getByRole('tab', { name: 'Файлы' }).click();
+  await page.setInputFiles('input[type="file"]', filePath);
+  await modal.getByRole('button', { name: 'Загрузить' }).click();
+  await expect(page.getByText('Файл загружен')).toBeVisible();
+}
+
+/** Переключает статус документа в карточке (вкладка «Документ»). */
+export async function toggleDocumentStatus(page: Page, statusName: 'Предоставлен' | 'Подтверждён') {
+  const modal = page.getByRole('dialog');
+  await modal.getByRole('tab', { name: 'Документ' }).click();
+  await modal.getByLabel(statusName).click();
+  await expect(page.getByText('Статус обновлён')).toBeVisible();
+}
+
+/** Переносит документ в другой объект (вкладка «Документ», поле «Объект»). */
+export async function moveDocumentToObject(page: Page, objectName: string) {
+  const modal = page.getByRole('dialog');
+  await modal.getByRole('tab', { name: 'Документ' }).click();
+  await modal.getByLabel('Объект').click();
+  await page.getByRole('option', { name: objectName }).click();
+  await modal.getByRole('button', { name: 'Сохранить' }).click();
+  await expect(page.getByText('Документ сохранён')).toBeVisible();
+}
