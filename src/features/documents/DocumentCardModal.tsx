@@ -118,13 +118,50 @@ function emptyForm(document: IDocument): DocumentForm {
   };
 }
 
+const DOCUMENT_FIELD_LABELS: Record<string, string> = {
+  amount: 'Сумма',
+  counterparty: 'Контрагент',
+  purpose: 'Назначение',
+  contract_no: 'Договор',
+  invoice_no: 'Номер счёта',
+  payment_date: 'Дата оплаты',
+  responsible_id: 'Ответственный',
+  accounting_object_id: 'Объект учёта',
+  source_invoice_id: 'Исходный счёт',
+  source_invoice_no: 'Номер исходного счёта',
+  automatic: 'Создан автоматически',
+  provided: 'Предоставлен',
+  confirmed: 'Подтверждён',
+  payment_cancelled: 'Оплата отменена',
+  payment_resumed: 'Оплата возобновлена',
+  is_deleted: 'В архиве',
+  deletion_reason: 'Причина удаления',
+};
+
+function formatDocumentHistoryValue(key: string, value: unknown): string {
+  if (value == null || value === '') return '—';
+  if (key === 'amount') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toLocaleString('ru-RU') + ' ₽' : String(value);
+  }
+  if (key === 'automatic') return value === true ? 'да' : 'нет';
+  if (key === 'provided') return value === true ? 'да' : 'нет';
+  if (key === 'confirmed') return value === true ? 'да' : 'нет';
+  if (key === 'payment_cancelled') return value === true ? 'да' : 'нет';
+  if (key === 'payment_resumed') return value === true ? 'да' : 'нет';
+  if (key === 'is_deleted') return value === true ? 'да' : 'нет';
+  if (key === 'payment_date') return String(value);
+  return String(value);
+}
+
 function historyDetails(data: Record<string, unknown>): string {
   if (!data || Object.keys(data).length === 0) return '';
-  try {
-    return JSON.stringify(data, null, 2);
-  } catch {
-    return String(data);
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(data)) {
+    const label = DOCUMENT_FIELD_LABELS[key] ?? key;
+    lines.push(`${label}: ${formatDocumentHistoryValue(key, value)}`);
   }
+  return lines.join('\n');
 }
 
 export function DocumentCardModal({
