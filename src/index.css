@@ -303,3 +303,31 @@ body {
     animation: none;
   }
 }
+
+/* Подсветка строки документа при переходе из уведомления ( NotificationsBell → /docs ).
+   Анимация «мигание»: сначала яркая обводка, затухает к обычному hover-цвету, чтобы
+   переход из колокольчика не терялся среди десятка одинаковых строк. */
+.document-row--highlight {
+  animation: document-row-highlight 2.4s ease-out;
+}
+
+@keyframes document-row-highlight {
+  0% {
+    outline: 2px solid var(--org-color, #228be6);
+    outline-offset: -1px;
+    background-color: color-mix(in srgb, var(--org-color, #228be6) 14%, transparent);
+  }
+  100% {
+    outline: none;
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-row--highlight {
+    animation: none;
+    outline: 2px solid var(--org-color, #228be6);
+    outline-offset: -1px;
+    background-color: color-mix(in srgb, var(--org-color, #228be6) 14%, transparent);
+  }
+}

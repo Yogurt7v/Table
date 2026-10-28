@@ -1,4 +1,4 @@
-import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useRef, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import {
   Group,
   Pagination,
@@ -41,7 +41,9 @@ interface DocumentsTableProps {
   onPageChange: (objectId: string, page: number) => void;
   onWidthChange: (columnId: DocumentColumnId, width: number) => void;
   onWidthCommit: () => void;
-  onOpenDocument: (document: IDocument) => void;
+onOpenDocument: (document: IDocument) => void;
+  highlightDocumentId?: string | null;
+  highlightRowRef?: RefObject<HTMLTableRowElement | null> | null;
 }
 
 function ResizableHeader({
@@ -187,6 +189,8 @@ export function DocumentsTable({
   onWidthChange,
   onWidthCommit,
   onOpenDocument,
+  highlightDocumentId,
+  highlightRowRef,
 }: DocumentsTableProps) {
   const columns = DOCUMENT_COLUMNS.filter((column) => visibleColumns.includes(column.id));
   const totalWidth = columns.reduce(
@@ -254,6 +258,16 @@ export function DocumentsTable({
                           return (
                             <Table.Tr
                               key={document.id}
+                              ref={
+                                highlightDocumentId && document.id === highlightDocumentId
+                                  ? highlightRowRef
+                                  : null
+                              }
+                              className={
+                                highlightDocumentId && document.id === highlightDocumentId
+                                  ? 'document-row--highlight'
+                                  : undefined
+                              }
                               onClick={() => onOpenDocument(document)}
                               style={{
                                 cursor: 'pointer',

@@ -181,7 +181,7 @@ export function NotificationsBell() {
       if (!n.invoice_id && !n.document_id) return;
 
       if (n.document_id) {
-        navigate('/docs');
+        navigate('/docs', { state: { documentId: n.document_id } });
         return;
       }
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-  import { useDebouncedValue } from '@mantine/hooks';
+import { useDebouncedValue } from '@mantine/hooks';
+import { useLocation } from 'react-router-dom';
 import {
   ActionIcon,
   Box,
@@ -68,6 +69,7 @@ export function DocsPage() {
   const { currentOrgId, organizationsLoading } = useOrg();
   const { user } = useAuth();
   const role = useCurrentUserRole(currentOrgId);
+  const location = useLocation();
   const allObjectsQuery = useAccountingObjects(currentOrgId);
   const accessibleObjects = useAccessibleObjects(currentOrgId);
   const usersQuery = useUsers();
@@ -122,10 +124,12 @@ export function DocsPage() {
   );
   const [columnsOpened, setColumnsOpened] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [highlightDocumentId, setHighlightDocumentId] = useState<string | null>(null);
   const [manualOpened, setManualOpened] = useState(false);
   const [filterOpened, setFilterOpened] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const highlightRowRef = useRef<HTMLTableRowElement>(null);
 
   useEffect(() => {
     // Organization switch replaces every persisted table setting.
@@ -134,12 +138,36 @@ export function DocsPage() {
     setSizing(loadDocumentColumnSizing(currentOrgId));
     setPages({});
     setSelectedDocumentId(null);
+    setHighlightDocumentId(null);
     setFilterObjectIds([]);
     setFilterPaymentDate(null);
     setFilterCounterparty('');
     setPaymentDateRange([null, null]);
     setInvoiceDateRange([null, null]);
   }, [currentOrgId]);
+
+  // Подсветка строки при переходе из уведомления: NotificationsBell ведёт на /docs
+  // с `state: { documentId }`. Скроллим к строке, через 2.4s анимации (см. index.css
+  // `.document-row--highlight`) чистим. `setHighlightDocumentId(null)` — инициализация/
+  // сброс, а не реакция на пропсы, поэтому откладываем: без `queueMicrotask`
+  // `react-hooks/set-state-in-effect` ругается на прямой вызов в telegraph effect body.
+  useEffect(() => {
+    const state = (location.state ?? {}) as { documentId?: string };
+    const documentId = state.documentId;
+    if (!documentId) {
+      queueMicrotask(() => setHighlightDocumentId(null));
+      return;
+    }
+    // `setHighlightDocumentId(documentId)` — инициализация подсветки, а не реакция
+    // на пропсы: откладываем, чтобы `react-hooks/set-state-in-effect` не ругался.
+    queueMicrotask(() => setHighlightDocumentId(documentId));
+    const row = highlightRowRef.current;
+    if (row) {
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    const timer = window.setTimeout(() => setHighlightDocumentId(null), 2400);
+    return () => window.clearTimeout(timer);
+  }, [location.state]);
 
   useEffect(() => {
     saveDocumentColumnSizing(currentOrgId, sizing);
@@ -710,6 +738,8 @@ export function DocsPage() {
             }
             onWidthCommit={() => saveDocumentColumnSizing(currentOrgId, sizing)}
             onOpenDocument={handleOpenDocument}
+            highlightDocumentId={highlightDocumentId}
+            highlightRowRef={highlightRowRef}
           />
         )}
       </Stack>
