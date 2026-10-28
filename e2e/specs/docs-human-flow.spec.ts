@@ -67,7 +67,7 @@ test.describe('Документы: сквозной сценарий', () => {
 
     await page.goto('http://localhost:5173/docs');
     await page.getByRole('button', { name: 'Фильтр' }).click();
-    await page.getByRole('menuitem', { name: 'Только отработанные' }).click();
+    await page.getByRole('menuitem', { name: 'Подтверждён' }).click();
     await expect(page.locator('tr').filter({ hasText: marker })).toBeVisible();
   });
 });

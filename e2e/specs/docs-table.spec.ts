@@ -15,7 +15,7 @@ test.afterAll(() => {
 });
 
 test.describe('Документы: таблица и колонки', () => {
-  test('настройка видимости колонок сохраняется, отработанные скрываются по умолчанию', async ({ page }) => {
+  test('настройка видимости колонок сохраняется, статус-фильтр работает', async ({ page }) => {
     const pb = await authAs('admin');
     const orgId = await resolveTestOrgId(pb);
     const objectId = await firstObjectId(pb, orgId);
@@ -52,12 +52,12 @@ test.describe('Документы: таблица и колонки', () => {
     await expect(page.getByText('Статус обновлён')).toBeVisible();
     await page.keyboard.press('Escape');
 
-    await expect(page.locator(`tr[data-document-id="${documentId}"]`)).toHaveCount(0);
-    await page.getByRole('button', { name: 'Фильтр' }).click();
-    await page.getByRole('menuitem', { name: 'Только отработанные' }).click();
     await expect(page.locator(`tr[data-document-id="${documentId}"]`)).toBeVisible();
     await page.getByRole('button', { name: 'Фильтр' }).click();
-    await page.getByRole('menuitem', { name: 'Только отработанные' }).click();
+    await page.getByRole('menuitem', { name: 'Подтверждён' }).click();
+    await expect(page.locator(`tr[data-document-id="${documentId}"]`)).toBeVisible();
+    await page.getByRole('button', { name: 'Фильтр' }).click();
+    await page.getByRole('menuitem', { name: 'В работе' }).click();
     await expect(page.locator(`tr[data-document-id="${documentId}"]`)).toHaveCount(0);
   });
 });

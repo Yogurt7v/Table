@@ -241,9 +241,17 @@ export async function createDocumentManually(
     sourceInvoiceNo?: string;
   },
 ): Promise<Record<string, unknown>> {
+  const existing = await client.collection('documents').getFullList({
+    filter: `accounting_object_id = "${qTag(data.objectId)}"`,
+    sort: '-seq',
+    fields: 'seq',
+  });
+  const maxSeq = Number(existing[0]?.seq ?? 0);
+  const actorId = client.authStore.model?.id ?? '';
   return client.collection('documents').create({
     organization_id: data.orgId,
     accounting_object_id: data.objectId,
+    seq: maxSeq + 1,
     payment_date: data.paymentDate,
     counterparty: data.counterparty,
     purpose: data.purpose ?? '',
@@ -252,6 +260,8 @@ export async function createDocumentManually(
     amount: data.amount ?? 0,
     responsible_id: data.responsibleId,
     responsible_name: data.responsibleName ?? '',
+    created_by: actorId,
+    created_by_name: data.responsibleName ?? '',
     creation_mode: 'manual',
     sync_locked: true,
     provided: false,
