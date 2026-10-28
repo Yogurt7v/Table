@@ -139,6 +139,7 @@ const HIDDEN_FIELDS = new Set([
   'source_invoice_id',
   'automatic',
   'is_deleted',
+  'file_id',
 ]);
 
 function formatDocumentHistoryValue(key: string, value: unknown): string {
@@ -155,11 +156,16 @@ function formatDocumentHistoryValue(key: string, value: unknown): string {
   return String(value);
 }
 
-function historyDetails(data: Record<string, unknown>): string {
+function historyDetails(data: Record<string, unknown>, type?: string): string {
   if (!data || Object.keys(data).length === 0) return '';
   const lines: string[] = [];
   if (data['automatic'] === true) {
     lines.push('Документ создан автоматически');
+  }
+  // События файлов: показываем просто имя файла вместо сырых полей.
+  if ((type === 'file_added' || type === 'file_removed') && data['name']) {
+    lines.push(`Файл «${String(data['name'])}»`);
+    return lines.join('\n');
   }
   for (const [key, value] of Object.entries(data)) {
     if (HIDDEN_FIELDS.has(key)) continue;
@@ -779,7 +785,7 @@ export function DocumentCardModal({
               <ScrollArea.Autosize mah={520}>
                 <Stack gap="xs">
                   {history.map((record) => {
-                    const details = historyDetails(record.previous_data);
+                    const details = historyDetails(record.previous_data, record.type);
                     return (
                       <Paper key={record.id} withBorder p="xs">
                         <Group justify="space-between" mb={4}>
