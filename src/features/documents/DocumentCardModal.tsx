@@ -127,16 +127,19 @@ const DOCUMENT_FIELD_LABELS: Record<string, string> = {
   payment_date: 'Дата оплаты',
   responsible_id: 'Ответственный',
   accounting_object_id: 'Объект учёта',
-  source_invoice_id: 'Исходный счёт',
-  source_invoice_no: 'Номер исходного счёта',
-  automatic: 'Создан автоматически',
+  source_invoice_no: 'Номер счёта',
   provided: 'Предоставлен',
   confirmed: 'Подтверждён',
   payment_cancelled: 'Оплата отменена',
   payment_resumed: 'Оплата возобновлена',
-  is_deleted: 'В архиве',
   deletion_reason: 'Причина удаления',
 };
+
+const HIDDEN_FIELDS = new Set([
+  'source_invoice_id',
+  'automatic',
+  'is_deleted',
+]);
 
 function formatDocumentHistoryValue(key: string, value: unknown): string {
   if (value == null || value === '') return '—';
@@ -144,12 +147,10 @@ function formatDocumentHistoryValue(key: string, value: unknown): string {
     const n = Number(value);
     return Number.isFinite(n) ? n.toLocaleString('ru-RU') + ' ₽' : String(value);
   }
-  if (key === 'automatic') return value === true ? 'да' : 'нет';
   if (key === 'provided') return value === true ? 'да' : 'нет';
   if (key === 'confirmed') return value === true ? 'да' : 'нет';
   if (key === 'payment_cancelled') return value === true ? 'да' : 'нет';
   if (key === 'payment_resumed') return value === true ? 'да' : 'нет';
-  if (key === 'is_deleted') return value === true ? 'да' : 'нет';
   if (key === 'payment_date') return String(value);
   return String(value);
 }
@@ -157,7 +158,11 @@ function formatDocumentHistoryValue(key: string, value: unknown): string {
 function historyDetails(data: Record<string, unknown>): string {
   if (!data || Object.keys(data).length === 0) return '';
   const lines: string[] = [];
+  if (data['automatic'] === true) {
+    lines.push('Документ создан автоматически');
+  }
   for (const [key, value] of Object.entries(data)) {
+    if (HIDDEN_FIELDS.has(key)) continue;
     const label = DOCUMENT_FIELD_LABELS[key] ?? key;
     lines.push(`${label}: ${formatDocumentHistoryValue(key, value)}`);
   }
