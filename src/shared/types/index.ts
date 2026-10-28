@@ -158,6 +158,7 @@ export interface INotification {
   organization_id: string;
   user_id: string;
   invoice_id: string;
+  document_id?: string;
   type:
     | 'invoice_created'
     | 'invoice_updated'

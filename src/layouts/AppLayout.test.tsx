@@ -137,12 +137,12 @@ describe('AppLayout', () => {
       expect(screen.getAllByTestId('notifications-bell')).toHaveLength(2);
     });
 
-    it('не монтирует ни одной копии для роли user', () => {
+    it('монтирует обе копии и для роли user', () => {
       mockOrgUsers.data = [membership('user')];
 
       renderLayout();
 
-      expect(screen.queryAllByTestId('notifications-bell')).toHaveLength(0);
+      expect(screen.getAllByTestId('notifications-bell')).toHaveLength(2);
     });
 
     it('не монтирует колокольчик, пока не выбрана организация', () => {

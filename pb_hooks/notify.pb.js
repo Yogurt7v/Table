@@ -301,6 +301,41 @@ onRecordUpdate((e) => {
       notifRec.set('invoice_date', invDate);
       $app.save(notifRec);
     }
+
+    // ── Also notify the invoice author (created_by) about payment ──
+    //
+    // `payment_marked` previously went only to admins/moderators. The invoice
+    // author (who created the invoice) must also learn when it is paid, so the
+    // notification reaches the regular `user` role as well. `created_by` may
+    // already be an admin/moderator and thus already covered above — skip to
+    // avoid a duplicate.
+    var invCreatedBy = String(rec.get('created_by') || '');
+    if (invCreatedBy && invCreatedBy !== actorId) {
+      var authorAlreadyNotified = false;
+      for (var ai = 0; ai < orgUsers.length; ai++) {
+        if (String(orgUsers[ai].get('user_id')) === invCreatedBy) {
+          authorAlreadyNotified = true;
+          break;
+        }
+      }
+      if (!authorAlreadyNotified) {
+        var authorNotifCol = $app.findCollectionByNameOrId('notifications');
+        var authorNotifRec = new Record(authorNotifCol);
+        authorNotifRec.set('organization_id', invOrgId);
+        authorNotifRec.set('user_id', invCreatedBy);
+        authorNotifRec.set('invoice_id', invId);
+        authorNotifRec.set('type', notifType);
+        authorNotifRec.set('event', eventText);
+        authorNotifRec.set('message', eventText);
+        authorNotifRec.set('actor_name', actorName);
+        authorNotifRec.set('read', false);
+        authorNotifRec.set('object_name', objName);
+        authorNotifRec.set('amount', amount);
+        authorNotifRec.set('paid', invPaid);
+        authorNotifRec.set('invoice_date', invDate);
+        $app.save(authorNotifRec);
+      }
+    }
   } catch (err) {
     console.error('[notify:update]', String(err));
   }

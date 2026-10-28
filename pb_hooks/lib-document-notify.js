@@ -62,21 +62,22 @@ function notifyDocument(app, document, type, text, actorId, actorName) {
     if (role !== 'admin' && role !== 'moderator' && userId !== responsibleId) continue;
     seen[userId] = true;
 
-    try {
-      var collection = app.findCollectionByNameOrId('notifications');
-      var notification = new Record(collection);
-      notification.set('organization_id', organizationId);
-      notification.set('user_id', userId);
-      notification.set('type', type);
-      notification.set('event', truncate(text, 500));
-      notification.set('message', truncate(text, 2000));
-      notification.set('actor_name', truncate(author, 255));
-      notification.set('read', false);
-      notification.set('object_name', objectNameOf(app, document.get('accounting_object_id')));
-      notification.set('amount', Number(document.get('amount')) || 0);
-      notification.set('paid', false);
-      notification.set('invoice_date', document.get('payment_date') || '');
-      app.save(notification);
+try {
+        var collection = app.findCollectionByNameOrId('notifications');
+        var notification = new Record(collection);
+        notification.set('organization_id', organizationId);
+        notification.set('user_id', userId);
+        notification.set('document_id', document.id);
+        notification.set('type', type);
+        notification.set('event', truncate(text, 500));
+        notification.set('message', truncate(text, 2000));
+        notification.set('actor_name', truncate(author, 255));
+        notification.set('read', false);
+        notification.set('object_name', objectNameOf(app, document.get('accounting_object_id')));
+        notification.set('amount', Number(document.get('amount')) || 0);
+        notification.set('paid', false);
+        notification.set('invoice_date', document.get('payment_date') || '');
+        app.save(notification);
     } catch (err) {
       console.error('[documents:notify]', String(err));
     }

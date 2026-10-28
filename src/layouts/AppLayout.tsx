@@ -156,7 +156,7 @@ function AppLayoutContent() {
                 />
               </Group>
               <Group gap={4} wrap="nowrap">
-                {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
+                {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator' || currentRole === 'user') && (
                   <NotificationsBell />
                 )}
                 {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
@@ -263,7 +263,7 @@ function AppLayoutContent() {
               {!isMailPage && !isDocsName &&<InvoiceSearch />}
             </Group>
             <Group>
-              {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
+              {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator' || currentRole === 'user') && (
                 <NotificationsBell />
               )}
               {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (

@@ -60,6 +60,8 @@ function NotificationBlock({
     if (!isRead) onMarkRead(notification.id);
     if (notification.invoice_id) {
       onNavigate(notification);
+    } else if (notification.document_id) {
+      onNavigate(notification);
     }
   };
 
@@ -76,7 +78,7 @@ function NotificationBlock({
         }`,
         backgroundColor: isRead ? 'var(--mantine-color-gray-0)' : 'var(--mantine-color-blue-0)',
         padding: 'var(--mantine-spacing-xs) var(--mantine-spacing-sm)',
-        cursor: notification.invoice_id ? 'pointer' : 'default',
+        cursor: notification.invoice_id || notification.document_id ? 'pointer' : 'default',
       }}
     >
       <Group justify="space-between" mb={2}>
@@ -176,7 +178,12 @@ export function NotificationsBell() {
       if (n.organization_id && n.organization_id !== currentOrgId) {
         setCurrentOrgId(n.organization_id);
       }
-      if (!n.invoice_id) return;
+      if (!n.invoice_id && !n.document_id) return;
+
+      if (n.document_id) {
+        navigate('/docs');
+        return;
+      }
 
       if (n.type === 'invoice_deleted') {
         if (!n.organization_id) {
