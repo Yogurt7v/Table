@@ -31,7 +31,6 @@ import {
   IconArchive,
   IconCheck,
   IconCircleCheck,
-  IconCircleDashed,
   IconDeviceFloppy,
   IconFile,
   IconHistory,
@@ -183,6 +182,26 @@ function historyDetails(data: Record<string, unknown>, type?: string): string {
     lines.push(`${label}: ${formatDocumentHistoryValue(key, value)}`);
   }
   return lines.join('\n');
+}
+
+// Круг с крестиком внутри — нарисован вручную, без внешних библиотек иконок.
+function IconCircleCross({ size = 24 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="m9 9 6 6" />
+      <path d="m15 9-6 6" />
+    </svg>
+  );
 }
 
 export function DocumentCardModal({
@@ -507,7 +526,7 @@ export function DocumentCardModal({
                           {document.provided ? (
                             <IconCircleCheck size={34} />
                           ) : (
-                            <IconCircleDashed size={34} />
+                            <IconCircleCross size={34} />
                           )}
                         </ThemeIcon>
                         <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
@@ -578,7 +597,7 @@ export function DocumentCardModal({
                           {document.confirmed ? (
                             <IconCircleCheck size={34} />
                           ) : (
-                            <IconCircleDashed size={34} />
+                            <IconCircleCross size={34} />
                           )}
                         </ThemeIcon>
                         <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>

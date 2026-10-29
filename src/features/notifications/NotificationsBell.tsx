@@ -202,9 +202,11 @@ export function NotificationsBell() {
 
       getInvoice(n.invoice_id)
         .then((invoice) => {
+          navigate('/');
           requestHighlight(invoice.id, new Date(dayjs(invoice.date).toISOString()));
         })
         .catch(() => {
+          navigate('/');
           requestHighlight('', new Date());
         });
     },
