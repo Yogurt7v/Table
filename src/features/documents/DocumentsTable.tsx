@@ -1,4 +1,4 @@
-import { useRef, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   Group,
   Pagination,
@@ -43,7 +43,7 @@ interface DocumentsTableProps {
   onWidthCommit: () => void;
 onOpenDocument: (document: IDocument) => void;
   highlightDocumentId?: string | null;
-  highlightRowRef?: RefObject<HTMLTableRowElement | null> | null;
+  highlightRowRef?: (node: HTMLTableRowElement | null) => void;
 }
 
 function ResizableHeader({

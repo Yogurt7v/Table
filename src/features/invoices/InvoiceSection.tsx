@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   Affix,
   Paper,
@@ -498,6 +498,14 @@ function AutoExpandOnHighlight({
   const { expand } = useCollapsedObjects();
 
   const lastHandledRequestId = useRef(0);
+  const pollIntervalRef = useRef<number | null>(null);
+  const stopHighlightPolling = useCallback(() => {
+    if (pollIntervalRef.current != null) {
+      window.clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, []);
+  useEffect(() => () => stopHighlightPolling(), [stopHighlightPolling]);
 
   useEffect(() => {
     if (!highlightedInvoiceId || !invoices || !objects) return;
@@ -510,24 +518,24 @@ function AutoExpandOnHighlight({
     const hasObject = objects.some((o) => o.id === objectId);
     if (hasObject) expand([objectId]);
 
-    const el = document.querySelector(`[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`);
-    if (el) {
-      flashHighlightRow(highlightedInvoiceId);
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      const targetEl = document.querySelector(
-        `[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`,
-      );
-      if (targetEl) {
+    // Строка появляется после раскрытия группы и рендера таблицы, поэтому
+    // поллим DOM до её появления: единичный ретрай через 120ms терял подсветку
+    // при медленном рендере. Интервал живёт в ref, чтобы рефетч invoices
+    // не убивал ожидание через cleanup эффекта.
+    stopHighlightPolling();
+    const selector = `[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`;
+    const startedAt = Date.now();
+    pollIntervalRef.current = window.setInterval(() => {
+      const el = document.querySelector(selector);
+      if (el) {
+        stopHighlightPolling();
         flashHighlightRow(highlightedInvoiceId);
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
       }
-    }, 120);
-    return () => clearTimeout(timer);
-  }, [highlightedInvoiceId, highlightRequestId, invoices, objects, expand]);
+      if (Date.now() - startedAt > 5000) stopHighlightPolling();
+    }, 100);
+  }, [highlightedInvoiceId, highlightRequestId, invoices, objects, expand, stopHighlightPolling]);
 
   return null;
 }

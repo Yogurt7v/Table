@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDebouncedValue } from '@mantine/hooks';
 import { useLocation } from 'react-router-dom';
 import {
@@ -129,7 +129,37 @@ export function DocsPage() {
   const [filterOpened, setFilterOpened] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
-  const highlightRowRef = useRef<HTMLTableRowElement>(null);
+
+  const highlightDisplayTimerRef = useRef<number | null>(null);
+  const highlightFallbackTimerRef = useRef<number | null>(null);
+  const clearHighlightTimers = useCallback(() => {
+    if (highlightDisplayTimerRef.current != null) {
+      window.clearTimeout(highlightDisplayTimerRef.current);
+    }
+    if (highlightFallbackTimerRef.current != null) {
+      window.clearTimeout(highlightFallbackTimerRef.current);
+    }
+    highlightDisplayTimerRef.current = null;
+    highlightFallbackTimerRef.current = null;
+  }, []);
+
+  // Callback-ref подсветки: вызывается React ровно в момент монтирования
+  // подсвеченной строки в DOM, поэтому скролл не может обогнать рендер
+  // (раньше object-ref читался в эффекте до загрузки данных и был null).
+  const handleHighlightRowRef = useCallback((node: HTMLTableRowElement | null) => {
+    if (!node) return;
+    if (highlightFallbackTimerRef.current != null) {
+      window.clearTimeout(highlightFallbackTimerRef.current);
+      highlightFallbackTimerRef.current = null;
+    }
+    node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (highlightDisplayTimerRef.current != null) {
+      window.clearTimeout(highlightDisplayTimerRef.current);
+    }
+    highlightDisplayTimerRef.current = window.setTimeout(() => setHighlightDocumentId(null), 2400);
+  }, []);
+
+  useEffect(() => () => clearHighlightTimers(), [clearHighlightTimers]);
 
   useEffect(() => {
     // Organization switch replaces every persisted table setting.
@@ -144,30 +174,76 @@ export function DocsPage() {
     setFilterCounterparty('');
     setPaymentDateRange([null, null]);
     setInvoiceDateRange([null, null]);
-  }, [currentOrgId]);
+    clearHighlightTimers();
+  }, [currentOrgId, clearHighlightTimers]);
 
   // Подсветка строки при переходе из уведомления: NotificationsBell ведёт на /docs
-  // с `state: { documentId }`. Скроллим к строке, через 2.4s анимации (см. index.css
-  // `.document-row--highlight`) чистим. `setHighlightDocumentId(null)` — инициализация/
-  // сброс, а не реакция на пропсы, поэтому откладываем: без `queueMicrotask`
-  // `react-hooks/set-state-in-effect` ругается на прямой вызов в telegraph effect body.
+  // с `state: { documentId }`. Ждём загрузки документов, сбрасываем фильтры,
+  // вычисляем группу и страницу документа, раскрываем группу — строку монтирует
+  // callback-ref (handleHighlightRowRef), он же скроллит и запускает таймер
+  // 2.4s анимации (см. index.css `.document-row--highlight`). Все setState
+  // отложены в queueMicrotask: это инициализация, а не реакция на пропсы —
+  // иначе `react-hooks/set-state-in-effect` ругается на вызов в теле эффекта.
+  const handledLocationKeyRef = useRef<string | null>(null);
   useEffect(() => {
+    if (!documentsQuery.isSuccess) return;
+    if (handledLocationKeyRef.current === location.key) return;
+    handledLocationKeyRef.current = location.key;
     const state = (location.state ?? {}) as { documentId?: string };
     const documentId = state.documentId;
     if (!documentId) {
       queueMicrotask(() => setHighlightDocumentId(null));
       return;
     }
-    // `setHighlightDocumentId(documentId)` — инициализация подсветки, а не реакция
-    // на пропсы: откладываем, чтобы `react-hooks/set-state-in-effect` не ругался.
-    queueMicrotask(() => setHighlightDocumentId(documentId));
-    const row = highlightRowRef.current;
-    if (row) {
-      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-    const timer = window.setTimeout(() => setHighlightDocumentId(null), 2400);
-    return () => window.clearTimeout(timer);
-  }, [location.state]);
+    queueMicrotask(() => {
+      setSearch('');
+      setStatusFilter(null);
+      setFilterObjectIds([]);
+      setFilterPaymentDate(null);
+      setFilterCounterparty('');
+      setPaymentDateRange([null, null]);
+      setInvoiceDateRange([null, null]);
+      const base = documentsQuery.data ?? [];
+      const doc = base.find((d) => d.id === documentId);
+      if (doc) {
+        const objectId = doc.accounting_object_id;
+        const groupDocs = base.filter((d) => d.accounting_object_id === objectId);
+        if (sortOrder === 'new') {
+          groupDocs.sort((a, b) => (b.created ?? '').localeCompare(a.created ?? ''));
+        } else if (sortOrder === 'old') {
+          groupDocs.sort((a, b) => (a.created ?? '').localeCompare(b.created ?? ''));
+        }
+        const index = groupDocs.findIndex((d) => d.id === documentId);
+        if (index >= 0) {
+          const page = Math.floor(index / pageSize) + 1;
+          setPages((prev) => ({ ...prev, [objectId]: page }));
+        }
+        setCollapsedIds((prev) => {
+          if (!prev.has(objectId)) return prev;
+          const next = new Set(prev);
+          next.delete(objectId);
+          return next;
+        });
+      }
+      setHighlightDocumentId(documentId);
+      if (highlightFallbackTimerRef.current != null) {
+        window.clearTimeout(highlightFallbackTimerRef.current);
+      }
+      // Фолбэк: если строка так и не смонтировалась (документ не найден,
+      // отфильтрован по роли, в архиве) — снимаем подсветку и не копим таймеры.
+      highlightFallbackTimerRef.current = window.setTimeout(
+        () => setHighlightDocumentId(null),
+        5000,
+      );
+    });
+  }, [
+    location.state,
+    location.key,
+    documentsQuery.isSuccess,
+    documentsQuery.data,
+    pageSize,
+    sortOrder,
+  ]);
 
   useEffect(() => {
     saveDocumentColumnSizing(currentOrgId, sizing);
@@ -739,7 +815,7 @@ export function DocsPage() {
             onWidthCommit={() => saveDocumentColumnSizing(currentOrgId, sizing)}
             onOpenDocument={handleOpenDocument}
             highlightDocumentId={highlightDocumentId}
-            highlightRowRef={highlightRowRef}
+              highlightRowRef={handleHighlightRowRef}
           />
         )}
       </Stack>
