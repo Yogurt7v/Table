@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Anchor, Container, Title, Group, Text, Stack, Tabs } from '@mantine/core';
+import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
 import { notifications } from '@mantine/notifications';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOrg } from '@/shared/context/OrgContext';
@@ -202,6 +203,7 @@ export function AdminPage() {
       style={{ display: 'flex', flexDirection: 'column' }}
     >
       <Group justify="space-between" mb="lg">
+        <BreadcrumbsNav />
         <Title order={3}>Администрирование</Title>
       </Group>
 

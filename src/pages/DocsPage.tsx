@@ -15,10 +15,10 @@ import {
   Title,
   Tooltip,
   TextInput,
-  Anchor,
   Autocomplete,
   MultiSelect,
 } from '@mantine/core';
+import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
 import { DatePickerInput } from '@mantine/dates';
 import { IconChevronsDown, IconChevronsUp, IconFilter, IconCheck, IconPlus, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
@@ -58,7 +58,6 @@ import type {
   IDocumentComment,
   IDocumentFile,
 } from '@/shared/types';
-import { Link } from 'react-router-dom';
 
 type DocumentStatusFilter = 'in_progress' | 'provided' | 'confirmed';
 
@@ -468,23 +467,7 @@ export function DocsPage() {
       <Stack gap="md">
         <Group justify="space-between" align="flex-end" wrap="wrap">
           <Group gap="sm">
-            <Anchor
-              size="sm"
-              component={Link}
-              to="/"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                color: 'black',
-                fontWeight: 'bolder',
-                fontSize: '16px',
-              }}
-            >
-              Счета
-            </Anchor>
-            /
-            <Title order={3}>Документы</Title>
+            <BreadcrumbsNav />
             <Tooltip label="Настройка колонок">
               <ActionIcon
                 size="sm"

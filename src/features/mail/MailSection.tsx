@@ -78,6 +78,7 @@ import type { MailNodeKey } from './mail-thread';
 import { MAIL_REGISTER_TAB_LABELS, MAIL_TYPE_LABELS } from './mail-labels';
 import { computeRegisterTarget } from './mail-register-target';
 import { MAIL_LETTER_NOT_FOUND_NOTE } from './mail-thread-labels';
+import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
 
 interface MailSectionProps {
   orgId: string;
@@ -613,23 +614,7 @@ export function MailSection({ orgId }: MailSectionProps) {
       <Paper withBorder p="md" style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
         <Group justify="space-between" mb="sm" wrap="wrap" gap="xs">
           <Group gap={8} align="center" wrap="wrap">
-            <Anchor
-              size="sm"
-              component={Link}
-              to="/"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                color: 'black',
-                fontWeight: 'bolder',
-                fontSize: '16px',
-              }}
-            >
-              Счета
-            </Anchor>
-            /{' '}
-            <Title order={3}>Почта</Title>
+            <BreadcrumbsNav/>
             <Tooltip label="Настройка колонок">
               <ActionIcon
                 size="md"
