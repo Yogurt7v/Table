@@ -16,24 +16,28 @@ describe('document table columns', () => {
     localStorage.clear();
   });
 
-  it('returns all columns in default order', () => {
-    expect(DEFAULT_DOCUMENT_COLUMNS).toEqual(DOCUMENT_COLUMNS.map((c) => c.id));
+  it('returns enabled-by-default columns in the default order', () => {
     expect(DEFAULT_DOCUMENT_COLUMNS).toEqual([
       'seq',
-      'payment_date',
       'counterparty',
-      'purpose',
-      'contract_no',
       'invoice_no',
+      'purpose',
       'amount',
-      'responsible',
-      'author',
-      'provided',
+      'payment_date',
       'confirmed',
+      'provided',
       'files',
       'comments',
-      'source_file',
     ]);
+    const allIds = new Set(DOCUMENT_COLUMNS.map((c) => c.id));
+    for (const id of DEFAULT_DOCUMENT_COLUMNS) {
+      expect(allIds.has(id)).toBe(true);
+    }
+  });
+
+  it('keeps saved columns that are valid but off by default', () => {
+    saveDocumentColumns('org1', ['author', 'source_file', 'seq']);
+    expect(loadDocumentColumns('org1')).toEqual(['author', 'source_file', 'seq']);
   });
 
   it('round-trips visible columns via localStorage', () => {

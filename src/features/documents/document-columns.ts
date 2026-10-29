@@ -24,9 +24,21 @@ export const DOCUMENT_COLUMNS: DocumentColumnDefinition[] = [
   { id: 'source_file', label: 'Файл счёта', width: 120, align: 'center' },
 ];
 
-export const DEFAULT_DOCUMENT_COLUMNS: DocumentColumnId[] = DOCUMENT_COLUMNS.map(
-  (column) => column.id,
-);
+// Порядок и состав колонок, включённых по умолчанию. Остальные колонки
+// (contract_no, responsible, author, source_file) выключены и включаются
+// в настройке колонок.
+export const DEFAULT_DOCUMENT_COLUMNS: DocumentColumnId[] = [
+  'seq',
+  'counterparty',
+  'invoice_no',
+  'purpose',
+  'amount',
+  'payment_date',
+  'confirmed',
+  'provided',
+  'files',
+  'comments',
+];
 
 const VISIBLE_PREFIX = 'document-table-columns:';
 const WIDTH_PREFIX = 'document-table-column-sizing:';
@@ -43,7 +55,7 @@ export function loadDocumentColumns(orgId: string): DocumentColumnId[] {
     if (!raw) return DEFAULT_DOCUMENT_COLUMNS;
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return DEFAULT_DOCUMENT_COLUMNS;
-    const known = new Set(DEFAULT_DOCUMENT_COLUMNS);
+    const known = new Set(DOCUMENT_COLUMNS.map((column) => column.id));
     const result = parsed.filter((id): id is DocumentColumnId => known.has(id));
     return result.length > 0 ? result : DEFAULT_DOCUMENT_COLUMNS;
   } catch {
