@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import {
   ActionIcon,
-  Anchor,
   Box,
   Button,
   Group,
@@ -12,10 +11,8 @@ import {
   Tabs,
   Text,
   TextInput,
-  Title,
   Tooltip,
 } from '@mantine/core';
-import { Link } from 'react-router-dom';
 import { IconMailPlus, IconPlus, IconSettings, IconTrash } from '@tabler/icons-react';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';

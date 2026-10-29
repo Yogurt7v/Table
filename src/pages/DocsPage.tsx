@@ -123,6 +123,7 @@ export function DocsPage() {
   );
   const [columnsOpened, setColumnsOpened] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [selectedTab, setSelectedTab] = useState<'document' | 'files' | 'comments' | 'history'>('document');
   const [highlightDocumentId, setHighlightDocumentId] = useState<string | null>(null);
   const [manualOpened, setManualOpened] = useState(false);
   const [filterOpened, setFilterOpened] = useState(false);
@@ -411,8 +412,12 @@ export function DocsPage() {
     setPages({});
   };
 
-  const handleOpenDocument = (document: IDocument) => {
+  const handleOpenDocument = (
+    document: IDocument,
+    tab: 'document' | 'files' | 'comments' | 'history' = 'document',
+  ) => {
     setSelectedDocumentId(document.id);
+    setSelectedTab(tab);
   };
 
   const toggleCollapse = (objectId: string) => {
@@ -824,6 +829,7 @@ export function DocsPage() {
         currentUserId={user?.id}
         objects={objects}
         users={usersQuery.data ?? []}
+        initialTab={selectedTab}
       />
 
       {canCreate && manualOpened && (

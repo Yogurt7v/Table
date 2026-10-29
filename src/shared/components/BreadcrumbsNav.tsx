@@ -1,4 +1,4 @@
-import { useMantineTheme, Anchor, Breadcrumbs, Button, Menu, Text, Group } from '@mantine/core';
+import { useMantineTheme, Anchor, Breadcrumbs, Button, Menu, Text } from '@mantine/core';
 import { useLocation, Link } from 'react-router-dom';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import { useMediaQuery } from '@mantine/hooks';
@@ -45,16 +45,22 @@ export function BreadcrumbsNav() {
         <Menu.Dropdown>
           {items.map((item, idx) => {
             const isCurrent = idx === items.length - 1;
+
+            if (isCurrent) {
+              return (
+                <Menu.Item
+                  key={item.to}
+                  fw={700}
+                  component="div"          // не интерактивный, не попадает в tab-порядок
+                  aria-current="page"
+                >
+                  {item.label}
+                </Menu.Item>
+              );
+            }
+
             return (
-              <Menu.Item
-                key={item.to}
-                component={isCurrent ? undefined : Link}
-                to={isCurrent ? undefined : item.to}
-                fw={isCurrent ? 700 : undefined}
-                c={isCurrent ? undefined : 'dimmed'}
-                // текущую страницу можно сделать неактивной:
-                disabled={isCurrent}
-              >
+              <Menu.Item key={item.to} component={Link} to={item.to} c="dimmed">
                 {item.label}
               </Menu.Item>
             );

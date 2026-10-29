@@ -1,5 +1,6 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import {
+    Box,
   Group,
   Pagination,
   Paper,
@@ -20,6 +21,7 @@ import {
   type DocumentColumnSizing,
 } from './document-columns';
 import { formatAmountRub } from '@/shared/utils/format-currency';
+import { DocumentMobileCards } from './DocumentMobileCards';
 
 export interface DocumentGroup {
   objectId: string;
@@ -41,7 +43,7 @@ interface DocumentsTableProps {
   onPageChange: (objectId: string, page: number) => void;
   onWidthChange: (columnId: DocumentColumnId, width: number) => void;
   onWidthCommit: () => void;
-onOpenDocument: (document: IDocument) => void;
+onOpenDocument: (document: IDocument, tab?: 'document' | 'files' | 'comments') => void;
   highlightDocumentId?: string | null;
   highlightRowRef?: (node: HTMLTableRowElement | null) => void;
 }
@@ -115,11 +117,11 @@ function ResizableHeader({
 function StatusCell({ value, label }: { value: boolean; label: string }) {
   return value ? (
     <Tooltip label={label}>
-      <IconCheck size={18} color="var(--mantine-color-green-6)" aria-label={label} />
+      <IconCheck size={24} color="var(--mantine-color-green-6)" aria-label={label} />
     </Tooltip>
   ) : (
     <Tooltip label={`Не ${label.toLowerCase()}`}>
-      <IconX size={18} color="var(--mantine-color-gray-5)" aria-label={`Не ${label.toLowerCase()}`} />
+      <IconX size={24} color="var(--mantine-color-red-5)" aria-label={`Не ${label.toLowerCase()}`} />
     </Tooltip>
   );
 }
@@ -132,45 +134,81 @@ function renderCell(
 ) {
   switch (id) {
     case 'seq':
-      return document.seq;
+      return <Text size="sm" lineClamp={2} title={String(document.seq ?? '')}>
+        {document.seq ?? '—'}
+      </Text>;
     case 'payment_date':
-      return document.payment_date ? dayjs(document.payment_date).format('DD.MM.YYYY') : '—';
+      return (
+        <Text size="sm" lineClamp={2} title={document.payment_date ?? ''}>
+          {document.payment_date ? dayjs(document.payment_date).format('DD.MM.YYYY') : '—'}
+        </Text>
+      );
     case 'counterparty':
-      return document.counterparty || '—';
+      return (
+        <Text size="sm" lineClamp={2} title={document.counterparty ?? ''}>
+          {document.counterparty || '—'}
+        </Text>
+      );
     case 'purpose':
-      return document.purpose || '—';
+      return (
+        <Text size="sm" lineClamp={2} title={document.purpose ?? ''}>
+          {document.purpose || '—'}
+        </Text>
+      );
     case 'contract_no':
-      return document.contract_no || '—';
+      return (
+        <Text size="sm" lineClamp={2} title={document.contract_no ?? ''}>
+          {document.contract_no || '—'}
+        </Text>
+      );
     case 'invoice_no':
-      return document.invoice_no || '—';
+      return (
+        <Text size="sm" lineClamp={2} title={document.invoice_no ?? ''}>
+          {document.invoice_no || '—'}
+        </Text>
+      );
     case 'amount':
-      return document.amount ? formatAmountRub(document.amount) : '—';
+      return (
+        <Text size="sm" lineClamp={2} title={document.amount ? formatAmountRub(document.amount) : ''}>
+          {document.amount ? formatAmountRub(document.amount) : '—'}
+        </Text>
+      );
     case 'responsible':
-      return document.responsible_name || '—';
+      return (
+        <Text size="sm" lineClamp={2} title={document.responsible_name ?? ''}>
+          {document.responsible_name || '—'}
+        </Text>
+      );
     case 'author':
-      return document.created_by_name || '—';
+      return (
+        <Text size="sm" lineClamp={2} title={document.created_by_name ?? ''}>
+          {document.created_by_name || '—'}
+        </Text>
+      );
     case 'provided':
       return <StatusCell value={document.provided} label="Предоставлен" />;
     case 'confirmed':
       return <StatusCell value={document.confirmed} label="Подтверждён" />;
     case 'files':
       return (
-        <Group gap={4} justify="center" wrap="nowrap">
+        <Group gap={4} justify="center" wrap="nowrap" style={{cursor:"pointer"}} >
           <IconPaperclip size={16} />
           <Text size="sm">{files.length}</Text>
         </Group>
       );
     case 'comments':
       return (
-        <Group gap={4} justify="center" wrap="nowrap">
+        <Group gap={4} justify="center" wrap="nowrap" style={{cursor:"pointer"}} >
           <IconMessage size={16} />
           <Text size="sm">{comments.length}</Text>
         </Group>
       );
     case 'source_file':
-      return document.source_invoice_id
-        ? document.source_invoice_no || 'Счёт'
-        : '—';
+      return (
+        <Text size="sm" lineClamp={2} title={document.source_invoice_no ?? ''}>
+          {document.source_invoice_id ? document.source_invoice_no || 'Счёт' : '—'}
+        </Text>
+      );
     default:
       return null;
   }
@@ -224,7 +262,8 @@ export function DocumentsTable({
             </Group>
             {!isCollapsed && (
               <>
-                <ScrollArea type="auto" offsetScrollbars>
+                <Box visibleFrom="sm">
+                  <ScrollArea type="auto" offsetScrollbars>
                   <Table
                     striped
                     highlightOnHover
@@ -270,9 +309,7 @@ export function DocumentsTable({
                                   ? 'document-row--highlight'
                                   : undefined
                               }
-                              onClick={() => onOpenDocument(document)}
                               style={{
-                                cursor: 'pointer',
                                 backgroundColor: completed
                                   ? 'var(--mantine-color-gray-1)'
                                   : undefined,
@@ -284,6 +321,16 @@ export function DocumentsTable({
                                 <Table.Td
                                   key={column.id}
                                   style={{ textAlign: column.align ?? 'left' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const tab =
+                                      column.id === 'files'
+                                        ? 'files'
+                                        : column.id === 'comments'
+                                          ? 'comments'
+                                          : 'document';
+                                    onOpenDocument(document, tab);
+                                  }}
                                 >
                                   {renderCell(
                                     column.id,
@@ -300,6 +347,19 @@ export function DocumentsTable({
                     </Table.Tbody>
                   </Table>
                 </ScrollArea>
+                </Box>
+
+                <Stack hiddenFrom="sm" gap="sm">
+                  <DocumentMobileCards
+                    documents={group.documents}
+                    visibleColumns={visibleColumns}
+                    filesByDocument={filesByDocument}
+                    commentsByDocument={commentsByDocument}
+                    onOpenDocument={onOpenDocument}
+                    highlightDocumentId={highlightDocumentId}
+                  />
+                </Stack>
+
                 {group.total > pageSize && (
                   <Group justify="center" mt="sm">
                     <Pagination

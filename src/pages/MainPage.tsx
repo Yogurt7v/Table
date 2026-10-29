@@ -46,6 +46,8 @@ export function MainPage() {
   return (
     <Container size="fluid" py={{ base: 'xs', sm: 'md' }}>
       <Stack className="main-page-stack">
+        <BreadcrumbsNav />
+        <Title order={3}>Счета</Title>
         <div ref={registerAnchor} className="main-date-picker-page">
           <div
             className={

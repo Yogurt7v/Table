@@ -4,9 +4,9 @@ import {
   Alert,
   Anchor,
   Badge,
+  Box,
   Button,
-  Checkbox,
-  Divider,
+  Center,
   FileButton,
   Grid,
   Group,
@@ -21,6 +21,7 @@ import {
   Text,
   Textarea,
   TextInput,
+  ThemeIcon,
   Title,
   Tooltip,
 } from '@mantine/core';
@@ -28,12 +29,20 @@ import { DatePickerInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
 import {
   IconArchive,
+  IconCheck,
+  IconCircleCheck,
+  IconCircleDashed,
+  IconDeviceFloppy,
   IconFile,
+  IconHistory,
   IconMessage,
+  IconMessageCircle,
   IconPaperclip,
+  IconPencil,
   IconRefresh,
   IconTrash,
   IconUpload,
+  IconUser,
   IconX,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
@@ -74,6 +83,7 @@ interface DocumentCardModalProps {
   currentUserId: string | undefined;
   objects: IAccountingObject[];
   users: IUser[];
+  initialTab?: 'document' | 'files' | 'comments' | 'history';
 }
 
 interface DocumentForm {
@@ -184,6 +194,7 @@ export function DocumentCardModal({
   currentUserId,
   objects,
   users,
+  initialTab = 'document',
 }: DocumentCardModalProps) {
   const documentQuery = useDocument(documentId);
   const document = documentQuery.data;
@@ -202,7 +213,7 @@ export function DocumentCardModal({
   const moveDocument = useMoveDocument(organizationId);
   const markCancelled = useMarkPaymentCancelled(organizationId);
 
-  const [tab, setTab] = useState<string | null>('document');
+  const [tab, setTab] = useState<string | null>(initialTab);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<DocumentForm | null>(null);
   const [reason, setReason] = useState('');
@@ -219,11 +230,11 @@ export function DocumentCardModal({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm(emptyForm(document));
     setEditing(false);
-    setTab('document');
+    setTab(initialTab);
     setReason('');
     setSelectedFile(null);
     setCommentText('');
-  }, [document]);
+  }, [document, initialTab]);
 
   const isAdmin = role === 'admin' || role === 'moderator';
   const isBoss = role === 'boss';
@@ -253,7 +264,9 @@ export function DocumentCardModal({
   if (documentQuery.isLoading) {
     return (
       <Modal opened={opened} onClose={onClose} title="Документ" size="xl">
-        <Loader />
+        <Center py="xl">
+          <Loader />
+        </Center>
       </Modal>
     );
   }
@@ -416,223 +429,434 @@ export function DocumentCardModal({
         opened={opened}
         onClose={onClose}
         title={
-          <Group gap="xs">
+          <Group gap="sm" wrap="wrap">
             <Title order={4}>Документ №{document.seq}</Title>
-            {completed && <Badge color="gray">Отработан</Badge>}
-            {document.payment_cancelled && <Badge color="red">Оплата отменена</Badge>}
-            {document.is_deleted && <Badge color="orange">В архиве</Badge>}
+            {completed && (
+              <Badge color="green" variant="light">
+                Отработан
+              </Badge>
+            )}
+            {document.payment_cancelled && (
+              <Badge color="red" variant="light">
+                Оплата отменена
+              </Badge>
+            )}
+            {document.is_deleted && (
+              <Badge color="orange" variant="light">
+                В архиве
+              </Badge>
+            )}
           </Group>
         }
         size="xl"
       >
         <Tabs value={tab} onChange={setTab}>
           <Tabs.List>
-            <Tabs.Tab value="document">Документ</Tabs.Tab>
+            <Tabs.Tab value="document" leftSection={<IconFile size={14} />}>
+              Документ
+            </Tabs.Tab>
             <Tabs.Tab value="files" leftSection={<IconPaperclip size={14} />}>
               Файлы {files.length > 0 ? files.length : ''}
             </Tabs.Tab>
             <Tabs.Tab value="comments" leftSection={<IconMessage size={14} />}>
               Комментарии {comments.length > 0 ? comments.length : ''}
             </Tabs.Tab>
-            <Tabs.Tab value="history">История</Tabs.Tab>
+            <Tabs.Tab value="history" leftSection={<IconHistory size={14} />}>
+              История
+            </Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value="document" pt="md">
             <Stack gap="md">
-              <Grid>
-                <Grid.Col span={{ base: 12, sm: 6 }}>
-                  <TextInput
-                    label="Контрагент"
-                    value={form.counterparty}
-                    onChange={(event) => patchForm({ counterparty: event.currentTarget.value })}
-                    readOnly={!editing || !canEdit}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 3 }}>
-                  <TextInput
-                    label="Договор"
-                    value={form.contract_no}
-                    onChange={(event) => patchForm({ contract_no: event.currentTarget.value })}
-                    readOnly={!editing || !canEdit}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 3 }}>
-                  <TextInput
-                    label="Счёт №"
-                    value={form.invoice_no}
-                    onChange={(event) => patchForm({ invoice_no: event.currentTarget.value })}
-                    readOnly={!editing || !canEdit}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 6 }}>
-                  <Select
-                    label="Объект"
-                    data={objectOptions}
-                    value={form.accounting_object_id}
-                    onChange={(value) => value && patchForm({ accounting_object_id: value })}
-                    disabled={!editing || !canMove}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 3 }}>
-                  <DatePickerInput
-                    label="Дата оплаты"
-                    valueFormat="DD.MM.YYYY"
-                    value={dateKeyToLocalDate(form.payment_date)}
-                    onChange={(value) => patchForm({ payment_date: localDateToDateKey(value) })}
-                    disabled={!editing || !canEditPaymentDate}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 3 }}>
-                  <NumberInput
-                    label="Сумма"
-                    value={form.amount}
-                    onChange={(value) => patchForm({ amount: typeof value === 'number' ? value : 0 })}
-                    readOnly={!editing || !canEdit}
-                    min={0}
-                    decimalScale={2}
-                    thousandSeparator=" "
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 6 }}>
-                  <Select
-                    label="Ответственный"
-                    data={userOptions}
-                    value={form.responsible_id}
-                    onChange={(value) => value && patchForm({ responsible_id: value })}
-                    disabled={!editing || !canEditResponsible}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, sm: 6 }}>
-                  <TextInput label="Автор" value={document.created_by_name || '—'} readOnly />
-                </Grid.Col>
-                <Grid.Col span={12}>
-                  <Textarea
-                    label="Назначение"
-                    value={form.purpose}
-                    onChange={(event) => patchForm({ purpose: event.currentTarget.value })}
-                    readOnly={!editing || !canEdit}
-                    autosize
-                    minRows={2}
-                    maxRows={5}
-                  />
-                </Grid.Col>
-              </Grid>
-
-              <Group>
-                {canEdit && !editing && (
-                  <Button variant="light" onClick={() => setEditing(true)}>
-                    Редактировать
-                  </Button>
-                )}
-                {editing && (
-                  <>
-                    <Button onClick={handleSave} loading={updateDocument.isPending || moveDocument.isPending}>
-                      Сохранить
-                    </Button>
-                    <Button
-                      variant="default"
-                      onClick={() => {
-                        setForm(emptyForm(document));
-                        setEditing(false);
+              {/* ПРОМИНЕНТНЫЙ БЛОК СТАТУСОВ — статусные карточки */}
+              <Box>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={700} mb={8}>
+                  Статус документа
+                </Text>
+                <Grid gutter="md">
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <Paper
+                      withBorder
+                      radius="md"
+                      p="md"
+                      onClick={
+                        canToggleProvided && !updateStatus.isPending
+                          ? () => handleStatus('provided')
+                          : undefined
+                      }
+                      style={{
+                        borderColor: document.provided
+                          ? 'var(--mantine-color-green-5)'
+                          : 'var(--mantine-color-orange-4)',
+                        backgroundColor: document.provided
+                          ? 'var(--mantine-color-green-0)'
+                          : 'var(--mantine-color-orange-0)',
+                        cursor:
+                          canToggleProvided && !updateStatus.isPending
+                            ? 'pointer'
+                            : 'default',
                       }}
                     >
-                      Отмена
-                    </Button>
-                  </>
-                )}
-              </Group>
-
-              <Divider label="Статусы" labelPosition="left" />
-              <Group>
-                <Checkbox
-                  label="Предоставлен"
-                  checked={document.provided}
-                  disabled={!canToggleProvided || updateStatus.isPending}
-                  onChange={() => handleStatus('provided')}
-                />
-                <Checkbox
-                  label="Подтверждён"
-                  checked={document.confirmed}
-                  disabled={!canToggleConfirmed || !document.provided || updateStatus.isPending}
-                  onChange={() => handleStatus('confirmed')}
-                />
+                      <Group gap="md" wrap="nowrap" align="center">
+                        <ThemeIcon
+                          size={56}
+                          radius="xl"
+                          variant={document.provided ? 'filled' : 'light'}
+                          color={document.provided ? 'green' : 'orange'}
+                        >
+                          {document.provided ? (
+                            <IconCircleCheck size={34} />
+                          ) : (
+                            <IconCircleDashed size={34} />
+                          )}
+                        </ThemeIcon>
+                        <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+                          <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                            Предоставлен
+                          </Text>
+                          <Text
+                            size="xl"
+                            fw={700}
+                            c={document.provided ? 'green.9' : 'orange.9'}
+                          >
+                            {document.provided ? 'Да' : 'Нет'}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {canToggleProvided
+                              ? 'Нажмите, чтобы изменить'
+                              : document.provided
+                                ? 'Документ предоставлен'
+                                : 'Документ ещё не предоставлен'}
+                          </Text>
+                        </Stack>
+                      </Group>
+                    </Paper>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <Paper
+                      withBorder
+                      radius="md"
+                      p="md"
+                      onClick={
+                        canToggleConfirmed && document.provided && !updateStatus.isPending
+                          ? () => handleStatus('confirmed')
+                          : undefined
+                      }
+                      style={{
+                        borderColor: document.confirmed
+                          ? 'var(--mantine-color-green-5)'
+                          : document.provided
+                            ? 'var(--mantine-color-orange-4)'
+                            : 'var(--mantine-color-gray-3)',
+                        backgroundColor: document.confirmed
+                          ? 'var(--mantine-color-green-0)'
+                          : document.provided
+                            ? 'var(--mantine-color-orange-0)'
+                            : 'var(--mantine-color-gray-0)',
+                        cursor:
+                          canToggleConfirmed && !updateStatus.isPending
+                            ? document.provided
+                              ? 'pointer'
+                              : 'not-allowed'
+                            : 'default',
+                        opacity: !document.provided ? 0.65 : 1,
+                      }}
+                    >
+                      <Group gap="md" wrap="nowrap" align="center">
+                        <ThemeIcon
+                          size={56}
+                          radius="xl"
+                          variant={document.confirmed ? 'filled' : 'light'}
+                          color={
+                            document.confirmed
+                              ? 'green'
+                              : document.provided
+                                ? 'orange'
+                                : 'gray'
+                          }
+                        >
+                          {document.confirmed ? (
+                            <IconCircleCheck size={34} />
+                          ) : (
+                            <IconCircleDashed size={34} />
+                          )}
+                        </ThemeIcon>
+                        <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+                          <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                            Подтверждён
+                          </Text>
+                          <Text
+                            size="xl"
+                            fw={700}
+                            c={
+                              document.confirmed
+                                ? 'green.9'
+                                : document.provided
+                                  ? 'orange.9'
+                                  : 'gray.6'
+                            }
+                          >
+                            {document.confirmed ? 'Да' : 'Нет'}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {!document.provided
+                              ? 'Сначала отметьте «Предоставлен»'
+                              : canToggleConfirmed
+                                ? 'Нажмите, чтобы изменить'
+                                : document.confirmed
+                                  ? 'Документ подтверждён'
+                                  : 'Документ ещё не подтверждён'}
+                          </Text>
+                        </Stack>
+                      </Group>
+                    </Paper>
+                  </Grid.Col>
+                </Grid>
                 {document.confirmed_file_id && (
-                  <Badge variant="light" color="green">
-                    Файл подтверждения выбран
-                  </Badge>
+                  <Group gap="xs" mt="sm">
+                    <ThemeIcon size="sm" variant="light" color="green" radius="xl">
+                      <IconCheck size={12} />
+                    </ThemeIcon>
+                    <Text size="sm" c="dimmed">
+                      Файл подтверждения выбран
+                    </Text>
+                  </Group>
                 )}
-              </Group>
+              </Box>
+
+              {/* РЕКВИЗИТЫ — вторичный блок */}
+              <Paper
+                withBorder
+                p="md"
+                radius="md"
+                style={editing ? { borderColor: 'var(--mantine-color-blue-4)' } : undefined}
+              >
+                <Group justify="space-between" mb="md" wrap="wrap" gap="xs">
+                  <Text fw={600} size="sm" c="dimmed" tt="uppercase">
+                    Реквизиты
+                  </Text>
+                  {canEdit && !editing && (
+                    <Button
+                      variant="light"
+                      size="xs"
+                      leftSection={<IconPencil size={14} />}
+                      onClick={() => setEditing(true)}
+                    >
+                      Редактировать
+                    </Button>
+                  )}
+                  {editing && (
+                    <Group gap="xs">
+                      <Button
+                        size="xs"
+                        leftSection={<IconDeviceFloppy size={14} />}
+                        onClick={handleSave}
+                        loading={updateDocument.isPending || moveDocument.isPending}
+                      >
+                        Сохранить
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="default"
+                        leftSection={<IconX size={14} />}
+                        onClick={() => {
+                          setForm(emptyForm(document));
+                          setEditing(false);
+                        }}
+                      >
+                        Отмена
+                      </Button>
+                    </Group>
+                  )}
+                </Group>
+                <Grid gutter="md">
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <TextInput
+                      label="Контрагент"
+                      value={form.counterparty}
+                      onChange={(event) =>
+                        patchForm({ counterparty: event.currentTarget.value })
+                      }
+                      readOnly={!editing || !canEdit}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <TextInput
+                      label="Договор"
+                      value={form.contract_no}
+                      onChange={(event) =>
+                        patchForm({ contract_no: event.currentTarget.value })
+                      }
+                      readOnly={!editing || !canEdit}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <TextInput
+                      label="Счёт №"
+                      value={form.invoice_no}
+                      onChange={(event) =>
+                        patchForm({ invoice_no: event.currentTarget.value })
+                      }
+                      readOnly={!editing || !canEdit}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <Select
+                      label="Объект"
+                      data={objectOptions}
+                      value={form.accounting_object_id}
+                      onChange={(value) =>
+                        value && patchForm({ accounting_object_id: value })
+                      }
+                      disabled={!editing || !canMove}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <DatePickerInput
+                      label="Дата оплаты"
+                      valueFormat="DD.MM.YYYY"
+                      value={dateKeyToLocalDate(form.payment_date)}
+                      onChange={(value) =>
+                        patchForm({ payment_date: localDateToDateKey(value) })
+                      }
+                      disabled={!editing || !canEditPaymentDate}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <NumberInput
+                      label="Сумма"
+                      value={form.amount}
+                      onChange={(value) =>
+                        patchForm({ amount: typeof value === 'number' ? value : 0 })
+                      }
+                      readOnly={!editing || !canEdit}
+                      min={0}
+                      decimalScale={2}
+                      thousandSeparator=" "
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <Select
+                      label="Ответственный"
+                      data={userOptions}
+                      value={form.responsible_id}
+                      onChange={(value) =>
+                        value && patchForm({ responsible_id: value })
+                      }
+                      disabled={!editing || !canEditResponsible}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <TextInput
+                      label="Автор"
+                      value={document.created_by_name || '—'}
+                      readOnly
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={12}>
+                    <Textarea
+                      label="Назначение"
+                      value={form.purpose}
+                      onChange={(event) =>
+                        patchForm({ purpose: event.currentTarget.value })
+                      }
+                      readOnly={!editing || !canEdit}
+                      autosize
+                      minRows={2}
+                      maxRows={5}
+                    />
+                  </Grid.Col>
+                </Grid>
+              </Paper>
 
               {document.source_invoice_id && (
-                <>
-                  <Divider label="Исходный счёт" labelPosition="left" />
+                <Paper withBorder p="md" radius="md">
+                  <Text fw={600} size="sm" c="dimmed" tt="uppercase" mb="sm">
+                    Исходный счёт
+                  </Text>
                   {sourceQuery.isLoading ? (
                     <Loader size="sm" />
                   ) : source ? (
-                    <Paper withBorder p="sm">
-                      <Stack gap="xs">
-                        <Group justify="space-between">
-                          <Text size="sm">
-                            Счёт №{source.invoiceNo || '—'} · {source.counterparty}
-                          </Text>
-                          {source.deleted && <Badge color="red">Счёт удалён</Badge>}
-                        </Group>
-                        <Text size="sm" c="dimmed">
-                          {source.amount.toLocaleString('ru-RU')} ₽
+                    <Stack gap="xs">
+                      <Group justify="space-between" wrap="wrap">
+                        <Text size="sm" fw={500}>
+                          Счёт №{source.invoiceNo || '—'} · {source.counterparty}
                         </Text>
-                        {source.files.length === 0 ? (
-                          <Text size="sm" c="dimmed">
-                            Файлов счёта нет
-                          </Text>
-                        ) : (
-                          source.files.map((file) => (
-                            <Anchor key={file.id} href={file.url} target="_blank" rel="noreferrer" size="sm">
-                              <Group gap={4}>
-                                <IconFile size={14} />
-                                {file.name}
-                              </Group>
-                            </Anchor>
-                          ))
+                        {source.deleted && (
+                          <Badge color="red" variant="light">
+                            Счёт удалён
+                          </Badge>
                         )}
-                      </Stack>
-                    </Paper>
+                      </Group>
+                      <Text size="sm" c="dimmed">
+                        {source.amount.toLocaleString('ru-RU')} ₽
+                      </Text>
+                      {source.files.length === 0 ? (
+                        <Text size="sm" c="dimmed">
+                          Файлов счёта нет
+                        </Text>
+                      ) : (
+                        source.files.map((file) => (
+                          <Anchor
+                            key={file.id}
+                            href={file.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            size="sm"
+                          >
+                            <Group gap={6} wrap="nowrap">
+                              <IconFile size={14} />
+                              <Text size="sm" truncate>
+                                {file.name}
+                              </Text>
+                            </Group>
+                          </Anchor>
+                        ))
+                      )}
+                    </Stack>
                   ) : (
                     <Text size="sm" c="dimmed">
                       Исходный счёт не найден
                     </Text>
                   )}
-                </>
+                </Paper>
               )}
 
-              <Divider />
-              <Group justify="space-between">
-                <Group>
-                  {canArchive && (
-                    <Button
-                      color="orange"
-                      variant="light"
-                      leftSection={<IconArchive size={16} />}
-                      onClick={() => setArchiveOpened(true)}
-                    >
-                      В архив
-                    </Button>
-                  )}
-                  {isAdmin && (
-                    <Button
-                      color={document.payment_cancelled ? 'green' : 'red'}
-                      variant="light"
-                      leftSection={<IconRefresh size={16} />}
-                      onClick={handlePaymentCancelled}
-                      loading={markCancelled.isPending}
-                    >
-                      {document.payment_cancelled ? 'Возобновить оплату' : 'Отменить оплату'}
-                    </Button>
-                  )}
+              <Paper withBorder p="md" radius="md">
+                <Group justify="space-between" wrap="wrap" gap="md">
+                  <Group>
+                    {canArchive && (
+                      <Button
+                        color="orange"
+                        variant="light"
+                        leftSection={<IconArchive size={16} />}
+                        onClick={() => setArchiveOpened(true)}
+                      >
+                        В архив
+                      </Button>
+                    )}
+                    {isAdmin && (
+                      <Button
+                        color={document.payment_cancelled ? 'green' : 'red'}
+                        variant="light"
+                        leftSection={<IconRefresh size={16} />}
+                        onClick={handlePaymentCancelled}
+                        loading={markCancelled.isPending}
+                      >
+                        {document.payment_cancelled
+                          ? 'Возобновить оплату'
+                          : 'Отменить оплату'}
+                      </Button>
+                    )}
+                  </Group>
+                  <Text size="xs" c="dimmed">
+                    Создан{' '}
+                    {document.created
+                      ? dayjs(document.created).format('DD.MM.YYYY HH:mm')
+                      : '—'}
+                  </Text>
                 </Group>
-                <Text size="xs" c="dimmed">
-                  Создан {document.created ? dayjs(document.created).format('DD.MM.YYYY HH:mm') : '—'}
-                </Text>
-              </Group>
+              </Paper>
             </Stack>
           </Tabs.Panel>
 
@@ -641,28 +865,48 @@ export function DocumentCardModal({
               {filesQuery.isLoading ? (
                 <Loader size="sm" />
               ) : files.length === 0 ? (
-                <Text c="dimmed">Файлов нет</Text>
+                <Center py="xl">
+                  <Stack align="center" gap="xs">
+                    <ThemeIcon size="xl" variant="light" color="gray" radius="xl">
+                      <IconPaperclip size={24} />
+                    </ThemeIcon>
+                    <Text c="dimmed" size="sm">
+                      Файлов нет
+                    </Text>
+                  </Stack>
+                </Center>
               ) : (
                 files.map((file) => (
-                  <Paper key={file.id} withBorder p="xs">
+                  <Paper key={file.id} withBorder p="sm" radius="md">
                     <Group justify="space-between" wrap="nowrap">
-                      <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-                        <IconFile size={18} />
-                        <Anchor href={getDocumentFileUrl(file)} target="_blank" rel="noreferrer" size="sm">
-                          <Text size="sm" truncate>
-                            {file.name}
-                          </Text>
-                        </Anchor>
-                        {file.id === document.confirmed_file_id && (
-                          <Badge size="xs" color="green">
-                            Подтверждающий
-                          </Badge>
-                        )}
+                      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                        <ThemeIcon size="md" variant="light" color="blue" radius="md">
+                          <IconFile size={16} />
+                        </ThemeIcon>
+                        <Stack gap={2} style={{ minWidth: 0 }}>
+                          <Anchor
+                            href={getDocumentFileUrl(file)}
+                            target="_blank"
+                            rel="noreferrer"
+                            size="sm"
+                          >
+                            <Text size="sm" fw={500} truncate>
+                              {file.name}
+                            </Text>
+                          </Anchor>
+                          <Group gap="xs" wrap="wrap">
+                            <Text size="xs" c="dimmed">
+                              {file.uploaded_by_name || '—'}
+                            </Text>
+                            {file.id === document.confirmed_file_id && (
+                              <Badge size="xs" color="green" variant="light">
+                                Подтверждающий
+                              </Badge>
+                            )}
+                          </Group>
+                        </Stack>
                       </Group>
                       <Group gap="xs" wrap="nowrap">
-                        <Text size="xs" c="dimmed">
-                          {file.uploaded_by_name || '—'}
-                        </Text>
                         {canDeleteFile(file) && (
                           <Tooltip label="Удалить файл">
                             <ActionIcon
@@ -682,38 +926,44 @@ export function DocumentCardModal({
               )}
 
               {canUpload && (
-                <Stack gap="xs">
-                  <FileButton onChange={setSelectedFile}>
-                    {(props) => (
-                      <Button {...props} variant="default" leftSection={<IconUpload size={16} />}>
-                        Выбрать файл
-                      </Button>
+                <Paper withBorder p="md" radius="md">
+                  <Stack gap="xs">
+                    <FileButton onChange={setSelectedFile}>
+                      {(props) => (
+                        <Button
+                          {...props}
+                          variant="default"
+                          leftSection={<IconUpload size={16} />}
+                        >
+                          Выбрать файл
+                        </Button>
+                      )}
+                    </FileButton>
+                    {selectedFile && (
+                      <Group gap="xs" wrap="nowrap">
+                        <Text size="sm" style={{ flex: 1, minWidth: 0 }} truncate>
+                          {selectedFile.name}
+                        </Text>
+                        <ActionIcon
+                          variant="subtle"
+                          color="red"
+                          aria-label="Снять выбор файла"
+                          onClick={() => setSelectedFile(null)}
+                        >
+                          <IconX size={16} />
+                        </ActionIcon>
+                      </Group>
                     )}
-                  </FileButton>
-                  {selectedFile && (
-                    <Group gap="xs" wrap="nowrap">
-                      <Text size="sm" style={{ flex: 1, minWidth: 0 }} truncate>
-                        {selectedFile.name}
-                      </Text>
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        aria-label="Снять выбор файла"
-                        onClick={() => setSelectedFile(null)}
-                      >
-                        <IconX size={16} />
-                      </ActionIcon>
-                    </Group>
-                  )}
-                  <Button
-                    leftSection={<IconUpload size={16} />}
-                    disabled={!selectedFile}
-                    loading={uploadFile.isPending}
-                    onClick={handleUpload}
-                  >
-                    Загрузить
-                  </Button>
-                </Stack>
+                    <Button
+                      leftSection={<IconUpload size={16} />}
+                      disabled={!selectedFile}
+                      loading={uploadFile.isPending}
+                      onClick={handleUpload}
+                    >
+                      Загрузить
+                    </Button>
+                  </Stack>
+                </Paper>
               )}
             </Stack>
           </Tabs.Panel>
@@ -721,51 +971,69 @@ export function DocumentCardModal({
           <Tabs.Panel value="comments" pt="md">
             <Stack gap="md">
               {canComment && (
-                <Stack gap="xs">
-                  <Textarea
-                    label="Новый комментарий"
-                    value={commentText}
-                    onChange={(event) => setCommentText(event.currentTarget.value)}
-                    autosize
-                    minRows={2}
-                    maxRows={5}
-                  />
-                  <Button
-                    onClick={handleAddComment}
-                    loading={addComment.isPending}
-                    disabled={!commentText.trim()}
-                  >
-                    Добавить комментарий
-                  </Button>
-                </Stack>
+                <Paper withBorder p="md" radius="md">
+                  <Stack gap="xs">
+                    <Textarea
+                      label="Новый комментарий"
+                      value={commentText}
+                      onChange={(event) => setCommentText(event.currentTarget.value)}
+                      autosize
+                      minRows={2}
+                      maxRows={5}
+                    />
+                    <Button
+                      onClick={handleAddComment}
+                      loading={addComment.isPending}
+                      disabled={!commentText.trim()}
+                    >
+                      Добавить комментарий
+                    </Button>
+                  </Stack>
+                </Paper>
               )}
 
               {commentsQuery.isLoading ? (
                 <Loader size="sm" />
               ) : comments.length === 0 ? (
-                <Text c="dimmed">Комментариев нет</Text>
+                <Center py="xl">
+                  <Stack align="center" gap="xs">
+                    <ThemeIcon size="xl" variant="light" color="gray" radius="xl">
+                      <IconMessageCircle size={24} />
+                    </ThemeIcon>
+                    <Text c="dimmed" size="sm">
+                      Комментариев нет
+                    </Text>
+                  </Stack>
+                </Center>
               ) : (
                 comments.map((comment) => (
-                  <Paper key={comment.id} withBorder p="sm">
-                    <Group justify="space-between" mb={4}>
-                      <Text size="sm" fw={500}>
-                        {comment.author_name || 'Пользователь'}
-                      </Text>
-                      <Group gap="xs">
-                        <Text size="xs" c="dimmed">
-                          {comment.created ? dayjs(comment.created).format('DD.MM.YYYY HH:mm') : ''}
-                        </Text>
-                        {canDeleteComment && (
-                          <ActionIcon
-                            color="red"
-                            variant="subtle"
-                            aria-label="Удалить комментарий"
-                            onClick={() => setCommentToDelete(comment)}
-                          >
-                            <IconTrash size={14} />
-                          </ActionIcon>
-                        )}
+                  <Paper key={comment.id} withBorder p="sm" radius="md">
+                    <Group justify="space-between" mb="xs" align="flex-start" wrap="nowrap">
+                      <Group gap="sm" wrap="nowrap">
+                        <ThemeIcon variant="light" radius="xl" size="md" color="blue">
+                          <IconUser size={14} />
+                        </ThemeIcon>
+                        <Stack gap={0}>
+                          <Text size="sm" fw={500}>
+                            {comment.author_name || 'Пользователь'}
+                          </Text>
+                          <Text size="xs" c="dimmed">
+                            {comment.created
+                              ? dayjs(comment.created).format('DD.MM.YYYY HH:mm')
+                              : ''}
+                          </Text>
+                        </Stack>
                       </Group>
+                      {canDeleteComment && (
+                        <ActionIcon
+                          color="red"
+                          variant="subtle"
+                          aria-label="Удалить комментарий"
+                          onClick={() => setCommentToDelete(comment)}
+                        >
+                          <IconTrash size={14} />
+                        </ActionIcon>
+                      )}
                     </Group>
                     <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
                       {comment.text}
@@ -780,27 +1048,40 @@ export function DocumentCardModal({
             {historyQuery.isLoading ? (
               <Loader size="sm" />
             ) : history.length === 0 ? (
-              <Text c="dimmed">История пуста</Text>
+              <Center py="xl">
+                <Stack align="center" gap="xs">
+                  <ThemeIcon size="xl" variant="light" color="gray" radius="xl">
+                    <IconHistory size={24} />
+                  </ThemeIcon>
+                  <Text c="dimmed" size="sm">
+                    История пуста
+                  </Text>
+                </Stack>
+              </Center>
             ) : (
               <ScrollArea.Autosize mah={520}>
                 <Stack gap="xs">
                   {history.map((record) => {
                     const details = historyDetails(record.previous_data, record.type);
                     return (
-                      <Paper key={record.id} withBorder p="xs">
-                        <Group justify="space-between" mb={4}>
-                          <Text size="sm" fw={500}>
-                            {HISTORY_LABELS[record.type] || record.type || 'Изменение'}
-                          </Text>
-                          <Text size="xs" c="dimmed">
-                            {record.changed_at ? dayjs(record.changed_at).format('DD.MM.YYYY HH:mm') : ''}
+                      <Paper key={record.id} withBorder p="sm" radius="md">
+                        <Group justify="space-between" mb={4} align="flex-start" wrap="nowrap">
+                          <Stack gap={2} style={{ minWidth: 0 }}>
+                            <Text size="sm" fw={500}>
+                              {HISTORY_LABELS[record.type] || record.type || 'Изменение'}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              {record.author_name || 'Система'}
+                            </Text>
+                          </Stack>
+                          <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                            {record.changed_at
+                              ? dayjs(record.changed_at).format('DD.MM.YYYY HH:mm')
+                              : ''}
                           </Text>
                         </Group>
-                        <Text size="xs" c="dimmed">
-                          {record.author_name || 'Система'}
-                        </Text>
                         {details && (
-                          <ScrollArea mt={4} mah={160}>
+                          <ScrollArea mt={6} mah={160}>
                             <Text size="xs" ff="monospace" style={{ whiteSpace: 'pre-wrap' }}>
                               {details}
                             </Text>
