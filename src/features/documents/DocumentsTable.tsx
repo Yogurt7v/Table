@@ -192,7 +192,9 @@ export function DocumentsTable({
   highlightDocumentId,
   highlightRowRef,
 }: DocumentsTableProps) {
-  const columns = DOCUMENT_COLUMNS.filter((column) => visibleColumns.includes(column.id));
+  const columns = visibleColumns.flatMap((id) =>
+    DOCUMENT_COLUMNS.filter((column) => column.id === id),
+  );
   const totalWidth = columns.reduce(
     (sum, column) => sum + getDocumentColumnWidth(column, sizing),
     0,
