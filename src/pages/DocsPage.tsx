@@ -464,7 +464,7 @@ export function DocsPage() {
     );
   }
 
-  const canCreate = role === 'admin' || role === 'moderator';
+  const canCreate = role === 'admin' || role === 'moderator' || role === 'user';
   const isLoading = documentsQuery.isLoading || allObjectsQuery.isLoading;
 
   return (
