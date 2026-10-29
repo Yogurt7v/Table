@@ -497,7 +497,6 @@ function AutoExpandOnHighlight({
 }) {
   const { expand } = useCollapsedObjects();
 
-  const lastHandledRequestId = useRef(0);
   const pollIntervalRef = useRef<number | null>(null);
   const stopHighlightPolling = useCallback(() => {
     if (pollIntervalRef.current != null) {
@@ -507,16 +506,27 @@ function AutoExpandOnHighlight({
   }, []);
   useEffect(() => () => stopHighlightPolling(), [stopHighlightPolling]);
 
+  // Эффект A: разворачиваем объект, содержащий подсвечиваемый счёт.
+  // Зависит от objects/invoices — если при первом срабатывании objects ещё
+  // пустые (переход из /docs через уведомление), эффект перезапустится при
+  // их загрузке и вызовет expand повторно. expand идемпотентен (no-op если
+  // объект уже развёрнут), поэтому повторные вызовы безопасны.
   useEffect(() => {
     if (!highlightedInvoiceId || !invoices || !objects) return;
-    if (highlightRequestId === lastHandledRequestId.current) return;
-    lastHandledRequestId.current = highlightRequestId;
-
     const target = invoices.find((i) => i.id === highlightedInvoiceId);
     if (!target) return;
     const objectId = normalizeRelationId(target.accounting_object_id);
     const hasObject = objects.some((o) => o.id === objectId);
     if (hasObject) expand([objectId]);
+  }, [highlightedInvoiceId, invoices, objects, expand]);
+
+  // Эффект B: ищем строку счёта в DOM и подсвечиваем + скроллим к ней.
+  // Зависит от highlightRequestId, чтобы перезапускаться при новом запросе
+  // подсветки (новый навигационный переход).
+  useEffect(() => {
+    if (!highlightedInvoiceId || !invoices) return;
+    const target = invoices.find((i) => i.id === highlightedInvoiceId);
+    if (!target) return;
 
     // Строка появляется после раскрытия группы и рендера таблицы, поэтому
     // поллим DOM до её появления: единичный ретрай через 120ms терял подсветку
@@ -535,7 +545,7 @@ function AutoExpandOnHighlight({
       }
       if (Date.now() - startedAt > 5000) stopHighlightPolling();
     }, 100);
-  }, [highlightedInvoiceId, highlightRequestId, invoices, objects, expand, stopHighlightPolling]);
+  }, [highlightedInvoiceId, highlightRequestId, invoices, stopHighlightPolling]);
 
   return null;
 }
