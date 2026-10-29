@@ -533,18 +533,25 @@ function AutoExpandOnHighlight({
     // при медленном рендере. Интервал живёт в ref, чтобы рефетч invoices
     // не убивал ожидание через cleanup эффекта.
     stopHighlightPolling();
-    const selector = `[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`;
-    const startedAt = Date.now();
-    pollIntervalRef.current = window.setInterval(() => {
-      const el = document.querySelector(selector);
-      if (el) {
-        stopHighlightPolling();
-        flashHighlightRow(highlightedInvoiceId);
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
-      if (Date.now() - startedAt > 5000) stopHighlightPolling();
-    }, 100);
+    
+    // Небольшая задержка перед началом polling, чтобы дать время на
+    // анимацию открытия объекта (Collapse). Иначе строка счёта может ещё
+    // не быть отрисована в DOM при первом опросе.
+    const startPolling = () => {
+      const selector = `[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`;
+      const startedAt = Date.now();
+      pollIntervalRef.current = window.setInterval(() => {
+        const el = document.querySelector(selector);
+        if (el) {
+          stopHighlightPolling();
+          flashHighlightRow(highlightedInvoiceId);
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+        if (Date.now() - startedAt > 5000) stopHighlightPolling();
+      }, 100);
+    };
+    pollIntervalRef.current = window.setTimeout(startPolling, 400);
   }, [highlightedInvoiceId, highlightRequestId, invoices, stopHighlightPolling]);
 
   return null;
