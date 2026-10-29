@@ -15,6 +15,8 @@ import {
 } from '@mantine/core';
 import { IconHistory, IconRestore, IconSearch, IconX } from '@tabler/icons-react';
 import {
+  useAllDeletedIncomingMails,
+  useAllDeletedOutgoingMails,
   useDeletedIncomingMails,
   useDeletedOutgoingMails,
   useRestoreDeletedIncomingMail,
@@ -22,6 +24,7 @@ import {
 } from '@/shared/hooks/useMail';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
+import { ARCHIVE_PAGE_SIZE } from '@/api/collections';
 import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
 import type {
   IAccountingObject,
@@ -38,8 +41,7 @@ import {
   MAIL_REGISTER_TAB_LABELS,
   MAIL_TYPE_LABELS,
 } from '@/features/mail/mail-labels';
-
-const ARCHIVE_PAGE_SIZE = 20;
+import { DeletedMailDetailModal } from './DeletedMailDetailModal';
 
 type DeletedMail = IDeletedIncomingMail | IDeletedOutgoingMail;
 
@@ -50,21 +52,18 @@ interface DeletedMailsSectionProps {
 /**
  * Архив удалённых писем — секция администрирования.
  *
- * Перенесена из модалки на странице почты: архив — административная
- * поверхность, а не часть ежедневного чтения реестра. Просмотр истории одной
- * записи остался модалкой (`DeletedMailHistoryModal`) — детальный вид деталями
- * и является.
+ * Просмотр истории одной записи остался модалкой (`DeletedMailHistoryModal`),
+ * детали записи — `DeletedMailDetailModal`.
  *
  * Коллекции `deleted_*` намеренно имеют пустой `listRule`: правило PocketBase не
  * умеет проверить роль внутри организации, поэтому единственная проверка прав —
  * на клиенте. Вкладку скрывает `canViewArchive` в `AdminPage`, кнопку
- * «Восстановить» — `canRestore` здесь; оба флага приходят из
+ * «Восстановить» — `permissions.canRestore` здесь; оба флага приходят из
  * `useMailPermissions`, а не из строки роли.
  *
- * Поиск клиентский и честно ограничен загруженной страницей: серверного
- * полнотекстового отбора по архиву нет (`buildDeleted*MailFilter` умеет период,
- * счётчики и связи, но не `search`), а выкачивать весь архив ради подсказки в
- * поле дорого — поэтому граница поиска написана прямо под ним.
+ * Поиск идёт по всему архиву: в режиме поиска секция выкачивает полный список
+ * (`useAllDeleted*Mails`) и фильтрует его на клиенте, вне поиска работает
+ * серверная пагинация.
  */
 export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
   const permissions = useMailPermissions(orgId);
@@ -73,13 +72,21 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
   const [tab, setTab] = useState<MailType>('incoming');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [activatedQuery, setActivatedQuery] = useState('');
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [historyFor, setHistoryFor] = useState<{ id: string; label: string } | null>(null);
+  const [detailMail, setDetailMail] = useState<DeletedMail | null>(null);
 
   const listParams = useMemo(() => ({ page, perPage: ARCHIVE_PAGE_SIZE }), [page]);
   const incoming = useDeletedIncomingMails(orgId, listParams);
   const outgoing = useDeletedOutgoingMails(orgId, listParams);
   const active = tab === 'incoming' ? incoming : outgoing;
+
+  const searchQuery = foldSearchText(activatedQuery);
+  const isSearchMode = searchQuery !== '';
+  const allIncoming = useAllDeletedIncomingMails(orgId, isSearchMode && tab === 'incoming');
+  const allOutgoing = useAllDeletedOutgoingMails(orgId, isSearchMode && tab === 'outgoing');
+  const allActive = tab === 'incoming' ? allIncoming : allOutgoing;
 
   const restoreIncoming = useRestoreDeletedIncomingMail(orgId);
   const restoreOutgoing = useRestoreDeletedOutgoingMail(orgId);
@@ -94,26 +101,18 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
   }, [accountingObjects]);
 
   const pageRows = useMemo(() => (active.data?.items ?? []) as DeletedMail[], [active.data]);
-  const folded = foldSearchText(search);
-  const isSearchMode = folded !== '';
-
-  const rows = useMemo(
-    () =>
-      isSearchMode
-        ? pageRows.filter((mail) => matchesFolded(searchFieldsOf(mail, tab), folded))
-        : pageRows,
-    [pageRows, isSearchMode, folded, tab],
+  const allRows = useMemo(
+    () => ((allActive.data ?? []) as DeletedMail[]),
+    [allActive.data],
   );
 
+  const rows = useMemo(() => {
+    if (!isSearchMode) return pageRows;
+    return allRows.filter((mail) => matchesFolded(searchFieldsOf(mail, tab), searchQuery));
+  }, [pageRows, allRows, isSearchMode, searchQuery, tab]);
+
   const pageCount = active.data?.totalPages ?? 0;
-  const isLoading = active.isLoading;
-  const meta = isLoading
-    ? ''
-    : isSearchMode
-      ? 'Поиск идёт по загруженной странице архива.'
-      : pageRows.length > 0
-        ? `Страница ${page} из ${pageCount || 1}.`
-        : '';
+  const isLoading = isSearchMode ? allActive.isLoading : active.isLoading;
 
   const objectNameOf = (mail: DeletedMail) =>
     mail.accounting_object_id ? (objectNames.get(mail.accounting_object_id) ?? '') : '';
@@ -131,21 +130,26 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
 
   return (
     <div>
-      <Group justify="space-between" mb="xs" wrap="wrap" gap="xs" align="flex-start">
-        <Group gap={8} align="center" wrap="wrap">
-          <Title order={4}>Архив удалённых писем</Title>
-          <Text size="xs" c="dimmed">
-            Удалённые входящие и исходящие письма с возможностью восстановления
-          </Text>
+      <Group justify="space-between" mb="sm" wrap="nowrap">
+        <Group gap="xs">
+          <Title order={4}>Архив писем</Title>
         </Group>
         <TextInput
+          w={480}
           size="sm"
           leftSection={<IconSearch size={14} />}
           placeholder="Поиск по теме, контрагенту, номеру, комментарию"
           value={search}
-          onChange={(e) => setSearch(e.currentTarget.value)}
+          onChange={(e) => {
+            setSearch(e.currentTarget.value);
+            if (e.currentTarget.value !== activatedQuery) {
+              setActivatedQuery('');
+            }
+          }}
           onKeyDown={(e) => {
-            if (e.key === 'Escape') setSearch('');
+            if (e.key === 'Enter') {
+              setActivatedQuery(search);
+            }
           }}
           aria-label="Поиск в архиве сообщений"
           rightSection={
@@ -155,15 +159,27 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
                 color="gray"
                 size="sm"
                 aria-label="Очистить поиск"
-                onClick={() => setSearch('')}
+                onClick={() => {
+                  setSearch('');
+                  setActivatedQuery('');
+                }}
               >
                 <IconX size={14} />
               </ActionIcon>
             ) : null
           }
           rightSectionPointerEvents="all"
-          w={{ base: '100%', sm: 420 }}
         />
+        {search.trim() !== '' && (
+          <Button
+            variant="light"
+            size="compact-sm"
+            leftSection={<IconSearch size={14} />}
+            onClick={() => setActivatedQuery(search)}
+          >
+            Найти
+          </Button>
+        )}
       </Group>
 
       <Tabs
@@ -181,27 +197,15 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
 
         <Tabs.Panel value={tab} pt="md">
           <Stack gap="xs">
-            {meta && (
-              <Text size="xs" c="dimmed">
-                {meta}
-              </Text>
-            )}
-
             {isLoading && (
               <Group justify="center" py="xl">
                 <Loader size="lg" />
               </Group>
             )}
 
-            {!isLoading && pageRows.length === 0 && (
+            {!isLoading && rows.length === 0 && (
               <Text c="dimmed" size="sm">
-                Удалённых писем нет
-              </Text>
-            )}
-
-            {!isLoading && pageRows.length > 0 && rows.length === 0 && (
-              <Text c="dimmed" size="sm">
-                Ничего не найдено
+                {isSearchMode ? 'Ничего не найдено' : 'Архив пуст'}
               </Text>
             )}
 
@@ -216,8 +220,9 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
                       <Table.Th w={210}>{MAIL_COUNTERPARTY_FIELD_LABELS[tab]}</Table.Th>
                       <Table.Th>Тема</Table.Th>
                       <Table.Th w={120}>Объект учёта</Table.Th>
-                      <Table.Th w={148}>Удалён</Table.Th>
-                      <Table.Th w={190} />
+                      <Table.Th w={140}>Удалил</Table.Th>
+                      <Table.Th w={140}>Удалён</Table.Th>
+                      <Table.Th w={260} />
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -230,38 +235,72 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
                           <Table.Td>{mail.seq ?? MAIL_EMPTY_CELL}</Table.Td>
                           <Table.Td>{formatMailDate(mail.date) || MAIL_EMPTY_CELL}</Table.Td>
                           <Table.Td>
-                            <Text lineClamp={2} title={number}>
+                            <Text lineClamp={1} title={number} aria-label={number}>
                               {number || MAIL_EMPTY_CELL}
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text lineClamp={2} title={counterparty}>
+                            <Text
+                              lineClamp={1}
+                              title={counterparty}
+                              aria-label={counterparty}
+                            >
                               {counterparty || MAIL_EMPTY_CELL}
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text lineClamp={2} title={mail.subject}>
+                            <Text
+                              lineClamp={1}
+                              title={mail.subject}
+                              aria-label={mail.subject}
+                            >
                               {mail.subject || MAIL_EMPTY_CELL}
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text lineClamp={2} size="xs" c="dimmed" title={objectName}>
+                            <Text
+                              lineClamp={1}
+                              size="xs"
+                              c="dimmed"
+                              title={objectName}
+                              aria-label={objectName}
+                            >
                               {objectName || MAIL_EMPTY_CELL}
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="xs" lineClamp={1} title={mail.deleted_by_name}>
+                            <Text
+                              size="xs"
+                              c="dimmed"
+                              lineClamp={1}
+                              title={mail.deleted_by_name}
+                              aria-label={mail.deleted_by_name}
+                            >
                               {mail.deleted_by_name || MAIL_EMPTY_CELL}
                             </Text>
-                            <Text size="xs" c="dimmed">
-                              {formatMailTimestamp(mail.deleted_at)}
+                          </Table.Td>
+                          <Table.Td>
+                            <Text
+                              size="xs"
+                              c="dimmed"
+                              title={formatMailTimestamp(mail.deleted_at)}
+                              aria-label={formatMailTimestamp(mail.deleted_at)}
+                            >
+                              {formatMailTimestamp(mail.deleted_at) || MAIL_EMPTY_CELL}
                             </Text>
                           </Table.Td>
                           <Table.Td>
                             <Group gap={6} justify="flex-end" wrap="nowrap">
                               <Button
                                 variant="subtle"
-                                size="compact-xs"
+                                size="compact-sm"
+                                onClick={() => setDetailMail(mail)}
+                              >
+                                Просмотреть
+                              </Button>
+                              <Button
+                                variant="subtle"
+                                size="compact-sm"
                                 leftSection={<IconHistory size={14} />}
                                 onClick={() =>
                                   setHistoryFor({
@@ -276,7 +315,7 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
                                 <Button
                                   variant="light"
                                   color="green"
-                                  size="compact-xs"
+                                  size="compact-sm"
                                   leftSection={<IconRestore size={14} />}
                                   loading={restoring && restoringId === mail.id}
                                   onClick={() => handleRestore(mail.id)}
@@ -296,12 +335,20 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
 
             {!isSearchMode && pageCount > 1 && (
               <Group justify="center" mt="md">
-                <Pagination value={page} onChange={setPage} total={pageCount} size="sm" withEdges />
+                <Pagination value={page} onChange={setPage} total={pageCount} size="sm" />
               </Group>
             )}
           </Stack>
         </Tabs.Panel>
       </Tabs>
+
+      <DeletedMailDetailModal
+        mail={detailMail}
+        mailType={tab}
+        objectName={detailMail ? objectNameOf(detailMail) : ''}
+        opened={!!detailMail}
+        onClose={() => setDetailMail(null)}
+      />
 
       {historyFor && (
         <DeletedMailHistoryModal

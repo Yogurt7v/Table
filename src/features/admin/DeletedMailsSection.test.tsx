@@ -8,6 +8,8 @@ import type { IDeletedIncomingMail } from '@/shared/types';
 const mocks = vi.hoisted(() => ({
   deletedIncoming: vi.fn(),
   deletedOutgoing: vi.fn(),
+  allDeletedIncoming: vi.fn(),
+  allDeletedOutgoing: vi.fn(),
   restoreIncoming: vi.fn(),
   useMailPermissions: vi.fn(),
 }));
@@ -15,6 +17,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/shared/hooks/useMail', () => ({
   useDeletedIncomingMails: mocks.deletedIncoming,
   useDeletedOutgoingMails: mocks.deletedOutgoing,
+  useAllDeletedIncomingMails: mocks.allDeletedIncoming,
+  useAllDeletedOutgoingMails: mocks.allDeletedOutgoing,
   useRestoreDeletedIncomingMail: () => ({ mutateAsync: mocks.restoreIncoming, isPending: false }),
   useRestoreDeletedOutgoingMail: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
@@ -53,7 +57,7 @@ function deletedIncomingMail(i: number): IDeletedIncomingMail {
 const archive = Array.from({ length: 3 }, (_, idx) => deletedIncomingMail(idx + 1));
 
 function page(items: IDeletedIncomingMail[], totalPages = 1) {
-  return { items, page: 1, perPage: 20, totalItems: items.length, totalPages };
+  return { items, page: 1, perPage: 15, totalItems: items.length, totalPages };
 }
 
 function renderSection() {
@@ -65,15 +69,18 @@ describe('DeletedMailsSection', () => {
     vi.clearAllMocks();
     mocks.deletedIncoming.mockReturnValue({ data: page(archive), isLoading: false });
     mocks.deletedOutgoing.mockReturnValue({ data: page([]), isLoading: false });
+    mocks.allDeletedIncoming.mockReturnValue({ data: archive, isLoading: false });
+    mocks.allDeletedOutgoing.mockReturnValue({ data: [], isLoading: false });
     mocks.useMailPermissions.mockReturnValue({ canRestore: true, canViewArchive: true });
   });
 
-  it('показывает архивные письма с темой, контрагентом и кнопкой восстановления', async () => {
+  it('показывает архивные письма с темой, контрагентом и кнопками действий', async () => {
     renderSection();
 
     expect(await screen.findByText('Тема письма 1')).toBeInTheDocument();
     expect(screen.getByText('Отправитель 1')).toBeInTheDocument();
     expect(screen.getByText('Основной счёт')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Просмотреть' })).toHaveLength(3);
     expect(screen.getAllByRole('button', { name: 'Восстановить' })).toHaveLength(3);
   });
 
@@ -86,27 +93,42 @@ describe('DeletedMailsSection', () => {
     expect(screen.getAllByRole('button', { name: 'История' })).toHaveLength(3);
   });
 
-  it('фильтрует загруженную страницу поиском по теме', async () => {
+  it('ищет по всему архиву после активации поиска', async () => {
     const user = userEvent.setup();
     renderSection();
 
     await screen.findByText('Тема письма 1');
 
-    await user.type(screen.getByLabelText('Поиск в архиве сообщений'), 'письма 3');
+    const input = screen.getByLabelText('Поиск в архиве сообщений');
+    await user.type(input, 'письма 3');
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
       expect(screen.queryByText('Тема письма 1')).not.toBeInTheDocument();
     });
     expect(screen.getByText('Тема письма 3')).toBeInTheDocument();
+    expect(mocks.allDeletedIncoming).toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'Очистить поиск' }));
     expect(await screen.findByText('Тема письма 1')).toBeInTheDocument();
   });
 
-  it('пустой архив показывает «Удалённых писем нет»', async () => {
+  it('открывает модалку просмотра с данными письма', async () => {
+    const user = userEvent.setup();
+    renderSection();
+
+    await screen.findByText('Тема письма 1');
+    await user.click(screen.getAllByRole('button', { name: 'Просмотреть' })[0]!);
+
+    expect(await screen.findByText('Входящее письмо № И-1')).toBeInTheDocument();
+    expect(screen.getAllByText('Отправитель 1')).toHaveLength(2);
+    expect(screen.getAllByText('Тема письма 1')).toHaveLength(2);
+  });
+
+  it('пустой архив показывает «Архив пуст»', async () => {
     mocks.deletedIncoming.mockReturnValue({ data: page([]), isLoading: false });
     renderSection();
 
-    expect(await screen.findByText('Удалённых писем нет')).toBeInTheDocument();
+    expect(await screen.findByText('Архив пуст')).toBeInTheDocument();
   });
 });

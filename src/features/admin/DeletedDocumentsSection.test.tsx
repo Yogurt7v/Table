@@ -88,12 +88,26 @@ describe('DeletedDocumentsSection', () => {
     expect(screen.getByText('причина 1')).toBeInTheDocument();
   });
 
-  it('filters by counterparty, reason or object name', async () => {
+  it('filters by reason after Enter activates the search', async () => {
+    const user = userEvent.setup();
+    renderSection();
+
+    await screen.findByText('Контрагент 1');
+    const input = screen.getByLabelText('Поиск в архиве документов');
+    await user.type(input, 'причина 3');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(screen.getByText('Контрагент 3')).toBeInTheDocument());
+    expect(screen.queryByText('Контрагент 1')).not.toBeInTheDocument();
+  });
+
+  it('activates search with the Найти button', async () => {
     const user = userEvent.setup();
     renderSection();
 
     await screen.findByText('Контрагент 1');
     await user.type(screen.getByLabelText('Поиск в архиве документов'), 'причина 3');
+    await user.click(screen.getByRole('button', { name: 'Найти' }));
 
     await waitFor(() => expect(screen.getByText('Контрагент 3')).toBeInTheDocument());
     expect(screen.queryByText('Контрагент 1')).not.toBeInTheDocument();
@@ -104,11 +118,25 @@ describe('DeletedDocumentsSection', () => {
     renderSection();
 
     await screen.findByText('Контрагент 1');
-    await user.type(screen.getByLabelText('Поиск в архиве документов'), 'причина 3');
+    const input = screen.getByLabelText('Поиск в архиве документов');
+    await user.type(input, 'причина 3');
+    await user.keyboard('{Enter}');
     await waitFor(() => expect(screen.getByText('Контрагент 3')).toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: 'Очистить поиск' }));
     await waitFor(() => expect(screen.getByText('Контрагент 1')).toBeInTheDocument());
+  });
+
+  it('opens the detail modal with document fields and deletion info', async () => {
+    const user = userEvent.setup();
+    renderSection();
+
+    await screen.findByText('Контрагент 1');
+    await user.click(screen.getAllByRole('button', { name: 'Просмотреть' })[0]!);
+
+    expect(await screen.findByText('Документ №1 · Контрагент 1')).toBeInTheDocument();
+    expect(screen.getAllByText('причина 1')).toHaveLength(2);
+    expect(screen.getAllByText('Ответственный')).toHaveLength(2);
   });
 
   it('opens restore confirmation and calls restore on confirm', async () => {
@@ -118,19 +146,35 @@ describe('DeletedDocumentsSection', () => {
     renderSection();
 
     await screen.findByText('Контрагент 2');
-    const restoreButtons = screen.getAllByRole('button', { name: 'Восстановить документ' });
+    const restoreButtons = screen.getAllByRole('button', { name: 'Восстановить' });
     await user.click(restoreButtons[1]!);
 
     expect(await screen.findByText(/Восстановить документ №2/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Восстановить' }));
+    const confirmButtons = screen.getAllByRole('button', { name: 'Восстановить' });
+    await user.click(confirmButtons[confirmButtons.length - 1]!);
 
     await waitFor(() => expect(restore).toHaveBeenCalledWith(expect.objectContaining({ id: 'doc-2' })));
+  });
+
+  it('paginates the archive with 15 rows per page', async () => {
+    const user = userEvent.setup();
+    const many = Array.from({ length: 20 }, (_, index) => makeDocument(index + 1));
+    useArchivedDocuments.mockReturnValue({ data: many, isLoading: false });
+    renderSection();
+
+    expect(await screen.findByText('Контрагент 1')).toBeInTheDocument();
+    expect(screen.queryByText('Контрагент 16')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '2' }));
+
+    expect(await screen.findByText('Контрагент 16')).toBeInTheDocument();
+    expect(screen.queryByText('Контрагент 1')).not.toBeInTheDocument();
   });
 
   it('shows empty state when archive is empty', async () => {
     useArchivedDocuments.mockReturnValue({ data: [], isLoading: false });
     renderSection();
 
-    expect(await screen.findByText('Архив документов пуст')).toBeInTheDocument();
+    expect(await screen.findByText('Архив пуст')).toBeInTheDocument();
   });
 });

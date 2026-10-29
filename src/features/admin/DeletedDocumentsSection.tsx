@@ -1,25 +1,27 @@
 import { useMemo, useState } from 'react';
 import {
   ActionIcon,
+  Box,
+  Button,
   Group,
   Loader,
-  Paper,
-  ScrollArea,
+  Pagination,
   Table,
   Text,
   TextInput,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconRefresh, IconSearch, IconX } from '@tabler/icons-react';
+import { IconSearch, IconX } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { useArchivedDocuments, useRestoreDocument } from '@/shared/hooks/useDocuments';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
+import { ARCHIVE_PAGE_SIZE } from '@/api/collections';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
 import type { IDocument } from '@/shared/types';
+import { DeletedDocumentDetailModal } from './DeletedDocumentDetailModal';
 
 interface DeletedDocumentsSectionProps {
   orgId: string;
@@ -30,6 +32,9 @@ export function DeletedDocumentsSection({ orgId }: DeletedDocumentsSectionProps)
   const objectsQuery = useAccountingObjects(orgId);
   const restoreDocument = useRestoreDocument(orgId);
   const [search, setSearch] = useState('');
+  const [activatedQuery, setActivatedQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [detailDocument, setDetailDocument] = useState<IDocument | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<IDocument | null>(null);
 
   const objectNames = useMemo(() => {
@@ -38,10 +43,12 @@ export function DeletedDocumentsSection({ orgId }: DeletedDocumentsSectionProps)
     return map;
   }, [objectsQuery.data]);
 
+  const searchQuery = foldSearchText(activatedQuery);
+  const isSearchMode = searchQuery !== '';
+
   const documents = useMemo(() => {
-    const folded = foldSearchText(search);
     const all = archivedQuery.data ?? [];
-    if (!folded) return all;
+    if (!isSearchMode) return all;
     return all.filter((document) =>
       matchesFolded(
         [
@@ -54,10 +61,16 @@ export function DeletedDocumentsSection({ orgId }: DeletedDocumentsSectionProps)
           document.deletion_reason,
           objectNames.get(document.accounting_object_id),
         ],
-        folded,
+        searchQuery,
       ),
     );
-  }, [archivedQuery.data, objectNames, search]);
+  }, [archivedQuery.data, objectNames, isSearchMode, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(documents.length / ARCHIVE_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageDocuments = isSearchMode
+    ? documents
+    : documents.slice((safePage - 1) * ARCHIVE_PAGE_SIZE, safePage * ARCHIVE_PAGE_SIZE);
 
   const handleRestore = async () => {
     if (!restoreTarget) return;
@@ -67,54 +80,99 @@ export function DeletedDocumentsSection({ orgId }: DeletedDocumentsSectionProps)
       setRestoreTarget(null);
     } catch {
       notifications.show({ color: 'red', message: 'Не удалось восстановить документ' });
+      setRestoreTarget(null);
     }
   };
 
   return (
     <div>
       <Group justify="space-between" mb="sm" wrap="nowrap">
-        <Title order={4}>Архив документов</Title>
+        <Group gap="xs">
+          <Title order={4}>Архив документов</Title>
+        </Group>
         <TextInput
           w={480}
           size="sm"
           leftSection={<IconSearch size={14} />}
-          placeholder="Поиск по контрагенту, назначению, причине"
+          placeholder="Поиск по контрагенту, назначению, договору, причине"
           value={search}
-          onChange={(event) => setSearch(event.currentTarget.value)}
+          onChange={(e) => {
+            setSearch(e.currentTarget.value);
+            if (e.currentTarget.value !== activatedQuery) {
+              setActivatedQuery('');
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              setActivatedQuery(search);
+            }
+          }}
+          aria-label="Поиск в архиве документов"
           rightSection={
             search ? (
-              <ActionIcon variant="subtle" aria-label="Очистить поиск" onClick={() => setSearch('')}>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="sm"
+                aria-label="Очистить поиск"
+                onClick={() => {
+                  setSearch('');
+                  setActivatedQuery('');
+                }}
+              >
                 <IconX size={14} />
               </ActionIcon>
             ) : null
           }
-          aria-label="Поиск в архиве документов"
+          rightSectionPointerEvents="all"
         />
+        {search.trim() !== '' && (
+          <Button
+            variant="light"
+            size="compact-sm"
+            leftSection={<IconSearch size={14} />}
+            onClick={() => setActivatedQuery(search)}
+          >
+            Найти
+          </Button>
+        )}
       </Group>
 
-      {archivedQuery.isLoading ? (
-        <Loader />
-      ) : documents.length === 0 ? (
-        <Text c="dimmed">Архив документов пуст</Text>
-      ) : (
-        <Paper withBorder>
-          <ScrollArea>
-            <Table striped highlightOnHover withTableBorder>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>№</Table.Th>
-                  <Table.Th>Дата оплаты</Table.Th>
-                  <Table.Th>Объект</Table.Th>
-                  <Table.Th>Контрагент</Table.Th>
-                  <Table.Th>Сумма</Table.Th>
-                  <Table.Th>Ответственный</Table.Th>
-                  <Table.Th>Удалил</Table.Th>
-                  <Table.Th>Причина</Table.Th>
-                  <Table.Th />
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {documents.map((document) => (
+      {archivedQuery.isLoading && (
+        <Group justify="center" py="xl">
+          <Loader size="lg" />
+        </Group>
+      )}
+
+      {!archivedQuery.isLoading && documents.length === 0 && (
+        <Text c="dimmed" size="sm">
+          {isSearchMode ? 'Ничего не найдено' : 'Архив пуст'}
+        </Text>
+      )}
+
+      {!archivedQuery.isLoading && pageDocuments.length > 0 && (
+        <Box >
+          <Table striped highlightOnHover withTableBorder>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th w={56}>№</Table.Th>
+                <Table.Th w={116}>Дата оплаты</Table.Th>
+                <Table.Th>Объект</Table.Th>
+                <Table.Th >Контрагент</Table.Th>
+                <Table.Th w={120} ta="right">
+                  Сумма
+                </Table.Th>
+                <Table.Th>Ответственный</Table.Th>
+                <Table.Th w={140}>Удалил</Table.Th>
+                <Table.Th w={140}>Удалён</Table.Th>
+                <Table.Th>Причина</Table.Th>
+                <Table.Th w={200} />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {pageDocuments.map((document) => {
+                const objectName = objectNames.get(document.accounting_object_id) ?? '—';
+                return (
                   <Table.Tr key={document.id}>
                     <Table.Td>{document.seq}</Table.Td>
                     <Table.Td>
@@ -122,51 +180,117 @@ export function DeletedDocumentsSection({ orgId }: DeletedDocumentsSectionProps)
                         ? dayjs(document.payment_date).format('DD.MM.YYYY')
                         : '—'}
                     </Table.Td>
-                    <Table.Td>{objectNames.get(document.accounting_object_id) ?? '—'}</Table.Td>
-                    <Table.Td style={{ maxWidth: 260 }}>
-                      <Text size="sm" truncate>
-                        {document.counterparty}
-                      </Text>
-                      {document.purpose && (
-                        <Text size="xs" c="dimmed" truncate>
-                          {document.purpose}
-                        </Text>
-                      )}
+                    <Table.Td title={objectName} aria-label={objectName}>
+                      {objectName}
                     </Table.Td>
-                    <Table.Td>{document.amount ? formatAmountRub(document.amount) : '—'}</Table.Td>
-                    <Table.Td>{document.responsible_name || '—'}</Table.Td>
                     <Table.Td>
-                      <Text size="sm">{document.deleted_by_name || '—'}</Text>
-                      <Text size="xs" c="dimmed">
+                      <Text
+                        lineClamp={1}
+                        title={document.counterparty}
+                        aria-label={document.counterparty}
+                      >
+                        {document.counterparty || '—'}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td
+                      ta="right"
+                      aria-label={String(document.amount)}
+                      title={String(document.amount)}
+                    >
+                      {document.amount ? formatAmountRub(document.amount) : '—'}
+                    </Table.Td>
+                    <Table.Td>
+                      <Text
+                        size="xs"
+                        c="dimmed"
+                        lineClamp={1}
+                        title={document.responsible_name}
+                        aria-label={document.responsible_name}
+                      >
+                        {document.responsible_name || '—'}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text
+                        size="xs"
+                        c="dimmed"
+                        lineClamp={1}
+                        title={document.deleted_by_name}
+                        aria-label={document.deleted_by_name}
+                      >
+                        {document.deleted_by_name || '—'}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text
+                        size="xs"
+                        c="dimmed"
+                        aria-label={
+                          document.deleted_at
+                            ? dayjs(document.deleted_at).format('DD.MM.YYYY HH:mm')
+                            : ''
+                        }
+                        title={
+                          document.deleted_at
+                            ? dayjs(document.deleted_at).format('DD.MM.YYYY HH:mm')
+                            : ''
+                        }
+                      >
                         {document.deleted_at
                           ? dayjs(document.deleted_at).format('DD.MM.YYYY HH:mm')
-                          : ''}
+                          : '—'}
                       </Text>
                     </Table.Td>
-                    <Table.Td style={{ maxWidth: 260 }}>
-                      <Text size="sm" truncate>
+                    <Table.Td>
+                      <Text
+                        lineClamp={1}
+                        title={document.deletion_reason}
+                        aria-label={document.deletion_reason}
+                      >
                         {document.deletion_reason || '—'}
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Tooltip label="Восстановить">
-                        <ActionIcon
-                          color="green"
+                      <Group gap={6} justify="flex-end" wrap="nowrap">
+                        <Button
                           variant="subtle"
-                          aria-label="Восстановить документ"
+                          size="compact-sm"
+                          onClick={() => setDetailDocument(document)}
+                        >
+                          Просмотреть
+                        </Button>
+                        <Button
+                          variant="light"
+                          color="green"
+                          size="compact-sm"
                           onClick={() => setRestoreTarget(document)}
                         >
-                          <IconRefresh size={18} />
-                        </ActionIcon>
-                      </Tooltip>
+                          Восстановить
+                        </Button>
+                      </Group>
                     </Table.Td>
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </ScrollArea>
-        </Paper>
+                );
+              })}
+            </Table.Tbody>
+          </Table>
+        </Box>
       )}
+
+      {!isSearchMode && totalPages > 1 && (
+        <Group justify="center" mt="md">
+          <Pagination value={safePage} onChange={setPage} total={totalPages} size="sm" />
+        </Group>
+      )}
+
+      <DeletedDocumentDetailModal
+        document={detailDocument}
+        objectName={
+          detailDocument ? (objectNames.get(detailDocument.accounting_object_id) ?? '') : ''
+        }
+        opened={!!detailDocument}
+        onClose={() => setDetailDocument(null)}
+      />
 
       <ConfirmModal
         opened={!!restoreTarget}

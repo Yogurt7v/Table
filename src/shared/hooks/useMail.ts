@@ -12,6 +12,8 @@ import {
   deleteOutgoingMail,
   getAllIncomingMails,
   getAllOutgoingMails,
+  getAllDeletedIncomingMails,
+  getAllDeletedOutgoingMails,
   getDeletedIncomingMails,
   getDeletedOutgoingMails,
   getIncomingMail,
@@ -218,6 +220,22 @@ export function useDeletedOutgoingMails(orgId: string, params: MailListQuery) {
     queryFn: () => getDeletedOutgoingMails({ ...params, organizationId: orgId }),
     enabled: !!orgId,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useAllDeletedIncomingMails(orgId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['deletedIncomingMails-all', orgId],
+    queryFn: () => getAllDeletedIncomingMails(orgId),
+    enabled: !!orgId && enabled,
+  });
+}
+
+export function useAllDeletedOutgoingMails(orgId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['deletedOutgoingMails-all', orgId],
+    queryFn: () => getAllDeletedOutgoingMails(orgId),
+    enabled: !!orgId && enabled,
   });
 }
 
