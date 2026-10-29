@@ -164,11 +164,11 @@ export function DeletedInvoicesSection({
           <Table striped highlightOnHover withTableBorder>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Контрагент</Table.Th>
+                <Table.Th w={150}>Контрагент</Table.Th>
                 <Table.Th>Назначение</Table.Th>
                 <Table.Th w={100}>Дата</Table.Th>
                 <Table.Th w={130}>Номер</Table.Th>
-                <Table.Th w={120} ta="right">
+                <Table.Th w={160} ta="right">
                   Сумма
                 </Table.Th>
                 <Table.Th>Объект</Table.Th>

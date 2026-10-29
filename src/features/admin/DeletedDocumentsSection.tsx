@@ -158,8 +158,8 @@ export function DeletedDocumentsSection({ orgId }: DeletedDocumentsSectionProps)
                 <Table.Th w={56}>№</Table.Th>
                 <Table.Th w={116}>Дата оплаты</Table.Th>
                 <Table.Th>Объект</Table.Th>
-                <Table.Th >Контрагент</Table.Th>
-                <Table.Th w={120} ta="right">
+                <Table.Th w={180}>Контрагент</Table.Th>
+                <Table.Th w={160} ta="right">
                   Сумма
                 </Table.Th>
                 <Table.Th>Ответственный</Table.Th>
