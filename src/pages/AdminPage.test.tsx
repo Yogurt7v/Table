@@ -226,7 +226,7 @@ describe('AdminPage', () => {
     it('без параметра tab открывает вкладку «Организации»', async () => {
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(screen.getByRole('tab', { name: 'Организации' })).toHaveAttribute(
         'aria-selected',
         'true',
@@ -237,7 +237,7 @@ describe('AdminPage', () => {
     it('?tab=users открывает вкладку «Пользователи»', async () => {
       renderPage('/admin?tab=users');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(screen.getByRole('tab', { name: 'Пользователи' })).toHaveAttribute(
         'aria-selected',
         'true',
@@ -251,7 +251,7 @@ describe('AdminPage', () => {
     it('?tab=archive открывает вкладку «Архив счетов» и передаёт туда highlight', async () => {
       renderPage('/admin?tab=archive&highlight=del-1');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(screen.getByRole('tab', { name: 'Архив счетов' })).toHaveAttribute(
         'aria-selected',
         'true',
@@ -263,7 +263,7 @@ describe('AdminPage', () => {
     it('без highlight подсветка не передаётся в архив счетов', async () => {
       renderPage('/admin?tab=archive');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(screen.getByTestId('archive-highlight')).toHaveTextContent('нет');
     });
 
@@ -271,7 +271,7 @@ describe('AdminPage', () => {
       const user = userEvent.setup();
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await user.click(screen.getByRole('tab', { name: 'Пользователи' }));
 
       await waitFor(() => expect(search()).toBe('?tab=users'));
@@ -287,7 +287,7 @@ describe('AdminPage', () => {
       const user = userEvent.setup();
       renderPage('/admin?tab=archive&highlight=del-9');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await user.click(screen.getByRole('tab', { name: 'Организации' }));
 
       await waitFor(() => expect(search()).toBe('?tab=organizations&highlight=del-9'));
@@ -296,7 +296,7 @@ describe('AdminPage', () => {
     it('ПОСЛЕ: неизвестный tab оставляет все панели скрытыми — страница без содержимого', async () => {
       renderPage('/admin?tab=bogus');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       const tabs = screen.getAllByRole('tab');
       expect(tabs.every((tab) => tab.getAttribute('aria-selected') === 'false')).toBe(true);
       expect(screen.queryByRole('tabpanel')).not.toBeInTheDocument();
@@ -307,7 +307,7 @@ describe('AdminPage', () => {
     it('admin видит панель администрирования', async () => {
       renderPage();
 
-      expect(await screen.findByText('Администрирование')).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: 'Администрирование', level: 3 })).toBeInTheDocument();
       expect(screen.queryByText('Доступ запрещён')).not.toBeInTheDocument();
     });
 
@@ -318,7 +318,7 @@ describe('AdminPage', () => {
 
       renderPage();
 
-      expect(await screen.findByText('Администрирование')).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: 'Администрирование', level: 3 })).toBeInTheDocument();
     });
 
     it('boss не проходит гейт', async () => {
@@ -330,7 +330,7 @@ describe('AdminPage', () => {
 
       expect(await screen.findByText('Доступ запрещён')).toBeInTheDocument();
       expect(screen.getByText('У вас нет прав для просмотра этой страницы.')).toBeInTheDocument();
-      expect(screen.queryByText('Администрирование')).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Администрирование', level: 3 })).not.toBeInTheDocument();
       expect(screen.queryAllByRole('tab')).toHaveLength(0);
     });
 
@@ -363,7 +363,7 @@ describe('AdminPage', () => {
 
       renderPage();
 
-      expect(await screen.findByText('Администрирование')).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: 'Администрирование', level: 3 })).toBeInTheDocument();
       expect(screen.queryByTestId('deleted-invoices-section')).not.toBeInTheDocument();
     });
   });
@@ -382,7 +382,7 @@ describe('AdminPage', () => {
 
       release();
 
-      expect(await screen.findByText('Администрирование')).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: 'Администрирование', level: 3 })).toBeInTheDocument();
       expect(screen.queryByText('Доступ запрещён')).not.toBeInTheDocument();
     });
 
@@ -410,7 +410,7 @@ describe('AdminPage', () => {
 
       release();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(screen.getByRole('tab', { name: 'Архив писем' })).toBeInTheDocument();
     });
   });
@@ -421,7 +421,7 @@ describe('AdminPage', () => {
 
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(screen.queryByRole('tab', { name: 'Архив писем' })).not.toBeInTheDocument();
     });
 
@@ -430,7 +430,7 @@ describe('AdminPage', () => {
 
       renderPage('/admin?tab=mail-archive');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(screen.getByRole('tab', { name: 'Организации' })).toHaveAttribute(
         'aria-selected',
         'true',
@@ -440,7 +440,7 @@ describe('AdminPage', () => {
     it('с canViewArchive вкладка открывается и получает текущую организацию', async () => {
       renderPage('/admin?tab=mail-archive');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(screen.getByRole('tab', { name: 'Архив писем' })).toHaveAttribute(
         'aria-selected',
         'true',
@@ -453,7 +453,7 @@ describe('AdminPage', () => {
 
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(screen.getByRole('tab', { name: 'Архив счетов' })).toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: 'Архив писем' })).not.toBeInTheDocument();
     });
@@ -463,7 +463,7 @@ describe('AdminPage', () => {
     async function openDeleteDialog(user: typeof userUser | typeof bossUser) {
       const actor = userEvent.setup();
       renderPage('/admin?tab=users');
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(screen.getByRole('button', { name: `Удалить пользователя ${user.name}` }));
       return actor;
     }
@@ -536,7 +536,7 @@ describe('AdminPage', () => {
     it('admin не может удалить самого себя — кнопки нет', async () => {
       renderPage('/admin?tab=users');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(
         screen.queryByRole('button', { name: `Удалить пользователя ${adminUser.name}` }),
       ).not.toBeInTheDocument();
@@ -549,7 +549,7 @@ describe('AdminPage', () => {
 
       renderPage('/admin?tab=users');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(
         screen.getByRole('button', { name: `Редактировать пользователя ${userUser.name}` }),
       ).toBeInTheDocument();
@@ -562,7 +562,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage('/admin?tab=users');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(screen.getByRole('button', { name: 'Добавить пользователя' }));
 
       expect(
@@ -574,7 +574,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage('/admin?tab=users');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(
         screen.getByRole('button', { name: `Редактировать пользователя ${userUser.name}` }),
       );
@@ -590,7 +590,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(screen.getByRole('button', { name: 'Добавить организацию' }));
 
       const dialog = await screen.findByRole('dialog', { name: 'Добавить организацию' });
@@ -626,7 +626,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(screen.getByRole('button', { name: 'Добавить организацию' }));
 
       const dialog = await screen.findByRole('dialog', { name: 'Добавить организацию' });
@@ -641,7 +641,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(screen.getByRole('button', { name: `Редактировать «${orgName}»` }));
       const dialog = await screen.findByRole('dialog', { name: `Редактирование: ${orgName}` });
       return { actor, dialog };
@@ -711,7 +711,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(screen.getByRole('button', { name: `Удалить организацию «${org2.name}»` }));
 
       const dialog = await screen.findByRole('dialog', {
@@ -727,7 +727,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(screen.getByRole('button', { name: `Удалить организацию «${org1.name}»` }));
 
       const dialog = await screen.findByRole('dialog', {
@@ -743,7 +743,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(screen.getByRole('button', { name: `Удалить организацию «${org2.name}»` }));
 
       const dialog = await screen.findByRole('dialog', {
@@ -774,7 +774,7 @@ describe('AdminPage', () => {
 
       renderPage();
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(
         screen.queryByRole('button', { name: `Удалить организацию «${org2.name}»` }),
       ).not.toBeInTheDocument();
@@ -786,7 +786,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage('/admin?tab=archive&highlight=del-1');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       expect(search()).toBe('?tab=archive&highlight=del-1');
 
       await actor.click(screen.getByRole('button', { name: 'Снять подсветку' }));
@@ -798,7 +798,7 @@ describe('AdminPage', () => {
       const actor = userEvent.setup();
       renderPage('/admin?tab=archive');
 
-      await screen.findByText('Администрирование');
+      await screen.findByRole('heading', { name: 'Администрирование', level: 3 });
       await actor.click(screen.getByRole('tab', { name: 'Пользователи' }));
 
       await waitFor(() => expect(search()).toBe('?tab=users'));

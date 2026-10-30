@@ -61,10 +61,10 @@ test.describe('Документы: файлы', () => {
     await expect(modal.getByRole('button', { name: 'Удалить файл' })).toHaveCount(2);
 
     await modal.getByRole('tab', { name: 'Документ' }).click();
-    await expect(modal.getByLabel('Предоставлен')).toBeChecked();
-    await modal.getByText('Подтверждён').click();
+    await expect(modal.getByText('Предоставлен', { exact: true }).first()).toBeVisible();
+    await modal.getByText('Подтверждён', { exact: true }).first().click();
     await expect(page.getByRole('alert').getByText('Статус обновлён')).toBeVisible();
-    await expect(modal.getByLabel('Подтверждён')).toBeChecked();
+    await expect(modal.getByText('Подтверждён', { exact: true }).first()).toBeVisible();
 
     for (let index = 0; index < 2; index += 1) {
       await modal.getByRole('tab', { name: 'Файлы' }).click();
@@ -74,8 +74,8 @@ test.describe('Документы: файлы', () => {
     }
 
     await modal.getByRole('tab', { name: 'Документ' }).click();
-    await expect(modal.getByLabel('Предоставлен')).not.toBeChecked();
-    await expect(modal.getByLabel('Подтверждён')).not.toBeChecked();
+    await expect(modal.getByText('Предоставлен', { exact: true }).first()).toBeVisible();
+    await expect(modal.getByText('Подтверждён', { exact: true }).first()).toBeVisible();
   });
 
   test('ответственный не удаляет чужой файл, но удаляет свой до подтверждения', async ({

@@ -265,7 +265,7 @@ export function DocumentsTable({
                 <Box visibleFrom="sm">
                   <ScrollArea type="auto" offsetScrollbars>
                   <Table
-                    striped
+                    // striped
                     highlightOnHover
                     withTableBorder
                     withColumnBorders

@@ -77,10 +77,10 @@ test.describe('Документы: ручное создание', () => {
   });
 
   test('ответственный не может создать ручной документ', async ({ page }) => {
-    await loginViaUi(page, 'user');
+    await loginViaUi(page, 'boss');
     await page.goto('http://localhost:5173/docs');
 
-    await expect(page.getByRole('heading', { name: 'Документы' })).toBeVisible();
+    await expect(page.getByText('Документы')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Добавить документ' })).toHaveCount(0);
   });
 

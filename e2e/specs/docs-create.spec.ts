@@ -12,7 +12,7 @@ test.describe('Документы: создание', () => {
 
     await loginViaUi(page, 'admin');
     await page.goto('http://localhost:5173/docs');
-    await expect(page.getByRole('heading', { name: 'Документы' })).toBeVisible();
+    await expect(page.getByText('Документы')).toBeVisible();
     await expect(page.locator('tr').filter({ hasText: marker })).toBeVisible();
   });
 

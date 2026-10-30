@@ -37,7 +37,7 @@ test.describe('Документы: сквозной сценарий', () => {
     await expect(page.getByText('Файл загружен')).toBeVisible();
 
     await modal.getByRole('tab', { name: 'Документ' }).click();
-    await modal.getByLabel('Подтверждён').click();
+    await modal.getByText('Подтверждён', { exact: true }).first().click();
     await expect(page.getByText('Статус обновлён')).toBeVisible();
 
     await modal.getByRole('tab', { name: 'Комментарии' }).click();
@@ -61,7 +61,7 @@ test.describe('Документы: сквозной сценарий', () => {
     await expect(archiveRow).toBeVisible();
     await expect(archiveRow).toContainText('сквозная архивация');
 
-    await archiveRow.getByRole('button', { name: 'Восстановить документ' }).click();
+    await archiveRow.getByRole('button', { name: 'Восстановить' }).click();
     await page.getByRole('dialog', { name: 'Восстановление документа' }).getByRole('button', { name: 'Восстановить' }).click();
     await expect(page.getByText('Документ восстановлен')).toBeVisible();
 

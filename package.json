@@ -9,7 +9,7 @@
     "pb": "./pocketbase serve",
     "pbt": "./pocketbase serve --dir=pb_data_test --http=127.0.0.1:8090",
     "pbe": "pocketbase.exe serve",
-    "prebuild": "vitest run",
+    "prebuild": "vitest run && playwright test",
     "build": "tsc -b && vite build",
     "build:portable": "vite build --outDir builds/table-$(date +%Y%m%d-%H%M%S)",
     "preview": "vite preview",

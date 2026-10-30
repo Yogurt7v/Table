@@ -1,5 +1,4 @@
-import { Container, Stack, Loader, Paper, Text, Button, Center, Title } from '@mantine/core';
-import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
+import { Container, Stack, Loader, Paper, Text, Button, Center } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useAuth } from '@/shared/context/AuthContext';

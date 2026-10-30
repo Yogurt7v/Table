@@ -104,7 +104,7 @@ test.describe('Документы: фильтр по объекту', () => {
     await expect(secondRow).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Фильтр (1)', exact: true })).toBeVisible();
 
-    await page.getByRole('heading', { name: 'Документы' }).click();
+    await page.getByText('Документы').click();
     await page.getByRole('button', { name: 'Фильтр (1)', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Все объекты' }).click();
 

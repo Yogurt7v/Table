@@ -48,7 +48,7 @@ test.describe('Документы: таблица и колонки', () => {
     await expect(page.getByText('Файл загружен')).toBeVisible();
 
     await modal.getByRole('tab', { name: 'Документ' }).click();
-    await modal.getByLabel('Подтверждён').click();
+    await modal.getByText('Подтверждён', { exact: true }).first().click();
     await expect(page.getByText('Статус обновлён')).toBeVisible();
     await page.keyboard.press('Escape');
 

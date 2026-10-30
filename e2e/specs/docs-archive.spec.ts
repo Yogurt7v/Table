@@ -31,7 +31,7 @@ test.describe('Документы: архив', () => {
     await expect(archiveRow).toBeVisible();
     await expect(archiveRow).toContainText('причина архивации');
 
-    await archiveRow.getByRole('button', { name: 'Восстановить документ' }).click();
+    await archiveRow.getByRole('button', { name: 'Восстановить' }).click();
     await page.getByRole('dialog', { name: 'Восстановление документа' }).getByRole('button', { name: 'Восстановить' }).click();
     await expect(page.getByText('Документ восстановлен')).toBeVisible();
 

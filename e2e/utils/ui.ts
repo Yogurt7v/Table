@@ -58,7 +58,7 @@ export async function logoutViaUi(page: Page): Promise<void> {
 /** Открывает реестр документов и ждёт заголовок «Документы». */
 export async function openDocumentsPage(page: Page) {
   await page.goto(`${APP}docs`);
-  await expect(page.getByRole('heading', { name: 'Документы' })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Документы')).toBeVisible({ timeout: 15000 });
 }
 
 /** Открывает карточку документа по маркеру контрагента в строке таблицы. */

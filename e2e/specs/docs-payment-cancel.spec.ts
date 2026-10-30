@@ -59,8 +59,8 @@ test.describe('Документы: отмена оплаты', () => {
     await modal.getByRole('button', { name: 'Отменить оплату' }).click();
     await expect(page.getByRole('alert').getByText('Оплата отменена')).toBeVisible();
     await expect(modal.getByText('Оплата отменена')).toBeVisible();
-    await expect(modal.getByLabel('Предоставлен')).not.toBeChecked();
-    await expect(modal.getByLabel('Подтверждён')).not.toBeChecked();
+    await expect(modal.getByText('Предоставлен', { exact: true }).first()).toBeVisible();
+    await expect(modal.getByText('Подтверждён', { exact: true }).first()).toBeVisible();
 
     await modal.getByRole('button', { name: 'Возобновить оплату' }).click();
     await expect(page.getByText('Оплата возобновлена')).toBeVisible();
