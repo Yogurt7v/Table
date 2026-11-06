@@ -283,6 +283,7 @@ export async function bootstrapHumanFlow(marker: string): Promise<HumanFixture> 
         organization_id: org.id,
         name: objectNames[i],
         sort: i + 1,
+        is_active: true,
         counterparty_order: [],
       }),
     );

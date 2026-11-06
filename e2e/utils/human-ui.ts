@@ -92,16 +92,10 @@ export async function moveObject(
 
 export async function deleteObject(page: Page, modal: Locator, name: string): Promise<void> {
   await modal.getByRole('button', { name: `Удалить «${name}»` }).click();
-  await page
-    .getByRole('dialog')
-    .filter({ hasText: 'Удаление объекта' })
-    .getByRole('button', {
-      name: 'Удалить',
-    })
-    .click();
-  await expect(modal.getByRole('button', { name: `Удалить «${name}»` })).toHaveCount(0, {
-    timeout: 15_000,
-  });
+  const confirmDialog = page.getByRole('dialog').filter({ hasText: 'Удаление объекта' });
+  await expect(confirmDialog).toBeVisible();
+  await confirmDialog.getByRole('button', { name: 'Удалить', exact: true }).click();
+  await expect(confirmDialog).toBeHidden({ timeout: 15_000 });
 }
 
 function accountRow(modal: Locator, accountNumber: string): Locator {
@@ -394,7 +388,18 @@ export async function deleteInvoiceViaMenu(page: Page, row: Locator): Promise<vo
   await expect(menu).toBeVisible();
   await menu.getByRole('menuitem', { name: 'Удалить', exact: true }).click();
   const modal = page.getByRole('dialog').filter({ hasText: 'Удаление счёта' });
-  await modal.getByRole('button', { name: 'Удалить', exact: true }).click();
+  const reason = modal.getByLabel('Причина удаления');
+  if ((await reason.count()) > 0) {
+    await reason.fill('E2E удаление');
+    await expect(reason).toHaveValue('E2E удаление');
+  }
+  const confirm = modal.getByRole('button', { name: 'Удалить', exact: true });
+  if (await confirm.isDisabled()) {
+    await reason.fill('E2E удаление счёта');
+    await page.keyboard.press('Tab');
+  }
+  await expect(confirm).toBeEnabled({ timeout: 15_000 });
+  await confirm.click();
   await expect(modal).toBeHidden();
   await expect(row).toHaveCount(0);
 }
