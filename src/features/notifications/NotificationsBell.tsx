@@ -233,7 +233,7 @@ export function NotificationsBell() {
               position: 'absolute',
               top: -2,
               right: -2,
-              minWidth: 18,
+              minWidth: 24,
               height: 18,
               padding: 0,
             }}
