@@ -193,9 +193,7 @@ export function InvoiceObjectBlock({
             {permissions.canCreate && (
               <Group justify="flex-end" mt="sm">
                 <Button
-                  size="md"
-                  variant="light"
-                  leftSection={<IconPlus size={18} />}
+                  leftSection={<IconPlus size={16} />}
                   disabled={isDraftOpen || hasDraftElsewhere}
                   onClick={() => onOpenDraft(obj.id)}
                 >

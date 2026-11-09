@@ -767,9 +767,7 @@ export function GroupedInvoiceTable({
         {permissions.canCreate && onAddClick && (
           <Group justify="flex-end" mb="sm">
             <Button
-              size="md"
-              variant="light"
-              leftSection={<IconPlus size={18} />}
+              leftSection={<IconPlus size={16} />}
               disabled={isDraftOpen || hasDraftElsewhere}
               onClick={onAddClick}
             >
