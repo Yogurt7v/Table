@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:all": "concurrently -n pb,vite -c yellow,cyan \"pnpm pb\" \"vite\"",
+    "dev:all": "concurrently -n pb,vite -c yellow,cyan \"pnpm pbt\" \"vite\"",
     "pb": "./pocketbase serve",
     "pbt": "./pocketbase serve --dir=pb_data_test --http=127.0.0.1:8090",
     "pbe": "pocketbase.exe serve",

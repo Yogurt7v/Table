@@ -242,6 +242,8 @@ export function GroupedInvoiceTable({
   const [clearConfirmInvoiceId, setClearConfirmInvoiceId] = useState<string | null>(null);
   const [draftErrors, setDraftErrors] = useState<DraftFieldErrors>({});
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [amountFocused, setAmountFocused] = useState(false);
+  const [amountDisplay, setAmountDisplay] = useState<string>('');
 
   const requestDraftCancel = () => {
     if (draftForm && isDraftDirty(draftForm)) {
@@ -309,6 +311,11 @@ export function GroupedInvoiceTable({
   useEffect(() => {
     columnSizingRef.current = columnSizing;
   }, [columnSizing]);
+
+  useEffect(() => {
+    setAmountDisplay(String(draftForm?.amount ?? 0));
+    setAmountFocused(false);
+  }, [draftForm]);
 
   useEffect(() => {
     const sizing = loadColumnSizing(orgId);
@@ -496,9 +503,35 @@ export function GroupedInvoiceTable({
         <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
           <NumberInput
             size="xs"
-            value={draftForm?.amount ?? 0}
-            onChange={(v) => handleDraftChange('amount', v ?? 0)}
+            value={amountFocused && draftForm?.amount === 0 ? (undefined as unknown as number) : (draftForm?.amount ?? 0)}
+            onChange={(v) => {
+              setAmountDisplay(v ?? '');
+              handleDraftChange('amount', v ?? 0);
+              setDraftErrors((prev) => {
+                const next = { ...prev };
+                delete next.amount;
+                return next;
+              });
+            }}
             onKeyDown={handleDraftKeyDown}
+            onFocus={() => {
+              if (draftForm?.amount === 0) {
+                setAmountFocused(true);
+                setAmountDisplay('');
+                setDraftErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.amount;
+                  return next;
+                });
+              }
+            }}
+            onBlur={() => {
+              setAmountFocused(false);
+              if (amountDisplay.trim() === '') {
+                setAmountDisplay('0');
+                handleDraftChange('amount', 0);
+              }
+            }}
             thousandSeparator=" "
             decimalSeparator=","
             placeholder="Сумма"
