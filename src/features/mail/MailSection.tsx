@@ -626,13 +626,11 @@ export function MailSection({ orgId }: MailSectionProps) {
           </Group>
           {allowedCreateTypes.length > 0 && (
             <Button
-              size="md"
-              variant="light"
               leftSection={
                 allowedCreateTypes.length === 1 ? (
-                  <IconPlus size={18} />
+                  <IconPlus size={16} />
                 ) : (
-                  <IconMailPlus size={18} />
+                  <IconMailPlus size={16} />
                 )
               }
               onClick={() => {
