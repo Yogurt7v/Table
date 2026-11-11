@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Container, Paper, TextInput, PasswordInput, Button, Title, Text } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Container, Paper, TextInput, PasswordInput, Button, Title, Text, Alert } from '@mantine/core';
 import { ClientResponseError } from 'pocketbase';
 import { useAuth } from '@/shared/context/AuthContext';
 
@@ -23,16 +23,27 @@ function getLoginErrorMessage(err: unknown): string {
       return 'Не удалось связаться с сервером. Проверьте подключение';
     }
   }
+  if (err instanceof Error) return `Ошибка входа: ${err.message}`;
   return 'Ошибка входа. Попробуйте ещё раз';
 }
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loginValue, setLoginValue] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const sessionExpired = location.state?.reason === 'expired';
+  const from = (location.state?.from as { pathname: string })?.pathname || '/';
+
+  useEffect(() => {
+    if (user) {
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +52,6 @@ export function LoginPage() {
 
     try {
       await login(loginValue, password);
-      navigate('/', { replace: true });
     } catch (err) {
       setError(getLoginErrorMessage(err));
     } finally {
@@ -54,6 +64,11 @@ export function LoginPage() {
       <Title ta="center" mb="lg">
         Реестры счетов
       </Title>
+      {sessionExpired && (
+        <Alert color="red" mb="sm">
+          Сессия истекла. Войдите заново, чтобы продолжить работу.
+        </Alert>
+      )}
       <Paper withBorder p="lg" radius="md">
         <form onSubmit={handleSubmit}>
           <TextInput

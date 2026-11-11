@@ -32,11 +32,21 @@ dayjs.locale('ru');
 // }
 
 // enableMocks().then(() => {
+import { isSessionExpiredError } from '@/shared/auth/session';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      retry: 1,
+      retry: (failureCount, error) => {
+        if (isSessionExpiredError(error)) return false;
+        return failureCount < 1;
+      },
+    },
+    mutations: {
+      onError: (error) => {
+        if (isSessionExpiredError(error)) return;
+      },
     },
   },
 });

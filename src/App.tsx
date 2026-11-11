@@ -5,12 +5,15 @@ import { AppLayout } from './layouts/AppLayout.tsx';
 import { RequireAuth } from '@/shared/components/RequireAuth';
 import { MainPage } from './pages/MainPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
+import { useSessionKeepalive } from '@/shared/hooks/useSessionKeepalive';
 
 const MailPage = lazy(() => import('./pages/MailPage').then((mod) => ({ default: mod.MailPage })));
 const DocsPage = lazy(() => import('./pages/DocsPage').then((mod) => ({ default: mod.DocsPage })));
 const AdminPage = lazy(() => import('./pages/AdminPage').then((mod) => ({ default: mod.AdminPage })));
 
 export default function App() {
+  useSessionKeepalive();
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
