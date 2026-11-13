@@ -1,8 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Text, Stack, TextInput, Group, Paper } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { IconArchive, IconCircleCheckFilled } from '@tabler/icons-react';
+import { useState, useMemo } from 'react';
 import type {
   IAccountingObject,
   IInvoice,
@@ -11,38 +7,24 @@ import type {
   InvoiceColumnId,
 } from '@/shared/types';
 
-import {
-  createEmptyDraft,
-  validateDraftForm,
-  isDraftDirty,
-  type DraftInvoiceForm,
-} from './invoice-field-access';
+import { type DraftInvoiceForm } from '@/features/invoices/invoice-field-access';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
-import { useBeforeUnloadGuard } from '@/shared/hooks/useBeforeUnloadGuard';
-import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
 import { useUpdateInvoice } from '@/shared/hooks/useUpdateInvoice';
 import { useDeleteInvoice } from '@/shared/hooks/useDeleteInvoice';
 import { useMoveInvoice } from '@/shared/hooks/useMoveInvoice';
 import { useReorderCounterparties } from '@/shared/hooks/useReorderCounterparties';
-import { formatAmountRub } from '@/shared/utils/format-currency';
-import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
-import {
-  useCreatePaymentMark,
-  useDeletePaymentMark,
-  useApprovePaymentMark,
-} from '@/shared/hooks/usePaymentMarks';
-import { APPROVAL_MARK_STATUS, PARTIAL_MARK_STATUS, PAID_MARK_STATUS } from './payment-mark-status';
-import { useCreateInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
-import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
-import { ConfirmModal } from '@/shared/components/ConfirmModal';
+import { useInvoiceDraft } from '@/features/invoices/components/invoice-table/useInvoiceDraft.tsx';
+import { useInvoicePaymentActions } from '@/features/invoices/components/invoice-table/useInvoicePaymentActions';
+import { InvoiceTableDeleteConfirm } from '@/features/invoices/components/invoice-table/InvoiceTableDeleteConfirm';
+import { InvoiceTableDuplicateConfirm } from '@/features/invoices/components/invoice-table/InvoiceTableDuplicateConfirm';
+import { InvoiceTableClearMarkConfirm } from '@/features/invoices/components/invoice-table/InvoiceTableClearMarkConfirm';
+import { GroupedInvoiceTable } from './GroupedInvoiceTable';
 import { InvoiceHistoryModal } from './InvoiceHistoryModal';
 import { InvoiceMoveModal } from './InvoiceMoveModal';
 import { InvoiceEditModal } from './InvoiceEditModal';
 import { InvoiceFilesModal } from './InvoiceFilesModal';
 import { buildInvoiceDelta } from '@/features/invoices/utils/build-invoice-delta';
-import { findDuplicateInvoices, syncInvoiceCopy } from '@/api/collections';
-import { GroupedInvoiceTable } from './GroupedInvoiceTable';
 
 interface InvoiceTableProps {
   orgId: string;
@@ -87,6 +69,10 @@ export function InvoiceTable({
 }: InvoiceTableProps) {
   const permissions = useInvoicePermissions(orgId);
   const { data: orgUsers } = useOrganizationUsers();
+  const updateInvoice = useUpdateInvoice(orgId, date);
+  const deleteInvoice = useDeleteInvoice(orgId, date);
+  const moveInvoice = useMoveInvoice(orgId, date);
+  const reorderCounterparties = useReorderCounterparties(orgId);
   const initiatorOptions = useMemo(() => {
     if (!orgUsers) return [];
     return orgUsers
@@ -108,16 +94,6 @@ export function InvoiceTable({
     }
     return map;
   }, [orgUsers, orgId]);
-  const queryClient = useQueryClient();
-  const createInvoice = useCreateInvoice(orgId, date);
-  const updateInvoice = useUpdateInvoice(orgId, date);
-  const deleteInvoice = useDeleteInvoice(orgId, date);
-  const moveInvoice = useMoveInvoice(orgId, date);
-  const createPaymentMark = useCreatePaymentMark(orgId);
-  const deletePaymentMark = useDeletePaymentMark(orgId);
-  const approvePaymentMark = useApprovePaymentMark(orgId);
-  const createInvoiceFile = useCreateInvoiceFile(orgId);
-  const reorderCounterparties = useReorderCounterparties(orgId);
 
   const counterpartyOrder = accountingObjects.find(
     (obj) => obj.id === objectId,
@@ -129,123 +105,47 @@ export function InvoiceTable({
     reorderCounterparties.mutate({ objectId, counterpartyOrder: merged });
   };
 
-  const [draftForm, setDraftForm] = useState<DraftInvoiceForm>(createEmptyDraft);
-  const counterpartySearch = useCounterpartySearch(orgId, draftForm.counterparty);
-  const [duplicateInvoices, setDuplicateInvoices] = useState<IInvoice[]>([]);
-  const [pendingDuplicateForm, setPendingDuplicateForm] = useState<DraftInvoiceForm | null>(null);
+  const {
+    draftForm,
+    duplicateInvoices,
+    pendingDuplicateForm,
+    handleCopy,
+    handleSaveDraft,
+    patchDraft,
+    counterpartySearch,
+    performCreateInvoice,
+  } = useInvoiceDraft({
+    orgId,
+    objectId,
+    date,
+    onDraftCancel: onCancelDraft,
+    onOpenDraft,
+  });
+
+  const {
+    clearMarkTarget,
+    setClearMarkTarget,
+    handlePayInvoice,
+    handleClearPayment,
+    handleMarkForPayment,
+    handleMarkForApproval,
+    handleMarkPartialPayment,
+    handleClearPaymentMark,
+    handleApproveMark,
+  } = useInvoicePaymentActions({
+    orgId,
+    date,
+    invoices,
+    paymentMarks,
+    permissions,
+  });
+
   const [deleteTarget, setDeleteTarget] = useState<IInvoice | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
-  const [clearMarkTarget, setClearMarkTarget] = useState<string | null>(null);
   const [historyInvoice, setHistoryInvoice] = useState<IInvoice | null>(null);
   const [moveInvoiceTarget, setMoveInvoiceTarget] = useState<IInvoice | null>(null);
   const [editInvoice, setEditInvoice] = useState<IInvoice | null>(null);
   const [filesInvoice, setFilesInvoice] = useState<IInvoice | null>(null);
-  const copySourceRef = useRef<IInvoice | null>(null);
-
-  useEffect(() => {
-    if (isDraftOpen) {
-      if (copySourceRef.current) {
-        const src = copySourceRef.current;
-        copySourceRef.current = null;
-        setDraftForm({
-          counterparty: src.counterparty,
-          purpose: src.purpose,
-          contract_no: src.contract_no,
-          invoice_no: src.invoice_no,
-          amount: src.amount,
-          paid: false,
-          paid_date: '',
-          comment: src.comment,
-          initiator: '',
-          file: null,
-        });
-      } else {
-        setDraftForm(createEmptyDraft());
-      }
-    }
-  }, [isDraftOpen]);
-
-  useBeforeUnloadGuard(isDraftOpen && isDraftDirty(draftForm));
-
-  const handleCopy = useCallback(
-    (invoice: IInvoice) => {
-      copySourceRef.current = invoice;
-      onOpenDraft?.(normalizeRelationId(invoice.accounting_object_id));
-    },
-    [onOpenDraft],
-  );
-
-  const handleSaveDraft = async () => {
-    const error = validateDraftForm(draftForm);
-    if (error) {
-      notifications.show({ color: 'red', message: error });
-      return;
-    }
-    const invoiceNo = draftForm.invoice_no.trim();
-    if (invoiceNo !== '-') {
-      const duplicates = await findDuplicateInvoices(orgId, invoiceNo).catch(() => []);
-      if (duplicates.length > 0) {
-        setDuplicateInvoices(duplicates);
-        setPendingDuplicateForm(draftForm);
-        return;
-      }
-    }
-    await performCreateInvoice(draftForm);
-  };
-
-  const performCreateInvoice = async (form: DraftInvoiceForm) => {
-    let created;
-    try {
-      created = await createInvoice.mutateAsync({
-        organization_id: orgId,
-        accounting_object_id: objectId,
-        date,
-        counterparty: form.counterparty.trim(),
-        purpose: form.purpose.trim(),
-        contract_no: form.contract_no.trim(),
-        invoice_no: form.invoice_no.trim(),
-        amount: form.amount,
-        paid: form.paid,
-        paid_date: form.paid_date,
-        comment: form.comment.trim(),
-      });
-    } catch {
-      notifications.show({ color: 'red', message: 'Не удалось создать счёт' });
-      return;
-    }
-    if (form.file && created?.id) {
-      try {
-        await createInvoiceFile.mutateAsync({
-          invoiceId: created.id,
-          file: form.file,
-          name: form.file.name,
-        });
-      } catch {
-        notifications.show({
-          color: 'yellow',
-          title: 'Счёт добавлен',
-          message: 'Файл не загрузился — прикрепите его через меню «Файлы»',
-          autoClose: 10000,
-        });
-      }
-    }
-    onCancelDraft();
-    notifications.show({
-      color: 'green',
-      icon: <IconCircleCheckFilled size={20} />,
-      title: 'Счёт добавлен',
-      message: `${form.counterparty} · ${formatAmountRub(form.amount)}`,
-      autoClose: 4500,
-      styles: {
-        root: {
-          backgroundColor: 'var(--mantine-color-green-0)',
-          borderLeft: '4px solid var(--mantine-color-green-6)',
-          boxShadow: 'var(--mantine-shadow-md)',
-        },
-        title: { fontWeight: 700 },
-      },
-    });
-  };
 
   const handleEditInvoice = (data: DraftInvoiceForm) => {
     if (!editInvoice) return;
@@ -299,226 +199,6 @@ export function InvoiceTable({
     );
   };
 
-  const handlePayInvoice = (invoiceId: string, amount: number) => {
-    const invoice = invoices.find((i) => i.id === invoiceId);
-    if (!invoice) return;
-    const newAmounts = [...(invoice.payment_amounts ?? []), amount];
-    const remaining =
-      (Number(invoice.amount) || 0) - newAmounts.reduce((s, a) => s + (Number(a) || 0), 0);
-    const existingMark = paymentMarks?.find((m) => m.invoice_id === invoiceId);
-    const previousData: Record<string, unknown> = {
-      paid: invoice.paid,
-      payment_amounts: invoice.payment_amounts,
-      paid_amount: invoice.paid_amount,
-      paid_date: invoice.paid_date,
-      remaining,
-      payment: amount,
-    };
-    updateInvoice.mutate(
-      {
-        id: invoiceId,
-        previousData,
-        paid: true,
-        payment_amounts: newAmounts,
-        paid_amount: amount,
-        paid_date: date.slice(0, 10),
-        last_deleted_mark: existingMark
-          ? {
-              amount: existingMark.amount ?? null,
-              comment: existingMark.comment ?? '',
-              status: existingMark.status ?? 'proposed',
-            }
-          : undefined,
-      },
-      {
-        onSuccess: () => {
-          if (existingMark) {
-            deletePaymentMark.mutate(existingMark.id, {
-              onError: () => {
-                notifications.show({ color: 'red', message: 'Не удалось удалить отметку' });
-              },
-            });
-          }
-          void syncInvoiceCopy(invoice, newAmounts, true, date.slice(0, 10)).then(() => {
-            queryClient.invalidateQueries({ queryKey: ['invoices', orgId] });
-            queryClient.invalidateQueries({ queryKey: ['invoice_files', orgId] });
-          });
-          notifications.show({ color: 'green', message: 'Статус счёта обновлён' });
-        },
-        onError: (error) => {
-          console.error('Ошибка при обновлении статуса оплаты:', error);
-          notifications.show({ color: 'red', message: 'Не удалось обновить статус счёта' });
-        },
-      },
-    );
-  };
-
-  const handleClearPayment = (invoiceId: string) => {
-    const originalId = invoiceId.replace(/__p\d+$/, '');
-    const invoice = invoices.find((i) => i.id === originalId);
-    if (!invoice) return;
-    const amounts = invoice.payment_amounts ?? [];
-    if (amounts.length === 0) return;
-    const newAmounts = amounts.slice(0, -1);
-    const savedMark = invoice.last_deleted_mark;
-    const previousData: Record<string, unknown> = {
-      paid: invoice.paid,
-      payment_amounts: invoice.payment_amounts,
-      paid_amount: invoice.paid_amount,
-      paid_date: invoice.paid_date,
-      remaining:
-        (Number(invoice.amount) || 0) - newAmounts.reduce((s, a) => s + (Number(a) || 0), 0),
-      removed_amount: invoice.paid_amount ?? null,
-    };
-    updateInvoice.mutate(
-      {
-        id: originalId,
-        previousData,
-        paid: newAmounts.length > 0,
-        payment_amounts: newAmounts,
-        paid_amount: newAmounts.length > 0 ? newAmounts[newAmounts.length - 1]! : null,
-        paid_date: newAmounts.length > 0 ? invoice.paid_date : (null as unknown as string),
-        last_deleted_mark: null,
-      },
-      {
-        onSuccess: () => {
-          if (savedMark) {
-            createPaymentMark.mutate({
-              invoice_id: originalId,
-              amount: savedMark.amount,
-              comment: savedMark.comment,
-              status: savedMark.status,
-            });
-          }
-          void syncInvoiceCopy(
-            invoice,
-            newAmounts,
-            newAmounts.length > 0,
-            invoice.paid_date || date.slice(0, 10),
-          ).then(() => {
-            queryClient.invalidateQueries({ queryKey: ['invoices', orgId] });
-            queryClient.invalidateQueries({ queryKey: ['invoice_files', orgId] });
-          });
-          notifications.show({ color: 'green', message: 'Оплата снята' });
-        },
-        onError: (error) => {
-          console.error('Ошибка при снятии оплаты:', error);
-          notifications.show({ color: 'red', message: 'Не удалось снять оплату' });
-        },
-      },
-    );
-  };
-
-  const handleMarkForPayment = (invoice: IInvoice) => {
-    const realId = invoice.id.endsWith('__r') ? invoice.id.slice(0, -3) : invoice.id;
-    createPaymentMark.mutate(
-      { invoice_id: realId, amount: invoice.amount, status: PAID_MARK_STATUS },
-      {
-        onSuccess: () => {
-          notifications.show({ color: 'green', message: 'Счёт отмечен к оплате' });
-        },
-        onError: () => {
-          notifications.show({ color: 'red', message: 'Не удалось отметить счёт' });
-        },
-      },
-    );
-  };
-
-  const handleMarkForApproval = (invoice: IInvoice) => {
-    const realId = invoice.id.endsWith('__r') ? invoice.id.slice(0, -3) : invoice.id;
-    createPaymentMark.mutate(
-      { invoice_id: realId, amount: invoice.amount, status: APPROVAL_MARK_STATUS },
-      {
-        onSuccess: () => {
-          notifications.show({ color: 'green', message: 'Счёт отправлен на согласование' });
-        },
-        onError: () => {
-          notifications.show({ color: 'red', message: 'Не удалось отметить счёт' });
-        },
-      },
-    );
-  };
-
-  const handleMarkPartialPayment = (
-    invoiceId: string,
-    amount: number | undefined,
-    comment: string,
-  ) => {
-    const realId = invoiceId.endsWith('__r') ? invoiceId.slice(0, -3) : invoiceId;
-    createPaymentMark.mutate(
-      { invoice_id: realId, amount, comment, status: PARTIAL_MARK_STATUS },
-      {
-        onSuccess: () => {
-          notifications.show({ color: 'green', message: 'Частичная оплата отмечена' });
-        },
-        onError: () => {
-          notifications.show({ color: 'red', message: 'Не удалось отметить частичную оплату' });
-        },
-      },
-    );
-  };
-
-  const handleClearPaymentMark = (markId: string) => {
-    setClearMarkTarget(markId);
-  };
-
-  const handleApproveMark = (markId: string) => {
-    approvePaymentMark.mutate(markId, {
-      onSuccess: () => {
-        notifications.show({ color: 'green', message: 'Счёт отмечен к оплате' });
-      },
-      onError: () => {
-        notifications.show({ color: 'red', message: 'Не удалось утвердить оплату' });
-      },
-    });
-  };
-
-  const patchDraft = (patch: Partial<DraftInvoiceForm>) => {
-    setDraftForm((prev) => ({ ...prev, ...patch }));
-  };
-
-  const closeDeleteModal = () => {
-    setDeleteTarget(null);
-    setDeleteReason('');
-  };
-
-  // Рядом в реестре лежат одноимённые контрагенты, строки частичных оплат и
-  // дубли по сумме, поэтому карточка собирает признаки, по которым строка
-  // ищется в самой таблице.
-  const deleteSubjectMeta = deleteTarget
-    ? [
-        deleteTarget.invoice_no ? `Счёт № ${deleteTarget.invoice_no}` : null,
-        deleteTarget.purpose || null,
-      ].filter((part): part is string => Boolean(part))
-    : [];
-
-  const deleteSubject = deleteTarget ? (
-    <Paper withBorder radius="md" p="sm">
-      <Group justify="space-between" align="baseline" gap="sm" wrap="nowrap">
-        <Text fw={600} lh={1.35} lineClamp={2} flex={1}>
-          {deleteTarget.counterparty || deleteTarget.invoice_no || 'Счёт без контрагента'}
-        </Text>
-        <Text fw={600} lh={1.35} fz="md" style={{ fontVariantNumeric: 'tabular-nums' }}>
-          {formatAmountRub(deleteTarget.amount)}
-        </Text>
-      </Group>
-      {deleteSubjectMeta.length > 0 && (
-        <Text size="xs" c="dimmed" mt={2} lineClamp={1}>
-          {deleteSubjectMeta.join(' · ')}
-        </Text>
-      )}
-    </Paper>
-  ) : null;
-
-  // Удаление обратимо: строка уезжает в «Архив счетов», откуда её восстанавливают
-  // вместе с историей. Формулировка говорит об этом прямо, чтобы действие не
-  // читалось как безвозвратная потеря данных.
-  const deleteNote = (
-    <Text size="sm" c="dimmed" lh={1.45}>
-      Счёт переместится в архив. Его можно восстановить вместе с историей изменений.
-    </Text>
-  );
-
   return (
     <>
       <GroupedInvoiceTable
@@ -535,18 +215,7 @@ export function InvoiceTable({
         onDraftSave={handleSaveDraft}
         onDraftCancel={onCancelDraft}
         highlightedIds={highlightedIds}
-        onEdit={(inv) => {
-          const realId = toRealInvoiceId(inv.id);
-          const suffix = realId === inv.id ? null : inv.id.slice(realId.length);
-          const realInvoice = suffix ? invoices.find((i) => i.id === realId) : null;
-          const copyComment = suffix ? (realInvoice?.copy_comments?.[suffix] ?? '') : undefined;
-          setEditInvoice({
-            ...inv,
-            id: realId,
-            comment: copyComment ?? inv.comment,
-            _syntheticSuffix: suffix,
-          } as IInvoice & { _syntheticSuffix?: string | null });
-        }}
+        onEdit={handleEditInvoice}
         onCopy={handleCopy}
         onDelete={(inv) => setDeleteTarget(inv)}
         onHistory={(inv) => setHistoryInvoice(inv)}
@@ -567,9 +236,12 @@ export function InvoiceTable({
         onAddClick={onAddClick}
         hasDraftElsewhere={hasDraftElsewhere}
       />
-      <ConfirmModal
+      <InvoiceTableDeleteConfirm
         opened={!!deleteTarget}
-        onClose={closeDeleteModal}
+        onClose={() => {
+          setDeleteTarget(null);
+          setDeleteReason('');
+        }}
         onConfirm={() => {
           if (deleteTarget) {
             deleteInvoice.mutate({
@@ -577,38 +249,15 @@ export function InvoiceTable({
               reason: deleteReason.trim(),
             });
           }
-          closeDeleteModal();
+          setDeleteTarget(null);
+          setDeleteReason('');
         }}
-        title="Удаление счёта"
-        size="md"
-        subject={deleteSubject}
-        note={deleteNote}
+        deleteTarget={deleteTarget}
+        deleteReason={deleteReason}
+        setDeleteReason={setDeleteReason}
         loading={deleteInvoice.isPending}
-        confirmDisabled={deleteReason.trim() === '' || deleteInvoice.isPending}
-        confirmLeftSection={<IconArchive size={16} />}
-        confirmBlocked
-      >
-        <TextInput
-          label="Причина удаления"
-          aria-label="Причина удаления"
-          placeholder="Например: счёт создан ошибочно"
-          description={
-            <Group component="span" justify="space-between" gap="sm" wrap="nowrap">
-              <Text component="span" size="xs" flex={1}>
-                Сохранится в архивной записи и в истории счёта.
-              </Text>
-              <Text component="span" size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-                {deleteReason.length > 0 ? `${deleteReason.length} симв.` : ''}
-              </Text>
-            </Group>
-          }
-          value={deleteReason}
-          onChange={(event) => setDeleteReason(event.currentTarget.value)}
-          disabled={deleteInvoice.isPending}
-          required
-        />
-      </ConfirmModal>
-      <ConfirmModal
+      />
+      <InvoiceTableDuplicateConfirm
         opened={duplicateInvoices.length > 0}
         onClose={() => {
           setDuplicateInvoices([]);
@@ -620,23 +269,10 @@ export function InvoiceTable({
           setPendingDuplicateForm(null);
           if (form) void performCreateInvoice(form);
         }}
-        title="Возможный дубль счёта"
-        color="yellow"
-        confirmLabel="Создать всё равно"
-        cancelLabel="Отмена"
-        message={
-          <Stack gap="xs">
-            <Text size="sm">Такой счёт уже существует:</Text>
-            {duplicateInvoices.map((inv) => (
-              <Text key={inv.id} size="sm" c="dimmed">
-                {inv.date} · {inv.counterparty} · {formatAmountRub(inv.amount)}
-              </Text>
-            ))}
-            <Text size="sm">Создать дубль счёта «{duplicateInvoices[0]?.invoice_no}»?</Text>
-          </Stack>
-        }
+        duplicateInvoices={duplicateInvoices}
+        pendingDuplicateForm={pendingDuplicateForm}
       />
-      <ConfirmModal
+      <InvoiceTableClearMarkConfirm
         opened={!!clearMarkTarget}
         onClose={() => setClearMarkTarget(null)}
         onConfirm={() => {
@@ -652,8 +288,6 @@ export function InvoiceTable({
           }
           setClearMarkTarget(null);
         }}
-        title="Снятие отметки"
-        message="Убрать отметку с этого счёта?"
       />
       <InvoiceHistoryModal
         opened={!!historyInvoice}
