@@ -1,5 +1,4 @@
-import { useAuth } from '@/shared/context/AuthContext';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useCurrentOrgUser } from '@/shared/hooks/useCurrentOrgUser';
 import {
   canEditInvoiceField,
   getInvoicePermissions,
@@ -8,12 +7,7 @@ import {
 } from '@/features/invoices/invoice-field-access';
 
 export function useInvoicePermissions(orgId: string) {
-  const { user } = useAuth();
-  const { data: orgUsers } = useOrganizationUsers();
-
-  const assignment = orgUsers?.find(
-    (ou) => ou.user_id === user?.id && ou.organization_id === orgId,
-  );
+  const assignment = useCurrentOrgUser(orgId);
   const role: OrgRole = assignment?.role ?? null;
 
   const permissions = getInvoicePermissions(role);

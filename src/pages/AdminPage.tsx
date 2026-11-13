@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useUsers, useDeleteUser } from '@/shared/hooks/useUsers';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useCurrentOrgUser } from '@/shared/hooks/useCurrentOrgUser';
 import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
 import {
   useCreateOrganization,
@@ -123,9 +124,7 @@ export function AdminPage() {
     return buildUserDeleteConsequences(deleteUserTarget.id, orgUsers ?? [], organizations);
   }, [deleteUserTarget, orgUsers, organizations]);
 
-  const editOrgRole = orgUsers?.find(
-    (ou) => ou.user_id === currentUser?.id && ou.organization_id === editOrgId,
-  )?.role;
+  const editOrgRole = useCurrentOrgUser(editOrgId)?.role;
   const canEditAccountingObjects = editOrgRole === 'admin' || editOrgRole === 'moderator';
   const canDelete = currentRole === 'admin';
 

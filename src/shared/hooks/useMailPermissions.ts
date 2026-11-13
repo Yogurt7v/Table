@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { useAuth } from '@/shared/context/AuthContext';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useCurrentOrgUser } from '@/shared/hooks/useCurrentOrgUser';
 import { getMailPermissions, type MailPermissions } from '@/features/mail/mail-field-access';
 
 /**
@@ -15,12 +14,7 @@ import { getMailPermissions, type MailPermissions } from '@/features/mail/mail-f
  * itself is what you need: the flags, not the role, decide mail access.
  */
 export function useMailPermissions(orgId: string): MailPermissions {
-  const { user } = useAuth();
-  const { data: orgUsers } = useOrganizationUsers();
-
-  const assignment = orgUsers?.find(
-    (ou) => ou.user_id === user?.id && ou.organization_id === orgId,
-  );
+  const assignment = useCurrentOrgUser(orgId);
 
   // `assignment` comes straight out of the query cache, so it keeps its identity
   // across renders and the memo holds while the permissions are unchanged.

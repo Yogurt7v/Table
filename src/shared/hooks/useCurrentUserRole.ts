@@ -1,13 +1,7 @@
-import { useAuth } from '@/shared/context/AuthContext';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useCurrentOrgUser } from '@/shared/hooks/useCurrentOrgUser';
 
 export function useCurrentUserRole(orgId: string) {
-  const { user } = useAuth();
-  const { data: orgUsers } = useOrganizationUsers();
-
-  if (!user || !orgUsers) return null;
-
-  const assignment = orgUsers.find((ou) => ou.user_id === user.id && ou.organization_id === orgId);
+  const assignment = useCurrentOrgUser(orgId);
   return assignment?.role ?? null;
 }
 

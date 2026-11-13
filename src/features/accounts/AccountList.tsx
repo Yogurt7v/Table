@@ -13,9 +13,8 @@ import {
 import { IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import sumBy from 'lodash/sumBy';
 // import dayjs from 'dayjs';
-import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useCurrentOrgUser } from '@/shared/hooks/useCurrentOrgUser';
 import { useUpdateBalance } from '@/shared/hooks/useBankAccounts';
 import type { IAccountWithBalance } from '@/shared/types';
 import { toFixed2, cleanInput, formatForDisplay, parseToNumber } from './account-balance-input';
@@ -28,14 +27,10 @@ interface AccountListProps {
 }
 
 export function AccountList({ accounts, loading, date }: AccountListProps) {
-  const { user } = useAuth();
   const { currentOrgId } = useOrg();
-  const { data: orgUsers } = useOrganizationUsers();
   const updateBalance = useUpdateBalance();
 
-  const currentOrgUser = orgUsers?.find(
-    (ou) => ou.user_id === user?.id && ou.organization_id === currentOrgId,
-  );
+  const currentOrgUser = useCurrentOrgUser(currentOrgId);
   const currentRole = currentOrgUser?.role;
   const canEdit = currentRole === 'admin' || currentRole === 'moderator';
   const canViewInvoices = currentOrgUser?.can_view_invoices !== false;
