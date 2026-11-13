@@ -244,35 +244,6 @@ function AssignmentRow({
 
       {canManageMailPermissions && (
         <Popover
-          opened={mailOpen}
-          onClose={() => setMailOpen(false)}
-          closeOnClickOutside={false}
-          width="min(460px, calc(100vw - 24px))"
-          position="bottom-end"
-        >
-          <Popover.Target>
-            <ActionIcon
-              size="sm"
-              variant="subtle"
-              color={assignment.can_view_mails === true ? 'blue' : 'gray'}
-              aria-label={`Почтовые права: ${orgName}`}
-              onClick={() => setMailOpen((open) => !open)}
-            >
-              <IconMail size={24} />
-            </ActionIcon>
-          </Popover.Target>
-          <Popover.Dropdown>
-            <OrganizationUserMailPermissions
-              assignment={assignment}
-              canEdit={canManageMailPermissions}
-              onSaved={() => setMailOpen(false)}
-            />
-          </Popover.Dropdown>
-        </Popover>
-      )}
-
-      {canManageMailPermissions && (
-        <Popover
           opened={invoiceOpen}
           onClose={() => setInvoiceOpen(false)}
           closeOnClickOutside={false}
@@ -296,6 +267,35 @@ function AssignmentRow({
               canEdit={canManageMailPermissions}
               onClose={() => setInvoiceOpen(false)}
               onSaved={() => setInvoiceOpen(false)}
+            />
+          </Popover.Dropdown>
+        </Popover>
+      )}
+
+      {canManageMailPermissions && (
+        <Popover
+          opened={mailOpen}
+          onClose={() => setMailOpen(false)}
+          closeOnClickOutside={false}
+          width="min(460px, calc(100vw - 24px))"
+          position="bottom-end"
+        >
+          <Popover.Target>
+            <ActionIcon
+              size="sm"
+              variant="subtle"
+              color={assignment.can_view_mails === true ? 'blue' : 'gray'}
+              aria-label={`Почтовые права: ${orgName}`}
+              onClick={() => setMailOpen((open) => !open)}
+            >
+              <IconMail size={24} />
+            </ActionIcon>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <OrganizationUserMailPermissions
+              assignment={assignment}
+              canEdit={canManageMailPermissions}
+              onSaved={() => setMailOpen(false)}
             />
           </Popover.Dropdown>
         </Popover>
