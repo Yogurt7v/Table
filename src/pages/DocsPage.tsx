@@ -17,10 +17,22 @@ import {
   TextInput,
   Autocomplete,
   MultiSelect,
+  Center,
+  ThemeIcon,
 } from '@mantine/core';
 import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
 import { DatePickerInput } from '@mantine/dates';
-import { IconChevronsDown, IconChevronsUp, IconFilter, IconCheck, IconPlus, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
+import {
+  IconChevronsDown,
+  IconChevronsUp,
+  IconFilter,
+  IconCheck,
+  IconPlus,
+  IconSearch,
+  IconSettings,
+  IconX,
+  IconDatabaseOff,
+} from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { pb } from '@/api/client';
 import type { IInvoice } from '@/shared/types';
@@ -30,6 +42,7 @@ import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useUsers } from '@/shared/hooks/useUsers';
+import { useDocumentPermissions } from '@/shared/hooks/useDocumentPermissions';
 import { useOrgCounterparties } from '@/features/mail/useOrgCounterparties';
 import { localDateToDateKey } from '@/features/mail/mail-date';
 import {
@@ -68,6 +81,7 @@ export function DocsPage() {
   const { currentOrgId, organizationsLoading } = useOrg();
   const { user } = useAuth();
   const role = useCurrentUserRole(currentOrgId);
+  const documentPermissions = useDocumentPermissions(currentOrgId);
   const location = useLocation();
   const allObjectsQuery = useAccountingObjects(currentOrgId);
   const accessibleObjects = useAccessibleObjects(currentOrgId);
@@ -117,13 +131,17 @@ export function DocsPage() {
     return stored && PAGE_SIZE_OPTIONS.includes(stored) ? Number(stored) : 15;
   });
   const [pages, setPages] = useState<Record<string, number>>({});
-  const [columns, setColumns] = useState<DocumentColumnId[]>(() => loadDocumentColumns(currentOrgId));
+  const [columns, setColumns] = useState<DocumentColumnId[]>(() =>
+    loadDocumentColumns(currentOrgId),
+  );
   const [sizing, setSizing] = useState<DocumentColumnSizing>(() =>
     loadDocumentColumnSizing(currentOrgId),
   );
   const [columnsOpened, setColumnsOpened] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
-  const [selectedTab, setSelectedTab] = useState<'document' | 'files' | 'comments' | 'history'>('document');
+  const [selectedTab, setSelectedTab] = useState<'document' | 'files' | 'comments' | 'history'>(
+    'document',
+  );
   const [highlightDocumentId, setHighlightDocumentId] = useState<string | null>(null);
   const [manualOpened, setManualOpened] = useState(false);
   const [filterOpened, setFilterOpened] = useState(false);
@@ -345,7 +363,7 @@ export function DocsPage() {
       if (paymentFrom && paymentKey < paymentFrom) return false;
       if (paymentTo && paymentKey > paymentTo) return false;
       const invoiceKey = document.source_invoice_id
-        ? invoiceDateById[document.source_invoice_id] ?? ''
+        ? (invoiceDateById[document.source_invoice_id] ?? '')
         : '';
       const invoiceFrom = localDateToDateKey(invoiceDateRange[0]);
       const invoiceTo = localDateToDateKey(invoiceDateRange[1]);
@@ -464,6 +482,19 @@ export function DocsPage() {
     );
   }
 
+  if (!documentPermissions.canView) {
+    return (
+      <Container size="sm" py="xl">
+        <Center>
+          <ThemeIcon size={56} radius="xl" variant="light" color="gray">
+            <IconDatabaseOff size={28} />
+          </ThemeIcon>
+        </Center>
+        <Text ta="center">Нет доступа к базе</Text>
+      </Container>
+    );
+  }
+
   const canCreate = role === 'admin' || role === 'moderator' || role === 'user';
   const isLoading = documentsQuery.isLoading || allObjectsQuery.isLoading;
 
@@ -476,7 +507,7 @@ export function DocsPage() {
             <Tooltip label="Настройка колонок">
               <ActionIcon
                 size="sm"
-                color='grey'
+                color="grey"
                 variant="subtle"
                 aria-label="Настройка колонок"
                 onClick={() => setColumnsOpened(true)}
@@ -488,7 +519,6 @@ export function DocsPage() {
               {visibleDocuments.length}
             </Text>
           </Group>
-
         </Group>
 
         <Group gap="xs" wrap="wrap" onMouseDown={(e) => e.stopPropagation()}>
@@ -539,14 +569,20 @@ export function DocsPage() {
             leftSection={<IconSearch size={16} />}
             rightSection={
               search ? (
-                <ActionIcon variant="subtle" aria-label="Очистить поиск" onClick={handleClearSearch}>
+                <ActionIcon
+                  variant="subtle"
+                  aria-label="Очистить поиск"
+                  onClick={handleClearSearch}
+                >
                   <IconX size={14} />
                 </ActionIcon>
               ) : null
             }
             placeholder="Поиск по документам и комментариям"
             value={search}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSearch(event.currentTarget.value)}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+              setSearch(event.currentTarget.value)
+            }
             aria-label="Поиск документов"
           />
           <Group gap="xs">
@@ -570,7 +606,6 @@ export function DocsPage() {
         </Group>
 
         <Group gap="xs" wrap="wrap">
-
           <div ref={filterRef}>
             <Menu
               shadow="md"
@@ -579,17 +614,17 @@ export function DocsPage() {
               opened={filterOpened}
               onChange={setFilterOpened}
             >
-            <Menu.Target>
-              <Button
-                size="compact-sm"
-                variant="light"
-                color={activeFilterCount > 0 ? 'blue' : 'gray'}
-                style={{ padding: '0 20px' }}
-                leftSection={<IconFilter size={16} />}
-              >
-                {activeFilterCount > 0 ? `Фильтр (${activeFilterCount})` : 'Фильтр'}
-              </Button>
-            </Menu.Target>
+              <Menu.Target>
+                <Button
+                  size="compact-sm"
+                  variant="light"
+                  color={activeFilterCount > 0 ? 'blue' : 'gray'}
+                  style={{ padding: '0 20px' }}
+                  leftSection={<IconFilter size={16} />}
+                >
+                  {activeFilterCount > 0 ? `Фильтр (${activeFilterCount})` : 'Фильтр'}
+                </Button>
+              </Menu.Target>
               <Menu.Dropdown>
                 <Menu.Label>Сортировка</Menu.Label>
                 <Menu.Item
@@ -681,96 +716,108 @@ export function DocsPage() {
                 </Menu.Item>
                 <Menu.Divider />
 
-              <Box p="xs">
-                <Autocomplete
-                  size="xs"
-                  label="Контрагент"
-                  placeholder="Поиск по контрагенту"
-                  data={counterpartyOptions}
-                  value={filterCounterparty}
-                  onChange={(value) => {
-                    setFilterCounterparty(value);
-                    setPages({});
-                  }}
-                  leftSection={<IconSearch size={14} />}
-                  rightSection={
-                    filterCounterparty ? (
-                      <ActionIcon
-                        size="sm"
-                        variant="subtle"
-                        color="gray"
-                        aria-label="Очистить контрагента"
-                        onClick={() => {
-                          setFilterCounterparty('');
-                          setPages({});
-                        }}
-                      >
-                        <IconX size={14} />
-                      </ActionIcon>
-                    ) : null
-                  }
-                  comboboxProps={{ withinPortal: false }}
-                />
-              </Box>
-
-              {objects.length > 0 && (
-                <>
-                  <Menu.Divider />
-                  <Menu.Label>Объект</Menu.Label>
-                  <Box px="xs" pb={4}>
-                    <MultiSelect
-                      size="xs"
-                      placeholder="Выберите объекты"
-                      aria-label="Объект"
-                      data={objectOptions}
-                      value={filterObjectIds}
-                      onChange={(value) => {
-                        setFilterObjectIds(value);
-                        setPages({});
-                      }}
-                      comboboxProps={{ withinPortal: false }}
-                      hidePickedOptions
-                    />
-                  </Box>
-                  <Menu.Item
-                    leftSection={
-                      filterObjectIds.length === 0 ? (
-                        <IconCheck size={16} color="var(--mantine-color-blue-filled)" />
-                      ) : (
-                        <Box w={16} />
-                      )
-                    }
-                    color={filterObjectIds.length === 0 ? 'blue' : undefined}
-                    onClick={() => {
-                      setFilterObjectIds([]);
+                <Box p="xs">
+                  <Autocomplete
+                    size="xs"
+                    label="Контрагент"
+                    placeholder="Поиск по контрагенту"
+                    data={counterpartyOptions}
+                    value={filterCounterparty}
+                    onChange={(value) => {
+                      setFilterCounterparty(value);
                       setPages({});
                     }}
-                  >
-                    Все объекты
-                  </Menu.Item>
-                </>
-              )}
-              <Menu.Divider />
-              <Menu.Item
-                color="red"
-                disabled={activeFilterCount === 0}
-                leftSection={<IconX size={16} />}
-                closeMenuOnClick
-                onClick={resetFilters}
-              >
-                Сбросить
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
+                    leftSection={<IconSearch size={14} />}
+                    rightSection={
+                      filterCounterparty ? (
+                        <ActionIcon
+                          size="sm"
+                          variant="subtle"
+                          color="gray"
+                          aria-label="Очистить контрагента"
+                          onClick={() => {
+                            setFilterCounterparty('');
+                            setPages({});
+                          }}
+                        >
+                          <IconX size={14} />
+                        </ActionIcon>
+                      ) : null
+                    }
+                    comboboxProps={{ withinPortal: false }}
+                  />
+                </Box>
+
+                {objects.length > 0 && (
+                  <>
+                    <Menu.Divider />
+                    <Menu.Label>Объект</Menu.Label>
+                    <Box px="xs" pb={4}>
+                      <MultiSelect
+                        size="xs"
+                        placeholder="Выберите объекты"
+                        aria-label="Объект"
+                        data={objectOptions}
+                        value={filterObjectIds}
+                        onChange={(value) => {
+                          setFilterObjectIds(value);
+                          setPages({});
+                        }}
+                        comboboxProps={{ withinPortal: false }}
+                        hidePickedOptions
+                      />
+                    </Box>
+                    <Menu.Item
+                      leftSection={
+                        filterObjectIds.length === 0 ? (
+                          <IconCheck size={16} color="var(--mantine-color-blue-filled)" />
+                        ) : (
+                          <Box w={16} />
+                        )
+                      }
+                      color={filterObjectIds.length === 0 ? 'blue' : undefined}
+                      onClick={() => {
+                        setFilterObjectIds([]);
+                        setPages({});
+                      }}
+                    >
+                      Все объекты
+                    </Menu.Item>
+                  </>
+                )}
+                <Menu.Divider />
+                <Menu.Item
+                  color="red"
+                  disabled={activeFilterCount === 0}
+                  leftSection={<IconX size={16} />}
+                  closeMenuOnClick
+                  onClick={resetFilters}
+                >
+                  Сбросить
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
           </div>
           <Button
             size="compact-sm"
             variant="light"
             color="gray"
             flex="1"
-            rightSection={collapsedIds.size === groups.length ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
+            rightSection={
+              collapsedIds.size === groups.length ? (
+                <IconChevronsDown size={16} />
+              ) : (
+                <IconChevronsUp size={16} />
+              )
+            }
             onClick={toggleCollapseAll}
-            leftSection={collapsedIds.size === groups.length ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
+            leftSection={
+              collapsedIds.size === groups.length ? (
+                <IconChevronsDown size={16} />
+              ) : (
+                <IconChevronsUp size={16} />
+              )
+            }
           >
             {collapsedIds.size === groups.length ? 'Развернуть' : 'Свернуть'}
           </Button>
@@ -803,7 +850,7 @@ export function DocsPage() {
             onWidthCommit={() => saveDocumentColumnSizing(currentOrgId, sizing)}
             onOpenDocument={handleOpenDocument}
             highlightDocumentId={highlightDocumentId}
-              highlightRowRef={handleHighlightRowRef}
+            highlightRowRef={handleHighlightRowRef}
           />
         )}
       </Stack>

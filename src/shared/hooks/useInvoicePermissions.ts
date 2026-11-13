@@ -11,14 +11,17 @@ export function useInvoicePermissions(orgId: string) {
   const { user } = useAuth();
   const { data: orgUsers } = useOrganizationUsers();
 
-  const role: OrgRole =
-    orgUsers?.find((ou) => ou.user_id === user?.id && ou.organization_id === orgId)?.role ?? null;
+  const assignment = orgUsers?.find(
+    (ou) => ou.user_id === user?.id && ou.organization_id === orgId,
+  );
+  const role: OrgRole = assignment?.role ?? null;
 
   const permissions = getInvoicePermissions(role);
 
   return {
     role,
     ...permissions,
+    canView: assignment?.can_view_invoices !== false,
     canEditField: (field: InvoiceEditableField) => canEditInvoiceField(role, field),
   };
 }

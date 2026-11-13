@@ -53,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (sessionExpired && location.pathname === '/login') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSessionExpired(false);
     }
   }, [sessionExpired, location.pathname]);

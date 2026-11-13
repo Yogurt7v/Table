@@ -633,6 +633,10 @@ export function createOrganizationUser(
     organization_id: organizationId,
     role,
     objects: objectIds,
+    // Новые членства по умолчанию видят счета и документы;
+    // администратор может отключить через панель администрирования.
+    can_view_invoices: true,
+    can_view_documents: true,
   });
 }
 

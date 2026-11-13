@@ -33,10 +33,12 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
   const { data: orgUsers } = useOrganizationUsers();
   const updateBalance = useUpdateBalance();
 
-  const currentRole = orgUsers?.find(
+  const currentOrgUser = orgUsers?.find(
     (ou) => ou.user_id === user?.id && ou.organization_id === currentOrgId,
-  )?.role;
+  );
+  const currentRole = currentOrgUser?.role;
   const canEdit = currentRole === 'admin' || currentRole === 'moderator';
+  const canViewInvoices = currentOrgUser?.can_view_invoices !== false;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editInput, setEditInput] = useState<string>('');
@@ -64,7 +66,7 @@ export function AccountList({ accounts, loading, date }: AccountListProps) {
     }
   };
 
-  if (currentRole && !canEdit && currentRole !== 'boss') return null;
+  if (!currentRole || (!canEdit && currentRole !== 'boss') || !canViewInvoices) return null;
   // const isToday = date === dayjs().format('YYYY-MM-DD');
   const canEditHere = canEdit; // && isToday
 

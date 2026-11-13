@@ -313,6 +313,7 @@ export function GroupedInvoiceTable({
   }, [columnSizing]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAmountDisplay(String(draftForm?.amount ?? 0));
     setAmountFocused(false);
   }, [draftForm]);

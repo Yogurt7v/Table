@@ -256,6 +256,8 @@ describe('InlineRoleCell', () => {
         organization_id: 'org2',
         role: 'boss',
         objects: ['ao1', 'ao2'],
+        can_view_invoices: true,
+        can_view_documents: true,
       });
     });
 

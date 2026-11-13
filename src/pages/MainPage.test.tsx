@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MantineProvider } from '@mantine/core';
+import { screen, fireEvent } from '@testing-library/react';
+import { renderWithProviders } from '@/mocks/test-utils';
 import { MainPage } from './MainPage';
 
 const mockUseOrg = vi.hoisted(() => vi.fn());
@@ -9,6 +9,7 @@ const mockUseSearch = vi.hoisted(() => vi.fn());
 const mockUseInvoiceNavigation = vi.hoisted(() => vi.fn());
 const mockUseDatePinned = vi.hoisted(() => vi.fn());
 const mockUseBankAccounts = vi.hoisted(() => vi.fn());
+const mockUseInvoicePermissions = vi.hoisted(() => vi.fn());
 
 vi.mock('@/shared/context/OrgContext', () => ({ useOrg: mockUseOrg }));
 vi.mock('@/shared/context/AuthContext', () => ({ useAuth: mockUseAuth }));
@@ -18,6 +19,9 @@ vi.mock('@/shared/context/InvoiceNavigationContext', () => ({
 }));
 vi.mock('@/shared/context/DatePinnedContext', () => ({ useDatePinned: mockUseDatePinned }));
 vi.mock('@/shared/hooks/useBankAccounts', () => ({ useBankAccounts: mockUseBankAccounts }));
+vi.mock('@/shared/hooks/useInvoicePermissions', () => ({
+  useInvoicePermissions: mockUseInvoicePermissions,
+}));
 
 vi.mock('@/shared/components/MainDatePicker', () => ({
   MainDatePicker: () => <div data-testid="date-picker" />,
@@ -61,12 +65,9 @@ function setup({ currentOrgId = 'org1', organizationsLoading = false }: SetupOpt
   });
   mockUseDatePinned.mockReturnValue({ pinned: false, registerAnchor: vi.fn() });
   mockUseBankAccounts.mockReturnValue({ data: [], isLoading: false });
+  mockUseInvoicePermissions.mockReturnValue({ canView: true });
 
-  render(
-    <MantineProvider>
-      <MainPage />
-    </MantineProvider>,
-  );
+  renderWithProviders(<MainPage />);
 
   return { logout };
 }
