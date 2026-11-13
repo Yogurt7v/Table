@@ -133,6 +133,11 @@ export interface IOrganizationUser {
   can_create_outgoing_mails?: boolean;
   can_edit_outgoing_mails?: boolean;
   can_delete_outgoing_mails?: boolean;
+  // Module visibility flags, one per module the organization can turn off for a
+  // particular user. Independent of role — even an admin without the flag sees a
+  // stub instead of the module.
+  can_view_invoices?: boolean;
+  can_view_documents?: boolean;
   expand?: {
     user_id?: IUser;
     organization_id?: IOrganization;

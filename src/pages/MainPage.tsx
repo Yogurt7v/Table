@@ -1,4 +1,4 @@
-import { Container, Stack, Loader, Paper, Text, Button, Center } from '@mantine/core';
+import { Container, Stack, Loader, Paper, Text, Button, Center, ThemeIcon } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useAuth } from '@/shared/context/AuthContext';
@@ -6,9 +6,11 @@ import { useSearch } from '@/shared/context/SearchContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
 import { useDatePinned } from '@/shared/context/DatePinnedContext';
 import { useBankAccounts } from '@/shared/hooks/useBankAccounts';
+import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { MainDatePicker } from '@/shared/components/MainDatePicker';
 import { AccountList } from '@/features/accounts/AccountList';
 import { InvoiceSection } from '@/features/invoices/InvoiceSection';
+import { IconDatabaseOff } from '@tabler/icons-react';
 
 export function MainPage() {
   const { currentOrgId, organizationsLoading } = useOrg();
@@ -17,6 +19,7 @@ export function MainPage() {
   const { selectedDate: date } = useInvoiceNavigation();
   const { pinned, registerAnchor } = useDatePinned();
   const dateStr = dayjs(date).format('YYYY-MM-DD');
+  const invoicePermissions = useInvoicePermissions(currentOrgId);
 
   const { data: accounts, isLoading: accountsLoading } = useBankAccounts(currentOrgId, dateStr);
 
@@ -38,6 +41,19 @@ export function MainPage() {
             Выйти
           </Button>
         </Paper>
+      </Container>
+    );
+  }
+
+  if (!invoicePermissions.canView) {
+    return (
+      <Container size="sm" py="xl">
+        <Center>
+          <ThemeIcon size={56} radius="xl" variant="light" color="gray">
+            <IconDatabaseOff size={28} />
+          </ThemeIcon>
+        </Center>
+        <Text ta="center">Нет доступа к базе</Text>
       </Container>
     );
   }

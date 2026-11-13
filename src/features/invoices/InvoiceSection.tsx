@@ -72,6 +72,7 @@ import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { normalizeInvoiceForDate } from '@/shared/utils/invoice-utils';
 import { useMediaQuery } from '@mantine/hooks';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
+import { useDocumentPermissions } from '@/shared/hooks/useDocumentPermissions';
 import { Link } from 'react-router-dom';
 
 interface InvoiceSectionProps {
@@ -174,6 +175,7 @@ function ObjectsList({
 
   const { currentOrgId } = useOrg();
   const mailPermissions = useMailPermissions(currentOrgId);
+  const documentPermissions = useDocumentPermissions(currentOrgId);
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
@@ -367,7 +369,7 @@ function ObjectsList({
                 /{' '}
               </Group>
             )}
-            {permissions.role !== 'guest' && (
+            {documentPermissions.canView && (
               <Group gap={6} wrap="nowrap">
                 <Anchor
                   size="sm"
@@ -730,6 +732,8 @@ export function InvoiceSection({
   }, [clearHighlight]);
 
   if (!orgId) return null;
+
+  if (!permissions.canView) return null;
 
   if (!objects)
     return (

@@ -127,8 +127,8 @@ export function UserAdminTable({
             <Table.Tr>
               <Table.Th w={10}>Имя</Table.Th>
               <Table.Th w={10}>Логин</Table.Th>
-              <Table.Th>Роли в организациях</Table.Th>
-              <Table.Th w={10}>Дата регистрации</Table.Th>
+              <Table.Th w={50}>Роли в организациях</Table.Th>
+              <Table.Th w={20}>Дата регистрации</Table.Th>
               <Table.Th w={100} />
             </Table.Tr>
           </Table.Thead>

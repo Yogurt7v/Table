@@ -14,6 +14,7 @@ describe('getInvoicePermissions', () => {
       canUpdate: false,
       canDelete: false,
       canMove: false,
+      canView: true,
       canViewHistory: false,
       canManageFiles: false,
       canPay: false,
@@ -68,6 +69,7 @@ describe('getInvoicePermissions', () => {
       canRemoveApprovalMark: false,
       canViewPaymentMarks: true,
       canViewPaidDate: false,
+      canView: true,
     });
   });
 

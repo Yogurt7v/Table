@@ -12,6 +12,8 @@ const mockUseInvoiceNavigation = vi.hoisted(() => vi.fn());
 const mockUseDatePinned = vi.hoisted(() => vi.fn());
 const mockUseBankAccounts = vi.hoisted(() => vi.fn());
 const mockUseCurrentUserRole = vi.hoisted(() => vi.fn());
+const mockUseOrganizationUsers = vi.hoisted(() => vi.fn());
+const mockUseInvoicePermissions = vi.hoisted(() => vi.fn());
 
 vi.mock('@/shared/context/AuthContext', () => ({ useAuth: mockUseAuth }));
 vi.mock('@/shared/context/OrgContext', () => ({ useOrg: mockUseOrg }));
@@ -26,6 +28,12 @@ vi.mock('@/shared/context/DatePinnedContext', () => ({
 vi.mock('@/shared/hooks/useBankAccounts', () => ({ useBankAccounts: mockUseBankAccounts }));
 vi.mock('@/shared/hooks/useCurrentUserRole', () => ({
   useCurrentUserRole: mockUseCurrentUserRole,
+}));
+vi.mock('@/shared/hooks/useOrganizationUsers', () => ({
+  useOrganizationUsers: mockUseOrganizationUsers,
+}));
+vi.mock('@/shared/hooks/useInvoicePermissions', () => ({
+  useInvoicePermissions: mockUseInvoicePermissions,
 }));
 
 vi.mock('@/features/invoices/InvoiceSearch', () => ({
@@ -71,6 +79,17 @@ function setupApp(route: string, { isAuthenticated = true } = {}) {
   mockUseDatePinned.mockReturnValue({ pinned: false, registerAnchor: vi.fn() });
   mockUseBankAccounts.mockReturnValue({ data: [], isLoading: false });
   mockUseCurrentUserRole.mockReturnValue('admin');
+  mockUseOrganizationUsers.mockReturnValue([
+    {
+      id: 'ou1',
+      user_id: 'u1',
+      organization_id: 'org1',
+      role: 'admin',
+      can_view_invoices: true,
+      can_view_documents: true,
+    },
+  ]);
+  mockUseInvoicePermissions.mockReturnValue({ canView: true });
 
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -93,7 +112,7 @@ describe('App', () => {
   });
 
   it('рендерит страницу логина по /login', () => {
-    setupApp('/login');
+    setupApp('/login', { isAuthenticated: false });
     expect(screen.getByPlaceholderText('Ваш логин')).toBeInTheDocument();
   });
 

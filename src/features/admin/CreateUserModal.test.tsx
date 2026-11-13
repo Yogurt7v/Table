@@ -293,6 +293,8 @@ describe('CreateUserModal', () => {
         organization_id: 'org1',
         role: 'boss',
         objects: [],
+        can_view_invoices: true,
+        can_view_documents: true,
       });
     });
 
@@ -314,6 +316,8 @@ describe('CreateUserModal', () => {
         organization_id: 'org1',
         role: 'guest',
         objects: ['ao1', 'ao2'],
+        can_view_invoices: true,
+        can_view_documents: true,
       });
     });
 
@@ -335,12 +339,16 @@ describe('CreateUserModal', () => {
           organization_id: 'org1',
           role: 'admin',
           objects: undefined,
+          can_view_invoices: true,
+          can_view_documents: true,
         },
         {
           user_id: 'users_new_1',
           organization_id: 'org2',
           role: 'moderator',
           objects: [],
+          can_view_invoices: true,
+          can_view_documents: true,
         },
       ]);
     });

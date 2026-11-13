@@ -28,6 +28,9 @@ export function getInvoicePermissions(role: OrgRole) {
     canRemoveApprovalMark: role === 'admin' || role === 'moderator',
     canViewPaymentMarks: role === 'boss' || role === 'moderator' || role === 'admin',
     canViewPaidDate: role !== 'boss',
+    // All roles may view the invoice register; per-user visibility is gated by the
+    // `can_view_invoices` module flag (see InvoiceSection), not by role.
+    canView: true,
   };
 }
 

@@ -13,7 +13,7 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import { IconAdjustments, IconMail, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
+import { IconAdjustments, IconFile, IconFileText, IconMail, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
 import {
   useCreateOrganizationUser,
   useDeleteOrganizationUser,
@@ -24,6 +24,8 @@ import { getAccountingObjects } from '@/api/collections';
 import { useOrg } from '@/shared/context/OrgContext';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { OrganizationUserMailPermissions } from './OrganizationUserMailPermissions';
+import { OrganizationUserInvoicePermissions } from './OrganizationUserInvoicePermissions';
+import { OrganizationUserDocumentPermissions } from './OrganizationUserDocumentPermissions';
 import type { IOrganizationUser } from '@/shared/types';
 
 type Role = IOrganizationUser['role'];
@@ -154,6 +156,8 @@ function AssignmentRow({
   const [objectsOpen, setObjectsOpen] = useState(false);
   const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
   const [mailOpen, setMailOpen] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [documentOpen, setDocumentOpen] = useState(false);
 
   const isAdmin = assignment.role === 'admin';
   const selectedCount = assignment.objects?.length ?? 0;
@@ -262,6 +266,66 @@ function AssignmentRow({
               assignment={assignment}
               canEdit={canManageMailPermissions}
               onSaved={() => setMailOpen(false)}
+            />
+          </Popover.Dropdown>
+        </Popover>
+      )}
+
+      {canManageMailPermissions && (
+        <Popover
+          opened={invoiceOpen}
+          onClose={() => setInvoiceOpen(false)}
+          closeOnClickOutside={false}
+          width="min(460px, calc(100vw - 24px))"
+          position="bottom-end"
+        >
+          <Popover.Target>
+            <ActionIcon
+              size="sm"
+              variant="subtle"
+              color={assignment.can_view_invoices === true ? 'blue' : 'gray'}
+              aria-label={`Права на счета: ${orgName}`}
+              onClick={() => setInvoiceOpen((open) => !open)}
+            >
+              <IconFileText size={24} />
+            </ActionIcon>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <OrganizationUserInvoicePermissions
+              assignment={assignment}
+              canEdit={canManageMailPermissions}
+              onClose={() => setInvoiceOpen(false)}
+              onSaved={() => setInvoiceOpen(false)}
+            />
+          </Popover.Dropdown>
+        </Popover>
+      )}
+
+      {canManageMailPermissions && (
+        <Popover
+          opened={documentOpen}
+          onClose={() => setDocumentOpen(false)}
+          closeOnClickOutside={false}
+          width="min(460px, calc(100vw - 24px))"
+          position="bottom-end"
+        >
+          <Popover.Target>
+            <ActionIcon
+              size="sm"
+              variant="subtle"
+              color={assignment.can_view_documents === true ? 'blue' : 'gray'}
+              aria-label={`Права на документы: ${orgName}`}
+              onClick={() => setDocumentOpen((open) => !open)}
+            >
+              <IconFile size={24} />
+            </ActionIcon>
+          </Popover.Target>
+          <Popover.Dropdown>
+            <OrganizationUserDocumentPermissions
+              assignment={assignment}
+              canEdit={canManageMailPermissions}
+              onClose={() => setDocumentOpen(false)}
+              onSaved={() => setDocumentOpen(false)}
             />
           </Popover.Dropdown>
         </Popover>
