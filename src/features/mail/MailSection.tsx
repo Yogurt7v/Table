@@ -10,10 +10,9 @@ import {
   Stack,
   Tabs,
   Text,
-  TextInput,
   Tooltip,
 } from '@mantine/core';
-import { IconMailPlus, IconPlus, IconSettings, IconTrash } from '@tabler/icons-react';
+import { IconMailPlus, IconPlus, IconSettings } from '@tabler/icons-react';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useUserMap } from '@/shared/hooks/useUserMap';
@@ -36,7 +35,6 @@ import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
 import { formatMailDate } from './mail-date';
 import { mailSearchFieldsOf } from './mail-field-access';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
-import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import {
   MAIL_DELIVERY_METHOD_NAMES,
   type IAccountingObject,
@@ -44,7 +42,6 @@ import {
   type IOutgoingMail,
   type MailType,
 } from '@/shared/types';
-import { MAIL_PAGE_SIZE } from '@/api/mail';
 import { buildFilterChips, useMailFilters } from './useMailFilters';
 import {
   filterByAttachments,
@@ -55,17 +52,6 @@ import {
 import { MailFilters } from './MailFilters';
 import { MailSearchInput } from './MailSearchInput';
 import { MailTable } from './MailTable';
-import { toMailRow } from './mail-row';
-import type { MailRow } from './mail-row';
-import { MailColumnSettingsModal } from './MailColumnSettingsModal';
-import { resolveVisibleColumns } from './mail-column-visibility';
-import type { MailColumnId } from './mail-columns';
-import { MailFormModal } from './MailFormModal';
-import { snapshotForHistory } from './mail-form';
-import type { MailFormState } from './mail-form';
-import { MailFilesModal } from './MailFilesModal';
-import { MailHistoryModal } from './MailHistoryModal';
-import { MailThreadBuilder } from './MailThreadBuilder';
 import { candidateByKey, parentEdgesOf, planLinkChange } from './mail-parent';
 import { useMailLinkChange } from './useMailLinkChange';
 import { useOrgMailThread } from './useOrgMailThread';
@@ -75,6 +61,12 @@ import type { MailNodeKey } from './mail-thread';
 import { MAIL_REGISTER_TAB_LABELS, MAIL_TYPE_LABELS } from './mail-labels';
 import { computeRegisterTarget } from './mail-register-target';
 import { MAIL_LETTER_NOT_FOUND_NOTE } from './mail-thread-labels';
+import { resolveVisibleColumns } from './mail-column-visibility';
+import type { MailColumnId } from './mail-columns';
+import { MAIL_PAGE_SIZE } from '@/api/mail';
+import { snapshotForHistory } from './mail-form';
+import type { MailFormState } from './mail-form';
+import { MailSectionModals } from './components/mail-section/MailSectionModals';
 import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
 
 interface MailSectionProps {
@@ -717,101 +709,49 @@ export function MailSection({ orgId }: MailSectionProps) {
         </Tabs>
       </Paper>
 
-      <MailFormModal
-        opened={formTarget !== null}
-        onClose={() => setFormTarget(null)}
-        mailType={formType}
-        mail={formTarget && formTarget.mode !== 'create' ? (editingMail ?? null) : null}
-        copying={formTarget?.mode === 'copy'}
-        allowedTypes={allowedCreateTypes}
-        accountingObjects={[...objectNames].map(([value, label]) => ({ value, label }))}
-        responsibleOptions={responsibleOptions.map((option) => ({
-          value: option.id,
-          label: option.name,
-        }))}
+      <MailSectionModals
+        formTarget={formTarget}
+        formType={formType}
+        editingMail={editingMail}
+        allowedCreateTypes={allowedCreateTypes}
         counterpartyOptions={counterpartyOptions}
         candidates={thread.candidates}
         parentEdges={thread.parentEdges}
-        canLink={canLinkCurrent}
+        canLinkCurrent={canLinkCurrent}
         saving={saving}
+        onCloseForm={() => setFormTarget(null)}
         onTypeChange={setFormType}
         onSave={handleSave}
-        onOpenThread={(mailType, mailId) => setThreadTarget({ mailId, mailType })}
-      />
-
-      <MailFilesModal
-        mailId={filesFor}
-        mailType={tab}
-        mailLabel={labelFor(filesFor)}
-        orgId={orgId}
-        opened={filesFor !== null}
+        onOpenThread={(type, id) => setThreadTarget({ mailId: id, mailType: type })}
+        filesFor={filesFor}
         canManageFiles={permissions.canManageFiles}
-        onClose={() => setFilesFor(null)}
-      />
-
-      <MailHistoryModal
-        mailId={historyFor}
-        mailType={tab}
-        mailLabel={labelFor(historyFor)}
+        historyFor={historyFor}
         createdByName={rows.find((row) => row.id === historyFor)?.createdByName}
         createdAt={rows.find((row) => row.id === historyFor)?.created}
-        opened={historyFor !== null}
-        onClose={() => setHistoryFor(null)}
-      />
-
-      <MailThreadBuilder
-        opened={threadTarget !== null}
-        onClose={() => setThreadTarget(null)}
-        orgId={orgId}
-        permissions={permissions}
-        rootMailId={threadTarget?.mailId ?? ''}
-        rootMailType={threadTarget?.mailType ?? tab}
+        threadTarget={threadTarget}
         onGoToRegister={handleGoToRegister}
-      />
-
-      <MailColumnSettingsModal
-        key={columnSettingsOpen ? 'open' : 'closed'}
-        opened={columnSettingsOpen}
-        value={visibleColumns}
+        visibleColumns={visibleColumns}
+        handleColumnChange={handleColumnChange}
+        setColumnSettingsOpen={setColumnSettingsOpen}
+        columnSettingsOpen={columnSettingsOpen}
+        deleteFor={deleteFor}
+        deleteIncoming={deleteIncoming}
+        deleteOutgoing={deleteOutgoing}
+        deleteMailSubject={deleteMailSubject}
+        deleteReason={deleteReason}
+        closeDeleteModal={closeDeleteModal}
+        confirmDelete={confirmDelete}
+        setDeleteReason={setDeleteReason}
+        setFilesFor={setFilesFor}
+        setHistoryFor={setHistoryFor}
+        setThreadTarget={setThreadTarget}
+        orgId={orgId}
+        tab={tab}
         permissions={permissions}
-        mailType={tab}
-        onChange={handleColumnChange}
-        onClose={() => setColumnSettingsOpen(false)}
+        objectNames={objectNames}
+        responsibleOptions={responsibleOptions}
+        labelFor={labelFor}
       />
-
-      <ConfirmModal
-        opened={deleteFor !== null}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDelete}
-        title="Удаление письма"
-        size="md"
-        subject={deleteMailSubject}
-        note="Письмо переместится в архив. Вложения останутся доступны и после восстановления."
-        confirmDisabled={
-          deleteReason.trim() === '' || deleteIncoming.isPending || deleteOutgoing.isPending
-        }
-        confirmLeftSection={<IconTrash size={16} />}
-        confirmBlocked
-      >
-        <TextInput
-          label="Причина удаления"
-          aria-label="Причина удаления"
-          placeholder="Например: письмо отправлено ошибочно"
-          description={
-            <Group component="span" justify="space-between" gap="sm" wrap="nowrap">
-              <Text component="span" size="xs" flex={1}>
-                Сохранится в архивной записи и в истории письма.
-              </Text>
-              <Text component="span" size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-                {deleteReason.length > 0 ? `${deleteReason.length} симв.` : ''}
-              </Text>
-            </Group>
-          }
-          required
-          value={deleteReason}
-          onChange={(event) => setDeleteReason(event.currentTarget.value)}
-        />
-      </ConfirmModal>
     </>
   );
 }
