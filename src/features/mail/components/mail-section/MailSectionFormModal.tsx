@@ -3,11 +3,7 @@ import type { MailFormState } from '@/features/mail/mail-form';
 import type { MailCandidateLookup, ParentEdgeIndex } from '@/features/mail/mail-parent';
 import type { MailNodeKey } from '@/features/mail/mail-thread';
 import type { IIncomingMail, IOutgoingMail, MailType } from '@/shared/types';
-
-export type MailFormTarget =
-  | { mode: 'create' }
-  | { mode: 'edit'; mailId: string }
-  | { mode: 'copy'; mailId: string; sourceType: MailType };
+import type { MailFormTarget } from './mail-section-types';
 
 export interface MailSectionFormModalProps {
   formTarget: MailFormTarget | null;
@@ -49,6 +45,7 @@ export function MailSectionFormModal({
   responsibleOptions,
 }: MailSectionFormModalProps) {
   return (
+    /* Единственная модалка формы: открыта, пока в MailSection задан formTarget */
     <MailFormModal
       opened={formTarget !== null}
       onClose={onCloseForm}

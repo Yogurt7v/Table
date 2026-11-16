@@ -1,452 +1,52 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { notifications } from '@mantine/notifications';
-import { Skeleton, Stack, Paper } from '@mantine/core';
-import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
-import { useUserMap } from '@/shared/hooks/useUserMap';
-import { useUpsertUserSetting, useUserSetting } from '@/shared/hooks/useUserSettings';
-import {
-  useAllIncomingMails,
-  useAllOutgoingMails,
-  useCreateIncomingMail,
-  useCreateOutgoingMail,
-  useDeleteIncomingMail,
-  useDeleteOutgoingMail,
-  useIncomingMail,
-  useIncomingMails,
-  useOutgoingMail,
-  useOutgoingMails,
-  useUpdateIncomingMail,
-  useUpdateOutgoingMail,
-} from '@/shared/hooks/useMail';
-import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
-import { mailSearchFieldsOf } from './mail-field-access';
-import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
-import {
-  MAIL_DELIVERY_METHOD_NAMES,
-  type IAccountingObject,
-  type IIncomingMail,
-  type IOutgoingMail,
-  type MailType,
-} from '@/shared/types';
-import { buildFilterChips, useMailFilters } from './useMailFilters';
-import {
-  filterByAttachments,
-  filterByRelations,
-  useOrgMailFiles,
-  useOrgMailRelationIds,
-} from './useOrgMailFiles';
-import { candidateByKey, parentEdgesOf, planLinkChange } from './mail-parent';
-import { useMailLinkChange } from './useMailLinkChange';
-import { useOrgMailThread } from './useOrgMailThread';
-import { useOrgCounterparties } from './useOrgCounterparties';
-import { mailNodeKey } from './mail-thread';
-import type { MailNodeKey } from './mail-thread';
-import { MAIL_TYPE_LABELS } from './mail-labels';
-import { computeRegisterTarget } from './mail-register-target';
-import { MAIL_LETTER_NOT_FOUND_NOTE } from './mail-thread-labels';
-import { resolveVisibleColumns } from './mail-column-visibility';
-import type { MailColumnId } from './mail-columns';
-import { MAIL_PAGE_SIZE } from '@/api/mail';
-import { snapshotForHistory } from './mail-form';
-import type { MailFormState } from './mail-form';
-import { toMailRow, type MailRow } from './mail-row';
-import { MailSectionModals } from './components/mail-section/MailSectionModals';
-import { MailSectionTable } from './components/mail-section/MailSectionTable';
+import { useState } from 'react';
+import { Paper, Skeleton, Stack } from '@mantine/core';
+import type { MailType } from '@/shared/types';
 import { MailSectionHeader } from './components/mail-section/MailSectionHeader';
-import { buildDeleteMailSubject } from './components/mail-section/delete-mail-subject';
+import { MailSectionTable } from './components/mail-section/MailSectionTable';
+import { MailSectionModals } from './components/mail-section/MailSectionModals';
+import { useMailSectionData } from './components/mail-section/useMailSectionData';
+import { useMailSectionActions } from './components/mail-section/useMailSectionActions';
+import { useMailSectionHighlight } from './components/mail-section/useMailSectionHighlight';
 
 interface MailSectionProps {
   orgId: string;
 }
 
+/**
+ * Тело страницы почты: заголовок, поиск, две вкладки-регистра и все модалки.
+ * Здесь только композиция — данные даёт `useMailSectionData`, действия и
+ * состояние окон — `useMailSectionActions`, подсветка строки —
+ * `useMailSectionHighlight`.
+ *
+ * Фильтры и поиск общие для обеих вкладок, и это не компромисс, а следствие
+ * контракта API: параметр называется `counterparty`, а `buildIncomingMailFilter`
+ * и `buildOutgoingMailFilter` сами подставляют нужное поле (`sender` либо
+ * `recipient`). Второй набор фильтров пришлось бы синхронизировать вручную, и
+ * он бы расходился при переключении вкладок.
+ *
+ * Различаются вкладки только пагинацией и ключом запроса (`incomingMails` /
+ * `outgoingMails`), поэтому переключение вкладки не перезапрашивает уже
+ * свежие данные — их держит кэш TanStack Query.
+ *
+ * Каждое действие gated флагом из `useMailPermissions`: запрещённого действия
+ * в интерфейсе нет вовсе, а не «задизейблено». Набор и порядок колонок — тоже
+ * (`resolveVisibleColumns` пересекает сохранённое с правами).
+ *
+ * Ни периода, ни архива здесь нет намеренно: все четыре предустановки периода
+ * и произвольный диапазон живут в меню «Фильтр» (`MailFilters`) — единственном
+ * месте, где и счётчик активных групп, и сброс живут одним списком. Архив
+ * удалённых писем — единственная точка входа из админки («Архив сообщений»,
+ * `AdminPage`), а не из реестра: на `/mail` его больше нет.
+ */
 export function MailSection({ orgId }: MailSectionProps) {
-  const permissions = useMailPermissions(orgId);
-  const objects = useAccessibleObjects(orgId);
-  const { data: orgUsers } = useOrganizationUsers();
-  const userMap = useUserMap();
-  const { countsByMailId, namesByMailId, isSuccess: filesLoaded } = useOrgMailFiles(orgId);
-  const { linkedByType } = useOrgMailRelationIds(orgId);
-  const thread = useOrgMailThread(orgId);
-  const linkChange = useMailLinkChange(orgId);
-
   const [tab, setTab] = useState<MailType>('incoming');
-  const [page, setPage] = useState(1);
-  const filters = useMailFilters();
-  const isSearchMode = filters.filters.search.trim() !== '';
-
-  const [highlightedMailId, setHighlightedMailId] = useState<string | null>(null);
-  const [highlightRequestId, setHighlightRequestId] = useState(0);
-
-  const requestHighlight = (mailId: string): void => {
-    setHighlightedMailId(mailId);
-    setHighlightRequestId((prev) => prev + 1);
-  };
-
-  const clearHighlight = useCallback(() => {
-    setHighlightedMailId(null);
-  }, []);
-
-  type FormTarget =
-    | { mode: 'create' }
-    | { mode: 'edit'; mailId: string }
-    | { mode: 'copy'; mailId: string; sourceType: MailType };
-
-  type ThreadTarget = { mailId: string; mailType: MailType };
-
-  const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
-  const [formType, setFormType] = useState<MailType>('incoming');
-  const [filesFor, setFilesFor] = useState<string | null>(null);
-  const [historyFor, setHistoryFor] = useState<string | null>(null);
-  const [threadTarget, setThreadTarget] = useState<ThreadTarget | null>(null);
-  const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
-  const [deleteFor, setDeleteFor] = useState<string | null>(null);
-  const [deleteReason, setDeleteReason] = useState('');
-
-  const query = useMemo(() => {
-    const result = { ...filters.query, page, perPage: MAIL_PAGE_SIZE };
-    delete result.search;
-    return result;
-  }, [filters.query, page]);
-
-  const incoming = useIncomingMails(orgId, query);
-  const outgoing = useOutgoingMails(orgId, query);
-
-  const foldedQuery = foldSearchText(filters.filters.search);
-
-  const allQuery = useMemo(() => {
-    const result = { ...filters.query };
-    delete result.search;
-    return result;
-  }, [filters.query]);
-
-  const incomingAll = useAllIncomingMails(orgId, allQuery, isSearchMode);
-  const outgoingAll = useAllOutgoingMails(orgId, allQuery, isSearchMode);
-
-  const pageCount = isSearchMode
-    ? Math.ceil(
-        (tab === 'incoming' ? (incomingAll.data?.length ?? 0) : (outgoingAll.data?.length ?? 0)) /
-          MAIL_PAGE_SIZE,
-      )
-    : ((tab === 'incoming' ? incoming : outgoing).data?.totalPages ?? 0);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPage(1);
-  }, [tab, filters.filters]);
-
-  useEffect(() => {
-    if (pageCount > 0 && page > pageCount) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPage(pageCount);
-    }
-  }, [page, pageCount]);
-
-  const { counterpartyOptions } = useOrgCounterparties(orgId, formTarget !== null);
-
-  const editId =
-    formTarget === null || formTarget.mode === 'create'
-      ? ''
-      : formTarget.mode === 'copy' && formType !== formTarget.sourceType
-        ? ''
-        : formTarget.mailId;
-  const incomingDetail = useIncomingMail(formType === 'incoming' ? editId : '');
-  const outgoingDetail = useOutgoingMail(formType === 'outgoing' ? editId : '');
-  const editingMail = (formType === 'incoming' ? incomingDetail.data : outgoingDetail.data) as
-    | IIncomingMail
-    | IOutgoingMail
-    | undefined;
-
-  const createIncoming = useCreateIncomingMail(orgId);
-  const createOutgoing = useCreateOutgoingMail(orgId);
-  const updateIncoming = useUpdateIncomingMail(orgId);
-  const updateOutgoing = useUpdateOutgoingMail(orgId);
-  const deleteIncoming = useDeleteIncomingMail(orgId);
-  const deleteOutgoing = useDeleteOutgoingMail(orgId);
-
-  const saving =
-    createIncoming.isPending ||
-    createOutgoing.isPending ||
-    updateIncoming.isPending ||
-    updateOutgoing.isPending ||
-    linkChange.isPending;
-
-  const active = tab === 'incoming' ? incoming : outgoing;
-  const activeAll = tab === 'incoming' ? incomingAll : outgoingAll;
-
-  const rows = useMemo<MailRow[]>(() => {
-    if (isSearchMode) {
-      const allItems = (activeAll.data ?? []) as (IIncomingMail | IOutgoingMail)[];
-      const matched = allItems.filter((mail) =>
-        matchesFolded(mailSearchFieldsOf(mail, tab), foldedQuery),
-      );
-      const withFiles = filterByAttachments(
-        matched,
-        countsByMailId,
-        filters.filters.attachments,
-        filesLoaded,
-      );
-      const source = filterByRelations(withFiles, linkedByType[tab], filters.filters.hasRelations);
-      const start = (page - 1) * MAIL_PAGE_SIZE;
-      const paged = source.slice(start, start + MAIL_PAGE_SIZE);
-      return paged.map((mail) =>
-        toMailRow(
-          mail,
-          countsByMailId.get(mail.id) ?? 0,
-          namesByMailId.get(mail.id) ?? [],
-        ),
-      );
-    }
-
-    const rawItems = (active.data?.items ?? []) as (IIncomingMail | IOutgoingMail)[];
-    const withFiles = filterByAttachments(
-      rawItems,
-      countsByMailId,
-      filters.filters.attachments,
-      filesLoaded,
-    );
-    const source = filterByRelations(withFiles, linkedByType[tab], filters.filters.hasRelations);
-    return source.map((mail) =>
-      toMailRow(
-        mail,
-        countsByMailId.get(mail.id) ?? 0,
-        namesByMailId.get(mail.id) ?? [],
-      ),
-    );
-  }, [
-    active.data,
-    activeAll.data,
-    isSearchMode,
-    foldedQuery,
-    tab,
-    filters.filters.attachments,
-    filters.filters.hasRelations,
-    countsByMailId,
-    namesByMailId,
-    filesLoaded,
-    linkedByType,
-    page,
-  ]);
-
-  const objectNames = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const object of (objects ?? []) as IAccountingObject[]) {
-      map.set(object.id, object.name);
-    }
-    return map;
-  }, [objects]);
-
-  const responsibleOptions = useMemo(() => {
-    if (!orgUsers) return [];
-    const byId = new Map<string, string>();
-    for (const membership of orgUsers) {
-      if (membership.organization_id !== orgId) continue;
-      const user = userMap.get(membership.user_id);
-      const name = user?.name || user?.login || membership.user_id;
-      if (!byId.has(membership.user_id)) byId.set(membership.user_id, name);
-    }
-    return [...byId.entries()]
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-  }, [orgUsers, orgId, userMap]);
-
-  const responsibleNames = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const option of responsibleOptions) map.set(option.id, option.name);
-    return map;
-  }, [responsibleOptions]);
-
-  const chips = useMemo(
-    () =>
-      buildFilterChips(filters.filters, {
-        mailType: tab,
-        objectNames,
-        responsibleNames,
-        deliveryLabels: MAIL_DELIVERY_METHOD_NAMES,
-      }),
-    [filters.filters, tab, objectNames, responsibleNames],
-  );
-
-  const allowedCreateTypes = useMemo(
-    () =>
-      (['incoming', 'outgoing'] as MailType[]).filter((type) =>
-        type === 'incoming' ? permissions.canCreateIncoming : permissions.canCreateOutgoing,
-      ),
-    [permissions.canCreateIncoming, permissions.canCreateOutgoing],
-  );
-
-  useEffect(() => {
-    if (!highlightedMailId) return;
-    const selector = `[data-highlight-id="${CSS.escape(highlightedMailId)}"]`;
-
-    const flash = (el: Element) => {
-      if (!el.classList.contains('row-flash')) el.classList.add('row-flash');
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    };
-
-    const find = (): Element | null => {
-      for (const el of document.querySelectorAll(selector)) {
-        if (getComputedStyle(el).display !== 'none') return el;
-      }
-      return null;
-    };
-
-    const el = find();
-    if (el) {
-      flash(el);
-      const release = window.setTimeout(() => {
-        el.classList.remove('row-flash');
-        clearHighlight();
-      }, 2600);
-      return () => window.clearTimeout(release);
-    }
-
-    const retry = window.setTimeout(() => {
-      const found = find();
-      if (found) flash(found);
-      else
-        notifications.show({
-          color: 'yellow',
-          message: MAIL_LETTER_NOT_FOUND_NOTE,
-        });
-    }, 120);
-    return () => window.clearTimeout(retry);
-  }, [highlightedMailId, highlightRequestId, clearHighlight]);
-
-  const { data: savedColumns } = useUserSetting('mail_columns');
-  const saveColumns = useUpsertUserSetting('mail_columns');
-
-  const visibleColumns = useMemo(
-    () => resolveVisibleColumns(savedColumns, permissions),
-    [savedColumns, permissions],
-  );
-
-  const handleColumnChange = (columns: MailColumnId[]) => {
-    saveColumns.mutate(columns);
-  };
-
-  const applyParent = async (
-    mailType: MailType,
-    savedMail: { id: string },
-    parentKey: MailNodeKey | null,
-  ) => {
-    const isCreate = formTarget?.mode !== 'edit';
-    const canLink = isCreate
-      ? mailType === 'incoming'
-        ? permissions.canCreateIncoming
-        : permissions.canCreateOutgoing
-      : mailType === 'incoming'
-        ? permissions.canEditIncoming
-        : permissions.canEditOutgoing;
-    if (!canLink) return;
-
-    const plan = planLinkChange(
-      parentEdgesOf(thread.parentEdges, mailNodeKey(mailType, savedMail.id)),
-      candidateByKey(thread.candidates, parentKey),
-    );
-    if (!plan) return;
-    await linkChange.changeLink({ child: { id: savedMail.id, type: mailType }, plan });
-  };
-
-  const handleSave = (mailType: MailType, form: MailFormState, parentKey: MailNodeKey | null) => {
-    const shared = {
-      date: form.date,
-      subject: form.subject.trim(),
-      responsible: form.responsible,
-      responsible_name: form.responsible
-        .split(',')
-        .filter(Boolean)
-        .map((id) => responsibleNames.get(id) ?? '')
-        .filter(Boolean)
-        .join(', '),
-      accounting_object_id: form.accountingObjectId,
-      delivery_method: form.deliveryMethod ?? undefined,
-      comment: form.comment.trim(),
-    };
-    const counterparty = {
-      number: form.number.trim(),
-      name: form.counterparty.trim(),
-      numberOfCounterparty: form.counterpartyNumber.trim(),
-    };
-
-    const saved = () => {
-      notifications.show({
-        color: 'green',
-        message:
-          formTarget?.mode === 'edit'
-            ? `${MAIL_TYPE_LABELS[mailType]} сохранено`
-            : `${MAIL_TYPE_LABELS[mailType]} добавлено`,
-      });
-      setFormTarget(null);
-    };
-
-    const afterSave = (savedMail: { id: string }) =>
-      applyParent(mailType, savedMail, parentKey)
-        .catch(() => undefined)
-        .then(saved);
-
-    if (mailType === 'incoming') {
-      const fields = {
-        ...shared,
-        number: counterparty.number,
-        sender: counterparty.name,
-        sender_outgoing_number: counterparty.numberOfCounterparty,
-      };
-      const request =
-        formTarget?.mode === 'edit'
-          ? updateIncoming.mutateAsync({
-              id: formTarget.mailId,
-              data: fields,
-              previousData: editingMail ? snapshotForHistory(mailType, editingMail) : {},
-            })
-          : createIncoming.mutateAsync({ organization_id: orgId, ...fields });
-      request.then(afterSave).catch(() => undefined);
-      return;
-    }
-
-    const fields = {
-      ...shared,
-      outgoing_number: counterparty.number,
-      recipient: counterparty.name,
-      counterparty_incoming_number: counterparty.numberOfCounterparty,
-    };
-    const request =
-      formTarget?.mode === 'edit'
-        ? updateOutgoing.mutateAsync({
-            id: formTarget.mailId,
-            data: fields,
-            previousData: editingMail ? snapshotForHistory(mailType, editingMail) : {},
-          })
-        : createOutgoing.mutateAsync({ organization_id: orgId, ...fields });
-    request.then(afterSave).catch(() => undefined);
-  };
-
-  const closeDeleteModal = () => {
-    setDeleteFor(null);
-    setDeleteReason('');
-  };
-
-  const confirmDelete = () => {
-    if (!deleteFor) return;
-    const reason = deleteReason.trim();
-    if (!reason) return;
-    const mutation = tab === 'incoming' ? deleteIncoming : deleteOutgoing;
-    closeDeleteModal();
-    mutation.mutate({ id: deleteFor, reason });
-  };
-
-  const labelFor = (mailId: string | null): string => {
-    if (!mailId) return '';
-    const row = rows.find((candidate) => candidate.id === mailId);
-    return row?.number || row?.subject || mailId;
-  };
-
-  const deleteMailRow = deleteFor ? rows.find((row) => row.id === deleteFor) : undefined;
-  const deleteMailSubject = buildDeleteMailSubject(deleteMailRow, deleteFor);
+  const data = useMailSectionData(orgId, tab);
+  const { highlightedMailId, requestHighlight } = useMailSectionHighlight();
+  const actions = useMailSectionActions(orgId, tab, setTab, data, requestHighlight);
 
   if (!orgId) return null;
 
-  if (!objects) {
+  if (!data.objects) {
     return (
       <Stack gap="sm" py="xs">
         <Skeleton height={32} radius="sm" />
@@ -456,117 +56,127 @@ export function MailSection({ orgId }: MailSectionProps) {
     );
   }
 
+  const totalItems = data.isSearchMode
+    ? (data.activeAll.data?.length ?? 0)
+    : (data.active.data?.totalItems ?? 0);
+  const loading = data.isSearchMode ? data.activeAll.isLoading : data.active.isLoading;
+  const historyRow = data.rows.find((row) => row.id === actions.historyFor);
+
   return (
     <>
+      {/* Основной блок страницы почты: шапка, поиск и таблица писем */}
       <Stack gap="md">
         <MailSectionHeader
-          searchValue={filters.filters.search}
-          onSearchChange={(value) => {
-            filters.setSearch(value);
-            setPage(1);
-          }}
-          resultCount={rows.length}
-          resultTotal={
-            isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)
-          }
-          allowedCreateTypes={allowedCreateTypes}
-          onOpenColumnSettings={() => setColumnSettingsOpen(true)}
+          searchValue={data.filters.filters.search}
+          onSearchChange={data.handleSearchChange}
+          resultCount={data.rows.length}
+          resultTotal={totalItems}
+          allowedCreateTypes={data.allowedCreateTypes}
+          onOpenColumnSettings={() => actions.setColumnSettingsOpen(true)}
           onCreate={(type) => {
-            setFormType(type);
-            setFormTarget({ mode: 'create' });
+            actions.setFormType(type);
+            actions.setFormTarget({ mode: 'create' });
           }}
         />
 
         <Paper withBorder p="md" style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
+          {/* Табличная часть: вкладки, фильтры и список писем */}
           <MailSectionTable
             orgId={orgId}
             tab={tab}
             setTab={setTab}
-            rows={rows}
-            visibleColumns={visibleColumns}
-            permissions={permissions}
-            page={page}
-            pageCount={pageCount}
-            totalItems={
-              isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)
-            }
-            loading={isSearchMode ? activeAll.isLoading : active.isLoading}
-            filters={filters}
-            objectNames={objectNames}
-            responsibleOptions={responsibleOptions}
-            chips={chips}
+            rows={data.rows}
+            visibleColumns={data.visibleColumns}
+            permissions={data.permissions}
+            page={data.page}
+            pageCount={data.pageCount}
+            totalItems={totalItems}
+            loading={loading}
+            filters={data.filters}
+            objectNames={data.objectNames}
+            responsibleOptions={data.responsibleOptions}
+            chips={data.chips}
             highlightedMailId={highlightedMailId}
-            onPageChange={setPage}
-            onOpenFiles={setFilesFor}
+            onPageChange={data.setPage}
+            onOpenFiles={actions.setFilesFor}
             onEdit={(mailId) => {
-              setFormType(tab);
-              setFormTarget({ mode: 'edit', mailId });
+              actions.setFormType(tab);
+              actions.setFormTarget({ mode: 'edit', mailId });
             }}
             onCopy={(mailId) => {
-              setFormType(tab);
-              setFormTarget({ mode: 'copy', mailId, sourceType: tab });
+              actions.setFormType(tab);
+              actions.setFormTarget({ mode: 'copy', mailId, sourceType: tab });
             }}
-            onDelete={setDeleteFor}
-            onHistory={setHistoryFor}
-            onRelations={(mailId) => setThreadTarget({ mailId, mailType: tab })}
-            onResetFilters={filters.resetAll}
+            onDelete={actions.setDeleteFor}
+            onHistory={actions.setHistoryFor}
+            onRelations={(mailId) => actions.setThreadTarget({ mailId, mailType: tab })}
+            onResetFilters={data.filters.resetAll}
           />
         </Paper>
       </Stack>
 
+      {/* Набор модальных окон раздела: форма, файлы, история, связи, настройки, удаление */}
       <MailSectionModals
-        formTarget={formTarget}
-        formType={formType}
-        editingMail={editingMail}
-        allowedCreateTypes={allowedCreateTypes}
-        counterpartyOptions={counterpartyOptions}
-        candidates={thread.candidates}
-        parentEdges={thread.parentEdges}
-        canLinkCurrent={formTarget?.mode !== 'edit' ? allowedCreateTypes.includes(formType) : formType === 'incoming' ? permissions.canEditIncoming : permissions.canEditOutgoing}
-        saving={saving}
-        onCloseForm={() => setFormTarget(null)}
-        onTypeChange={setFormType}
-        onSave={handleSave}
-        onOpenThread={(type, id) => setThreadTarget({ mailId: id, mailType: type })}
-        filesFor={filesFor}
-        canManageFiles={permissions.canManageFiles}
-        historyFor={historyFor}
-        createdByName={rows.find((row) => row.id === historyFor)?.createdByName}
-        createdAt={rows.find((row) => row.id === historyFor)?.created}
-        threadTarget={threadTarget}
-        onGoToRegister={(mailId, mailType, dateKey) => {
-          setThreadTarget(null);
-          filters.resetAll();
-          setPage(1);
-          if (!dateKey) return;
-          const target = computeRegisterTarget(mailType, dateKey, tab);
-          if (target.tab !== tab) setTab(target.tab);
-          if (target.customFrom && target.customTo) {
-            filters.setCustomRange(target.customFrom, target.customTo);
-          }
-          requestHighlight(mailId);
+        form={{
+          formTarget: actions.formTarget,
+          formType: actions.formType,
+          editingMail: actions.editingMail,
+          allowedCreateTypes: data.allowedCreateTypes,
+          counterpartyOptions: actions.counterpartyOptions,
+          candidates: data.thread.candidates,
+          parentEdges: data.thread.parentEdges,
+          canLinkCurrent: actions.canLinkCurrent,
+          saving: actions.saving,
+          onCloseForm: () => actions.setFormTarget(null),
+          onTypeChange: actions.setFormType,
+          onSave: actions.handleSave,
+          onOpenThread: (type, id) => actions.setThreadTarget({ mailId: id, mailType: type }),
+          objectNames: data.objectNames,
+          responsibleOptions: data.responsibleOptions,
         }}
-        visibleColumns={visibleColumns}
-        handleColumnChange={handleColumnChange}
-        setColumnSettingsOpen={setColumnSettingsOpen}
-        columnSettingsOpen={columnSettingsOpen}
-        deleteFor={deleteFor}
-        deleteIncoming={deleteIncoming}
-        deleteOutgoing={deleteOutgoing}
-        deleteMailSubject={deleteMailSubject}
-        deleteReason={deleteReason}
-        closeDeleteModal={closeDeleteModal}
-        confirmDelete={confirmDelete}
-        setDeleteReason={setDeleteReason}
-        setFilesFor={setFilesFor}
-        setHistoryFor={setHistoryFor}
-        setThreadTarget={setThreadTarget}
-        orgId={orgId}
-        tab={tab}
-        permissions={permissions}
-        objectNames={objectNames}
-        responsibleOptions={responsibleOptions}
-        labelFor={labelFor}
+        files={{
+          filesFor: actions.filesFor,
+          setFilesFor: actions.setFilesFor,
+          canManageFiles: data.permissions.canManageFiles,
+          orgId,
+          tab,
+          labelFor: actions.labelFor,
+        }}
+        history={{
+          historyFor: actions.historyFor,
+          setHistoryFor: actions.setHistoryFor,
+          createdByName: historyRow?.createdByName,
+          createdAt: historyRow?.created,
+          orgId,
+          tab,
+          labelFor: actions.labelFor,
+        }}
+        thread={{
+          threadTarget: actions.threadTarget,
+          setThreadTarget: actions.setThreadTarget,
+          orgId,
+          tab,
+          permissions: data.permissions,
+          onGoToRegister: actions.handleGoToRegister,
+        }}
+        columns={{
+          visibleColumns: data.visibleColumns,
+          columnSettingsOpen: actions.columnSettingsOpen,
+          setColumnSettingsOpen: actions.setColumnSettingsOpen,
+          handleColumnChange: data.handleColumnChange,
+          permissions: data.permissions,
+          tab,
+        }}
+        deleteDialog={{
+          deleteFor: actions.deleteFor,
+          deleteMailSubject: actions.deleteMailSubject,
+          deleteReason: actions.deleteReason,
+          setDeleteReason: actions.setDeleteReason,
+          closeDeleteModal: actions.closeDeleteModal,
+          confirmDelete: actions.confirmDelete,
+          deleteIncoming: actions.deleteIncoming,
+          deleteOutgoing: actions.deleteOutgoing,
+        }}
       />
     </>
   );

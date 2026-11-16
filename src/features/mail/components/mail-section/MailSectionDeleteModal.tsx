@@ -29,6 +29,7 @@ export function MailSectionDeleteModal({
   deleteOutgoing,
 }: MailSectionDeleteModalProps) {
   return (
+    /* Подтверждение удаления: карточка письма + обязательная причина */
     <ConfirmModal
       opened={deleteFor !== null}
       onClose={closeDeleteModal}
