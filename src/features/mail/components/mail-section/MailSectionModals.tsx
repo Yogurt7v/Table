@@ -1,3 +1,4 @@
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { Group, Text, TextInput } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -8,23 +9,33 @@ import { MailThreadBuilder } from '@/features/mail/MailThreadBuilder';
 import { MailColumnSettingsModal } from '@/features/mail/MailColumnSettingsModal';
 import type { MailColumnId } from '@/features/mail/mail-columns';
 import type { MailPermissions } from '@/features/mail/mail-field-access';
-import type { MailFormState, MailNodeKey } from '@/features/mail/mail-form';
+import type { MailFormState } from '@/features/mail/mail-form';
+import type { MailCandidateLookup, ParentEdgeIndex } from '@/features/mail/mail-parent';
+import type { MailNodeKey } from '@/features/mail/mail-thread';
+import type { IIncomingMail, IOutgoingMail, MailType } from '@/shared/types';
+
+type FormTarget =
+  | { mode: 'create' }
+  | { mode: 'edit'; mailId: string }
+  | { mode: 'copy'; mailId: string; sourceType: MailType };
+
+type ThreadTarget = { mailId: string; mailType: MailType };
 
 export interface MailSectionModalsProps {
   // Form modal
-  formTarget: { mode: string; mailId?: string; sourceType?: string } | null;
-  formType: string;
-  editingMail: unknown;
-  allowedCreateTypes: string[];
+  formTarget: FormTarget | null;
+  formType: MailType;
+  editingMail: IIncomingMail | IOutgoingMail | null | undefined;
+  allowedCreateTypes: MailType[];
   counterpartyOptions: string[];
-  candidates: unknown[];
-  parentEdges: unknown[];
+  candidates: MailCandidateLookup | undefined;
+  parentEdges: ParentEdgeIndex | undefined;
   canLinkCurrent: boolean;
   saving: boolean;
   onCloseForm: () => void;
-  onTypeChange: (type: string) => void;
-  onSave: (type: string, form: MailFormState, parentKey: MailNodeKey | null) => void;
-  onOpenThread: (type: string, id: string) => void;
+  onTypeChange: (type: MailType) => void;
+  onSave: (type: MailType, form: MailFormState, parentKey: MailNodeKey | null) => void;
+  onOpenThread: (type: MailType, id: string) => void;
 
   // Files modal
   filesFor: string | null;
@@ -36,34 +47,34 @@ export interface MailSectionModalsProps {
   createdAt: string | undefined;
 
   // Thread builder
-  threadTarget: { mailId: string; mailType: string } | null;
-  onGoToRegister: (mailId: string, mailType: string, dateKey: string) => void;
+  threadTarget: ThreadTarget | null;
+  onGoToRegister: (mailId: string, mailType: MailType, dateKey: string) => void;
 
   // Column settings
   visibleColumns: MailColumnId[];
 
   // Delete modal
-  deleteMailSubject: React.ReactNode;
+  deleteMailSubject: ReactNode;
   deleteReason: string;
   closeDeleteModal: () => void;
   confirmDelete: () => void;
 
   orgId: string;
-  tab: string;
+  tab: MailType;
   permissions: MailPermissions;
   objectNames: Map<string, string>;
   responsibleOptions: Array<{ id: string; name: string }>;
   labelFor: (mailId: string | null) => string;
   columnSettingsOpen: boolean;
   handleColumnChange: (columns: MailColumnId[]) => void;
-  setColumnSettingsOpen: (open: boolean) => void;
+  setColumnSettingsOpen: Dispatch<SetStateAction<boolean>>;
   deleteFor: string | null;
   deleteIncoming: { isPending: boolean };
   deleteOutgoing: { isPending: boolean };
-  setDeleteReason: (reason: string) => void;
-  setFilesFor: (mailId: string | null) => void;
-  setHistoryFor: (mailId: string | null) => void;
-  setThreadTarget: (target: { mailId: string; mailType: string } | null) => void;
+  setDeleteReason: Dispatch<SetStateAction<string>>;
+  setFilesFor: Dispatch<SetStateAction<string | null>>;
+  setHistoryFor: Dispatch<SetStateAction<string | null>>;
+  setThreadTarget: Dispatch<SetStateAction<ThreadTarget | null>>;
 }
 
 /**
@@ -136,7 +147,7 @@ export function MailSectionModals({
         saving={saving}
         onTypeChange={onTypeChange}
         onSave={onSave}
-        onOpenThread={(mailType, mailId) => onOpenThread({ mailId, mailType })}
+        onOpenThread={onOpenThread}
       />
 
       {/* Файлы письма */}

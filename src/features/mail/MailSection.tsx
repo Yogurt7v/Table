@@ -1,18 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
-import {
-  ActionIcon,
-  Box,
-  Button,
-  Group,
-  Paper,
-  Skeleton,
-  Stack,
-  Tabs,
-  Text,
-  Tooltip,
-} from '@mantine/core';
-import { IconMailPlus, IconPlus, IconSettings } from '@tabler/icons-react';
+import { Paper, Skeleton, Stack, Text } from '@mantine/core';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useUserMap } from '@/shared/hooks/useUserMap';
@@ -49,16 +37,13 @@ import {
   useOrgMailFiles,
   useOrgMailRelationIds,
 } from './useOrgMailFiles';
-import { MailFilters } from './MailFilters';
-import { MailSearchInput } from './MailSearchInput';
-import { MailTable } from './MailTable';
 import { candidateByKey, parentEdgesOf, planLinkChange } from './mail-parent';
 import { useMailLinkChange } from './useMailLinkChange';
 import { useOrgMailThread } from './useOrgMailThread';
 import { useOrgCounterparties } from './useOrgCounterparties';
 import { mailNodeKey } from './mail-thread';
 import type { MailNodeKey } from './mail-thread';
-import { MAIL_REGISTER_TAB_LABELS, MAIL_TYPE_LABELS } from './mail-labels';
+import { MAIL_TYPE_LABELS } from './mail-labels';
 import { computeRegisterTarget } from './mail-register-target';
 import { MAIL_LETTER_NOT_FOUND_NOTE } from './mail-thread-labels';
 import { resolveVisibleColumns } from './mail-column-visibility';
@@ -66,8 +51,10 @@ import type { MailColumnId } from './mail-columns';
 import { MAIL_PAGE_SIZE } from '@/api/mail';
 import { snapshotForHistory } from './mail-form';
 import type { MailFormState } from './mail-form';
+import { toMailRow, type MailRow } from './mail-row';
 import { MailSectionModals } from './components/mail-section/MailSectionModals';
-import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
+import { MailSectionTable } from './components/mail-section/MailSectionTable';
+import { MailSectionHeader } from './components/mail-section/MailSectionHeader';
 
 interface MailSectionProps {
   orgId: string;
@@ -600,115 +587,62 @@ export function MailSection({ orgId }: MailSectionProps) {
 
   return (
     <>
-      <Paper withBorder p="md" style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
-        <Group justify="space-between" mb="sm" wrap="wrap" gap="xs">
-          <Group gap={8} align="center" wrap="wrap">
-            <BreadcrumbsNav/>
-            <Tooltip label="Настройка колонок">
-              <ActionIcon
-                size="md"
-                variant="subtle"
-                color="gray"
-                aria-label="Настройка колонок"
-                onClick={() => setColumnSettingsOpen(true)}
-              >
-                <IconSettings size={20} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-          {allowedCreateTypes.length > 0 && (
-            <Button
-              leftSection={
-                allowedCreateTypes.length === 1 ? (
-                  <IconPlus size={16} />
-                ) : (
-                  <IconMailPlus size={16} />
-                )
-              }
-              onClick={() => {
-                setFormType(allowedCreateTypes[0]!);
-                setFormTarget({ mode: 'create' });
-              }}
-            >
-              Создать письмо
-            </Button>
-          )}
-        </Group>
+      {/* Основной блок страницы почты: шапка, поиск и таблица писем */}
+      <Stack gap="md">
+        <MailSectionHeader
+          searchValue={filters.filters.search}
+          onSearchChange={handleSearchChange}
+          resultCount={rows.length}
+          resultTotal={
+            isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)
+          }
+          allowedCreateTypes={allowedCreateTypes}
+          onOpenColumnSettings={() => setColumnSettingsOpen(true)}
+          onCreate={(type) => {
+            setFormType(type);
+            setFormTarget({ mode: 'create' });
+          }}
+        />
 
-        <Box mb="sm">
-          <MailSearchInput
-            value={filters.filters.search}
-            onChange={handleSearchChange}
-            scopeLabel="переписке"
-            resultCount={rows.length}
-            resultTotal={
+        <Paper withBorder p="md" style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
+          {/* Табличная часть: вкладки, фильтры и список писем */}
+          <MailSectionTable
+            orgId={orgId}
+            tab={tab}
+            setTab={setTab}
+            rows={rows}
+            visibleColumns={visibleColumns}
+            permissions={permissions}
+            page={page}
+            pageCount={pageCount}
+            totalItems={
               isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)
             }
+            loading={isSearchMode ? activeAll.isLoading : active.isLoading}
+            filters={filters}
+            objectNames={objectNames}
+            responsibleOptions={responsibleOptions}
+            chips={chips}
+            highlightedMailId={highlightedMailId}
+            onPageChange={setPage}
+            onOpenFiles={setFilesFor}
+            onEdit={(mailId) => {
+              setFormType(tab);
+              setFormTarget({ mode: 'edit', mailId });
+            }}
+            onCopy={(mailId) => {
+              setFormType(tab);
+              setFormTarget({ mode: 'copy', mailId, sourceType: tab });
+            }}
+            onDelete={setDeleteFor}
+            onHistory={setHistoryFor}
+            onRelations={(mailId) => setThreadTarget({ mailId, mailType: tab })}
+            onResetFilters={filters.resetAll}
           />
-        </Box>
+        </Paper>
+      </Stack>
 
-        <Tabs
-          value={tab}
-          onChange={(value) => value && setTab(value as MailType)}
-          keepMounted={false}
-        >
-          <Tabs.List>
-            <Tabs.Tab value="incoming">{MAIL_REGISTER_TAB_LABELS.incoming}</Tabs.Tab>
-            <Tabs.Tab value="outgoing">{MAIL_REGISTER_TAB_LABELS.outgoing}</Tabs.Tab>
-          </Tabs.List>
-
-          <Tabs.Panel value={tab} pt="md">
-            <Stack gap="sm">
-              <MailFilters
-                filters={filters}
-                mailType={tab}
-                accountingObjects={(objects ?? []).map((object) => ({
-                  id: object.id,
-                  name: object.name,
-                }))}
-                responsibleOptions={responsibleOptions}
-                chips={chips}
-              />
-              <Box>
-                <MailTable
-                  orgId={orgId}
-                  mailType={tab}
-                  rows={rows}
-                  visibleColumns={visibleColumns}
-                  loading={isSearchMode ? activeAll.isLoading : active.isLoading}
-                  objectNames={objectNames}
-                  permissions={permissions}
-                  page={page}
-                  pageCount={pageCount}
-                  totalItems={
-                    isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)
-                  }
-                  onPageChange={setPage}
-                  onOpenFiles={setFilesFor}
-                  onEdit={(mailId) => {
-                    setFormType(tab);
-                    setFormTarget({ mode: 'edit', mailId });
-                  }}
-                  onCopy={(mailId) => {
-                    setFormType(tab);
-                    setFormTarget({ mode: 'copy', mailId, sourceType: tab });
-                  }}
-                  onDelete={setDeleteFor}
-                  onHistory={setHistoryFor}
-                  onRelations={(mailId) => setThreadTarget({ mailId, mailType: tab })}
-                  onResetFilters={filters.resetAll}
-                  hasFilters={filters.activeCount > 0}
-                  highlightedMailId={highlightedMailId}
-                  emptyHint={
-                    filters.activeCount > 0 ? 'Писем по заданным условиям нет' : 'Писем пока нет'
-                  }
-                />
-              </Box>
-            </Stack>
-          </Tabs.Panel>
-        </Tabs>
-      </Paper>
-
+      {/* Набор модальных окон раздела: форма, файлы, история, связи, настройки, удаление */}
       <MailSectionModals
         formTarget={formTarget}
         formType={formType}

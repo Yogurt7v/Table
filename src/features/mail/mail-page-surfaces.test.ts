@@ -26,6 +26,8 @@ const read = (relativePath: string): string =>
   readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 
 const MAIL_SECTION = read('./MailSection.tsx');
+const MAIL_SECTION_HEADER = read('./components/mail-section/MailSectionHeader.tsx');
+const MAIL_SECTION_TABLE = read('./components/mail-section/MailSectionTable.tsx');
 const MAIL_FILTERS = read('./MailFilters.tsx');
 const ADMIN_PAGE = read('../../pages/AdminPage.tsx');
 
@@ -61,15 +63,17 @@ describe('страница писем не содержит удалённых �
   });
 
   it('поиск на странице писем остался со всеми пятью пропсами', () => {
-    expect(MAIL_SECTION).toMatch(/<MailSearchInput/);
+    expect(MAIL_SECTION).toMatch(/<MailSectionHeader/);
+    expect(MAIL_SECTION_HEADER).toMatch(/<MailSearchInput/);
     for (const prop of ['value=', 'onChange=', 'scopeLabel=', 'resultCount=', 'resultTotal=']) {
-      expect(MAIL_SECTION).toMatch(new RegExp(`<MailSearchInput[\\s\\S]*?${prop}`));
+      expect(MAIL_SECTION_HEADER).toMatch(new RegExp(`<MailSearchInput[\\s\\S]*?${prop}`));
     }
   });
 
   it('настройка колонок и создание письма в шапке остались на месте', () => {
-    expect(MAIL_SECTION).toMatch(/Настройка колонок/);
-    expect(MAIL_SECTION).toMatch(/Создать письмо/);
+    expect(MAIL_SECTION).toMatch(/MailSectionHeader/);
+    expect(MAIL_SECTION_HEADER).toMatch(/Настройка колонок/);
+    expect(MAIL_SECTION_HEADER).toMatch(/Создать письмо/);
   });
 });
 
