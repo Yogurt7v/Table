@@ -1,12 +1,8 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import { Group, Text, TextInput } from '@mantine/core';
-import { IconTrash } from '@tabler/icons-react';
-import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import { MailFormModal } from '@/features/mail/MailFormModal';
-import { MailFilesModal } from '@/features/mail/MailFilesModal';
-import { MailHistoryModal } from '@/features/mail/MailHistoryModal';
-import { MailThreadBuilder } from '@/features/mail/MailThreadBuilder';
-import { MailColumnSettingsModal } from '@/features/mail/MailColumnSettingsModal';
+import { MailSectionFormModal } from './MailSectionFormModal';
+import { MailSectionAuxModals } from './MailSectionAuxModals';
+import { MailSectionDeleteModal } from './MailSectionDeleteModal';
+import type { MailFormTarget } from './MailSectionFormModal';
 import type { MailColumnId } from '@/features/mail/mail-columns';
 import type { MailPermissions } from '@/features/mail/mail-field-access';
 import type { MailFormState } from '@/features/mail/mail-form';
@@ -14,16 +10,11 @@ import type { MailCandidateLookup, ParentEdgeIndex } from '@/features/mail/mail-
 import type { MailNodeKey } from '@/features/mail/mail-thread';
 import type { IIncomingMail, IOutgoingMail, MailType } from '@/shared/types';
 
-type FormTarget =
-  | { mode: 'create' }
-  | { mode: 'edit'; mailId: string }
-  | { mode: 'copy'; mailId: string; sourceType: MailType };
-
 type ThreadTarget = { mailId: string; mailType: MailType };
 
 export interface MailSectionModalsProps {
   // Form modal
-  formTarget: FormTarget | null;
+  formTarget: MailFormTarget | null;
   formType: MailType;
   editingMail: IIncomingMail | IOutgoingMail | null | undefined;
   allowedCreateTypes: MailType[];
@@ -78,9 +69,8 @@ export interface MailSectionModalsProps {
 }
 
 /**
- * Модальные окна раздела переписки.
- * Управляет всеми модалками: форма письма, файлы, история, дерево переписки,
- * настройки колонок и подтверждение удаления.
+ * Корневой контейнер модальных окон раздела переписки.
+ * Композиция дочерних модальных компонентов: форма, вспомогательные окна и удаление.
  */
 export function MailSectionModals({
   formTarget,
@@ -127,107 +117,58 @@ export function MailSectionModals({
 }: MailSectionModalsProps) {
   return (
     <>
-      {/* Форма создания/редактирования письма */}
-      <MailFormModal
-        opened={formTarget !== null}
-        onClose={onCloseForm}
-        mailType={formType}
-        mail={formTarget && formTarget.mode !== 'create' ? (editingMail ?? null) : null}
-        copying={formTarget?.mode === 'copy'}
-        allowedTypes={allowedCreateTypes}
-        accountingObjects={[...objectNames].map(([value, label]) => ({ value, label }))}
-        responsibleOptions={responsibleOptions.map((option) => ({
-          value: option.id,
-          label: option.name,
-        }))}
+      {/* Форма создания/редактирования/копирования письма */}
+      <MailSectionFormModal
+        formTarget={formTarget}
+        formType={formType}
+        editingMail={editingMail}
+        allowedCreateTypes={allowedCreateTypes}
         counterpartyOptions={counterpartyOptions}
         candidates={candidates}
         parentEdges={parentEdges}
-        canLink={canLinkCurrent}
+        canLinkCurrent={canLinkCurrent}
         saving={saving}
+        onCloseForm={onCloseForm}
         onTypeChange={onTypeChange}
         onSave={onSave}
         onOpenThread={onOpenThread}
+        objectNames={objectNames}
+        responsibleOptions={responsibleOptions}
       />
 
-      {/* Файлы письма */}
-      <MailFilesModal
-        mailId={filesFor}
-        mailType={tab}
-        mailLabel={labelFor(filesFor)}
-        orgId={orgId}
-        opened={filesFor !== null}
+      {/* Вспомогательные окна: файлы, история, дерево переписки, настройки колонок */}
+      <MailSectionAuxModals
+        filesFor={filesFor}
         canManageFiles={canManageFiles}
-        onClose={() => setFilesFor(null)}
-      />
-
-      {/* История письма */}
-      <MailHistoryModal
-        mailId={historyFor}
-        mailType={tab}
-        mailLabel={labelFor(historyFor)}
+        historyFor={historyFor}
         createdByName={createdByName}
         createdAt={createdAt}
-        opened={historyFor !== null}
-        onClose={() => setHistoryFor(null)}
-      />
-
-      {/* Дерево переписки */}
-      <MailThreadBuilder
-        opened={threadTarget !== null}
-        onClose={() => setThreadTarget(null)}
-        orgId={orgId}
-        permissions={permissions}
-        rootMailId={threadTarget?.mailId ?? ''}
-        rootMailType={threadTarget?.mailType ?? tab}
+        threadTarget={threadTarget}
         onGoToRegister={onGoToRegister}
-      />
-
-      {/* Настройки колонок таблицы */}
-      <MailColumnSettingsModal
-        key={columnSettingsOpen ? 'open' : 'closed'}
-        opened={columnSettingsOpen}
-        value={visibleColumns}
+        visibleColumns={visibleColumns}
+        columnSettingsOpen={columnSettingsOpen}
+        handleColumnChange={handleColumnChange}
+        setColumnSettingsOpen={setColumnSettingsOpen}
+        setFilesFor={setFilesFor}
+        setHistoryFor={setHistoryFor}
+        setThreadTarget={setThreadTarget}
+        orgId={orgId}
+        tab={tab}
         permissions={permissions}
-        mailType={tab}
-        onChange={handleColumnChange}
-        onClose={() => setColumnSettingsOpen(false)}
+        labelFor={labelFor}
       />
 
       {/* Подтверждение удаления письма */}
-      <ConfirmModal
-        opened={deleteFor !== null}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDelete}
-        title="Удаление письма"
-        size="md"
-        subject={deleteMailSubject}
-        note="Письмо переместится в архив. Вложения останутся доступны и после восстановления."
-        confirmDisabled={
-          deleteReason.trim() === '' || deleteIncoming.isPending || deleteOutgoing.isPending
-        }
-        confirmLeftSection={<IconTrash size={16} />}
-        confirmBlocked
-      >
-        <TextInput
-          label="Причина удаления"
-          aria-label="Причина удаления"
-          placeholder="Например: письмо отправлено ошибочно"
-          description={
-            <Group component="span" justify="space-between" gap="sm" wrap="nowrap">
-              <Text component="span" size="xs" flex={1}>
-                Сохранится в архивной записи и в истории письма.
-              </Text>
-              <Text component="span" size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-                {deleteReason.length > 0 ? `${deleteReason.length} симв.` : ''}
-              </Text>
-            </Group>
-          }
-          required
-          value={deleteReason}
-          onChange={(event) => setDeleteReason(event.currentTarget.value)}
-        />
-      </ConfirmModal>
+      <MailSectionDeleteModal
+        deleteFor={deleteFor}
+        deleteMailSubject={deleteMailSubject}
+        deleteReason={deleteReason}
+        setDeleteReason={setDeleteReason}
+        closeDeleteModal={closeDeleteModal}
+        confirmDelete={confirmDelete}
+        deleteIncoming={deleteIncoming}
+        deleteOutgoing={deleteOutgoing}
+      />
     </>
   );
 }

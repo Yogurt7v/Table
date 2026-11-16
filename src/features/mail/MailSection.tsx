@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
-import { Paper, Skeleton, Stack, Text } from '@mantine/core';
+import { Skeleton, Stack, Paper } from '@mantine/core';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useUserMap } from '@/shared/hooks/useUserMap';
@@ -20,7 +20,6 @@ import {
   useUpdateOutgoingMail,
 } from '@/shared/hooks/useMail';
 import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
-import { formatMailDate } from './mail-date';
 import { mailSearchFieldsOf } from './mail-field-access';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import {
@@ -55,50 +54,12 @@ import { toMailRow, type MailRow } from './mail-row';
 import { MailSectionModals } from './components/mail-section/MailSectionModals';
 import { MailSectionTable } from './components/mail-section/MailSectionTable';
 import { MailSectionHeader } from './components/mail-section/MailSectionHeader';
+import { buildDeleteMailSubject } from './components/mail-section/delete-mail-subject';
 
 interface MailSectionProps {
   orgId: string;
 }
 
-/**
- * Что открыто в форме. У копии запоминается регистр источника (`sourceType`):
- * после переключения регистра письмо остаётся в прежней коллекции, и его id
- * в новой не существует — без этого признака запрос деталей уходил бы в
- * чужую коллекцию и получал 404.
- */
-type FormTarget =
-  | { mode: 'create' }
-  | { mode: 'edit'; mailId: string }
-  | { mode: 'copy'; mailId: string; sourceType: MailType };
-
-/** Корень дерева переписки с указанием регистра: родитель может быть из другого. */
-type ThreadTarget = { mailId: string; mailType: MailType };
-
-const NO_ATTACHMENT_NAMES: string[] = [];
-
-/**
- * Тело страницы почты: заголовок, поиск, две вкладки-регистра и все модалки.
- *
- * Фильтры и поиск общие для обеих вкладок, и это не компромисс, а следствие
- * контракта API: параметр называется `counterparty`, а `buildIncomingMailFilter`
- * и `buildOutgoingMailFilter` сами подставляют нужное поле (`sender` либо
- * `recipient`). Второй набор фильтров пришлось бы синхронизировать вручную, и
- * он бы расходился при переключении вкладок.
- *
- * Различаются вкладки только пагинацией и ключом запроса (`incomingMails` /
- * `outgoingMails`), поэтому переключение вкладки не перезапрашивает уже
- * свежие данные — их держит кэш TanStack Query.
- *
- * Каждое действие gated флагом из `useMailPermissions`: запрещённого действия
- * в интерфейсе нет вовсе, а не «задизейблено». Набор и порядок колонок — тоже
- * (`resolveVisibleColumns` пересекает сохранённое с правами).
- *
- * Ни периода, ни архива здесь нет намеренно: все четыре предустановки периода
- * и произвольный диапазон живут в меню «Фильтр» (`MailFilters`) — единственном
- * месте, где и счётчик активных групп, и сброс живут одним списком. Архив
- * удалённых писем — единственная точка входа из админки («Архив сообщений»,
- * `AdminPage`), а не из реестра: на `/mail` его больше нет.
- */
 export function MailSection({ orgId }: MailSectionProps) {
   const permissions = useMailPermissions(orgId);
   const objects = useAccessibleObjects(orgId);
@@ -126,18 +87,12 @@ export function MailSection({ orgId }: MailSectionProps) {
     setHighlightedMailId(null);
   }, []);
 
-  const handleGoToRegister = (mailId: string, mailType: MailType, dateKey: string): void => {
-    setThreadTarget(null);
-    filters.resetAll();
-    setPage(1);
-    if (!dateKey) return;
-    const target = computeRegisterTarget(mailType, dateKey, tab);
-    if (target.tab !== tab) setTab(target.tab);
-    if (target.customFrom && target.customTo) {
-      filters.setCustomRange(target.customFrom, target.customTo);
-    }
-    requestHighlight(mailId);
-  };
+  type FormTarget =
+    | { mode: 'create' }
+    | { mode: 'edit'; mailId: string }
+    | { mode: 'copy'; mailId: string; sourceType: MailType };
+
+  type ThreadTarget = { mailId: string; mailType: MailType };
 
   const [formTarget, setFormTarget] = useState<FormTarget | null>(null);
   const [formType, setFormType] = useState<MailType>('incoming');
@@ -175,22 +130,11 @@ export function MailSection({ orgId }: MailSectionProps) {
       )
     : ((tab === 'incoming' ? incoming : outgoing).data?.totalPages ?? 0);
 
-  // Смена вкладки или ЛЮБОГО фильтра возвращает на первую страницу. Иначе
-  // пользователь, сидящий на третьей странице входящих, ставит узкий фильтр
-  // (или переключает вкладку на исходящие, которых меньше) и получает пустую
-  // таблицу без единого объяснения: строк на этой странице просто нет. Все
-  // мутации фильтров идут через `useMailFilters`, поэтому одного этого
-  // состояния достаточно — `handleSearchChange` ниже лишь сбрасывает страницу
-  // раньше, чем дойдёт до эффекта.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [tab, filters.filters]);
 
-  // Страховка от «страницы за последней»: строки удаляются и с этой таблицы
-  // (кнопка «Удалить»), и с другого устройства, поэтому общее число страниц
-  // может уехать вниз, пока пользователь на последней. `DeletedInvoicesSection`
-  // поступает так же.
   useEffect(() => {
     if (pageCount > 0 && page > pageCount) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -198,17 +142,8 @@ export function MailSection({ orgId }: MailSectionProps) {
     }
   }, [page, pageCount]);
 
-  // Подсказки контрагентов нужны, пока открыта форма: словарь качается по
-  // требованию, а не при каждом открытии `/mail`.
   const { counterpartyOptions } = useOrgCounterparties(orgId, formTarget !== null);
 
-  /**
-   * Детали спрашиваются только пока активный регистр тот же, в котором письмо
-   * лежит. Переключение регистра в режиме копии оставляет `formType` не тем, что
-   * был при открытии, а `sourceType` — тем: письмо осталось в прежней
-   * коллекции, и его id в новой не существует. Создание не спрашивает ничего, а
-   * правка регистр не переключает, так что там id остаётся всегда.
-   */
   const editId =
     formTarget === null || formTarget.mode === 'create'
       ? ''
@@ -258,7 +193,7 @@ export function MailSection({ orgId }: MailSectionProps) {
         toMailRow(
           mail,
           countsByMailId.get(mail.id) ?? 0,
-          namesByMailId.get(mail.id) ?? NO_ATTACHMENT_NAMES,
+          namesByMailId.get(mail.id) ?? [],
         ),
       );
     }
@@ -275,7 +210,7 @@ export function MailSection({ orgId }: MailSectionProps) {
       toMailRow(
         mail,
         countsByMailId.get(mail.id) ?? 0,
-        namesByMailId.get(mail.id) ?? NO_ATTACHMENT_NAMES,
+        namesByMailId.get(mail.id) ?? [],
       ),
     );
   }, [
@@ -301,12 +236,6 @@ export function MailSection({ orgId }: MailSectionProps) {
     return map;
   }, [objects]);
 
-  /**
-   * Ответственные по id, а не по имени. Словарь склеивал одноимённых в одну
-   * подпись, и второго сотрудника «Иванова» нельзя было ни выбрать, ни
-   * отобразить: подпись уже занята первым. Ответственных у письма несколько,
-   * значит и список людей должен быть кратным, а не уникальным по подписи.
-   */
   const responsibleOptions = useMemo(() => {
     if (!orgUsers) return [];
     const byId = new Map<string, string>();
@@ -346,26 +275,6 @@ export function MailSection({ orgId }: MailSectionProps) {
     [permissions.canCreateIncoming, permissions.canCreateOutgoing],
   );
 
-  /**
-   * Право назвать или снять родителя — то самое, что уже спрашивает кнопка
-   * редактирования: создать письмо даёт `canCreate*`, изменить — `canEdit*`.
-   * Ровно тот же список флагов, а не роль: роль в почте не решает ничего.
-   */
-  const canLinkCurrent =
-    formTarget?.mode !== 'edit'
-      ? allowedCreateTypes.includes(formType)
-      : formType === 'incoming'
-        ? permissions.canEditIncoming
-        : permissions.canEditOutgoing;
-
-  const handleSearchChange = (value: string) => {
-    filters.setSearch(value);
-    setPage(1);
-  };
-
-  // Флеш-подсветка — по образцу `AutoExpandOnHighlight` в реестре счетов.
-  // Первого прохода может не хватить: прыжок меняет фильтры, и строка появляется
-  // после перезапроса, поэтому через 120 мс селектор ищется ещё раз — как там.
   useEffect(() => {
     if (!highlightedMailId) return;
     const selector = `[data-highlight-id="${CSS.escape(highlightedMailId)}"]`;
@@ -377,8 +286,6 @@ export function MailSection({ orgId }: MailSectionProps) {
 
     const find = (): Element | null => {
       for (const el of document.querySelectorAll(selector)) {
-        // Таблица и карточки обе всегда в DOM и разведены `visibleFrom`
-        // только стилями, поэтому невидимую ветку подсветка не трогает.
         if (getComputedStyle(el).display !== 'none') return el;
       }
       return null;
@@ -409,9 +316,6 @@ export function MailSection({ orgId }: MailSectionProps) {
   const { data: savedColumns } = useUserSetting('mail_columns');
   const saveColumns = useUpsertUserSetting('mail_columns');
 
-  // Право в зависимостях, а не только в аргументе: `useMailPermissions` отдаёт
-  // новый объект при смене любого флага, поэтому отзыв права убирает колонку
-  // с открытой страницы, а не после перезагрузки.
   const visibleColumns = useMemo(
     () => resolveVisibleColumns(savedColumns, permissions),
     [savedColumns, permissions],
@@ -421,19 +325,6 @@ export function MailSection({ orgId }: MailSectionProps) {
     saveColumns.mutate(columns);
   };
 
-  /**
-   * Запись связи в `mail_relations` — строго после успешного сохранения письма.
-   * Наоборот нельзя: связь, созданная до неудачного сохранения, пережила бы его
-   * откат и осталась бы у письма с прежними полями.
-   *
-   * Что именно писать, решает `planLinkChange`, и он смотрит только на
-   * сохранённые рёбра: `null` — значит человек назвал того же родителя, и запись
-   * не нужна. **Номер контрагента в этом решении не участвует вовсе** — правка
-   * номера не пишет связь, потому что сюда приходит лишь тот родитель, кого
-   * человек назвал сам. Обратно тоже: связь пишется только через
-   * `createCrossMailRelation`/`deleteMailRelation`, а они трогают исключительно
-   * `mail_relations` и `mail_history`.
-   */
   const applyParent = async (
     mailType: MailType,
     savedMail: { id: string },
@@ -550,28 +441,8 @@ export function MailSection({ orgId }: MailSectionProps) {
     return row?.number || row?.subject || mailId;
   };
 
-  // Письма нет в `rows`, если страница перелисталась, — карточка тогда молча
-  // деградирует до одной строки-заглушки и ничего не выдумывает.
   const deleteMailRow = deleteFor ? rows.find((row) => row.id === deleteFor) : undefined;
-  const deleteMailMeta = deleteMailRow
-    ? [
-        deleteMailRow.number ? `№ ${deleteMailRow.number}` : null,
-        deleteMailRow.counterparty || null,
-        deleteMailRow.dateKey ? formatMailDate(deleteMailRow.dateKey) : null,
-      ].filter((part): part is string => Boolean(part))
-    : [];
-  const deleteMailSubject = deleteFor ? (
-    <Paper withBorder radius="md" p="sm">
-      <Text fw={600} lh={1.35} lineClamp={2}>
-        {deleteMailRow?.subject || deleteMailRow?.number || deleteMailRow?.counterparty || '—'}
-      </Text>
-      {deleteMailMeta.length > 0 && (
-        <Text size="xs" c="dimmed" mt={2} lineClamp={1}>
-          {deleteMailMeta.join(' · ')}
-        </Text>
-      )}
-    </Paper>
-  ) : null;
+  const deleteMailSubject = buildDeleteMailSubject(deleteMailRow, deleteFor);
 
   if (!orgId) return null;
 
@@ -587,11 +458,13 @@ export function MailSection({ orgId }: MailSectionProps) {
 
   return (
     <>
-      {/* Основной блок страницы почты: шапка, поиск и таблица писем */}
       <Stack gap="md">
         <MailSectionHeader
           searchValue={filters.filters.search}
-          onSearchChange={handleSearchChange}
+          onSearchChange={(value) => {
+            filters.setSearch(value);
+            setPage(1);
+          }}
           resultCount={rows.length}
           resultTotal={
             isSearchMode ? (activeAll.data?.length ?? 0) : (active.data?.totalItems ?? 0)
@@ -605,7 +478,6 @@ export function MailSection({ orgId }: MailSectionProps) {
         />
 
         <Paper withBorder p="md" style={{ boxShadow: 'var(--mantine-shadow-sm)' }}>
-          {/* Табличная часть: вкладки, фильтры и список писем */}
           <MailSectionTable
             orgId={orgId}
             tab={tab}
@@ -642,7 +514,6 @@ export function MailSection({ orgId }: MailSectionProps) {
         </Paper>
       </Stack>
 
-      {/* Набор модальных окон раздела: форма, файлы, история, связи, настройки, удаление */}
       <MailSectionModals
         formTarget={formTarget}
         formType={formType}
@@ -651,7 +522,7 @@ export function MailSection({ orgId }: MailSectionProps) {
         counterpartyOptions={counterpartyOptions}
         candidates={thread.candidates}
         parentEdges={thread.parentEdges}
-        canLinkCurrent={canLinkCurrent}
+        canLinkCurrent={formTarget?.mode !== 'edit' ? allowedCreateTypes.includes(formType) : formType === 'incoming' ? permissions.canEditIncoming : permissions.canEditOutgoing}
         saving={saving}
         onCloseForm={() => setFormTarget(null)}
         onTypeChange={setFormType}
@@ -663,7 +534,18 @@ export function MailSection({ orgId }: MailSectionProps) {
         createdByName={rows.find((row) => row.id === historyFor)?.createdByName}
         createdAt={rows.find((row) => row.id === historyFor)?.created}
         threadTarget={threadTarget}
-        onGoToRegister={handleGoToRegister}
+        onGoToRegister={(mailId, mailType, dateKey) => {
+          setThreadTarget(null);
+          filters.resetAll();
+          setPage(1);
+          if (!dateKey) return;
+          const target = computeRegisterTarget(mailType, dateKey, tab);
+          if (target.tab !== tab) setTab(target.tab);
+          if (target.customFrom && target.customTo) {
+            filters.setCustomRange(target.customFrom, target.customTo);
+          }
+          requestHighlight(mailId);
+        }}
         visibleColumns={visibleColumns}
         handleColumnChange={handleColumnChange}
         setColumnSettingsOpen={setColumnSettingsOpen}
