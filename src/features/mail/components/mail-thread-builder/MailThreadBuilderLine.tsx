@@ -1,31 +1,27 @@
 import { Box } from '@mantine/core';
 import type { MailType } from '@/shared/types';
-import type { MailNodeKey } from '@/features/mail/mail-thread';
 import {
   mailGapDropId,
   type ThreadDirection,
   type ThreadLineLayout,
   type ThreadOverState,
 } from '@/features/mail/mail-thread-builder';
-import { MailThreadGap, MailThreadNode } from '@/features/mail/MailThreadNode';
+import { MailThreadGap } from '@/features/mail/MailThreadNode';
 import {
   MAIL_DROP_HINT_BEFORE,
   MAIL_DROP_HINT_HEAD,
   MAIL_DROP_HINT_TAIL,
 } from '@/features/mail/mail-thread-labels';
+import { MailThreadBuilderLineRowSimple } from './MailThreadBuilderLineRowSimple';
 
 /** Пропсы линии писем конструктора. */
 export interface MailThreadBuilderLineProps {
   layout: ThreadLineLayout;
-  anchorKey: MailNodeKey;
   wide: boolean;
-  draggedKey: MailNodeKey | null;
+  draggedKey: any;
   overId: string | null;
-  directions: ReadonlyMap<MailNodeKey, ThreadDirection>;
-  cyclicKeys: ReadonlySet<MailNodeKey> | undefined;
-  canDrag: (type: MailType) => boolean;
-  nodeOverState: (key: MailNodeKey) => ThreadOverState;
-  gapOverState: (zoneId: string) => ThreadOverState;
+  directions: Map<string, ThreadDirection>;
+  cyclicKeys: Set<string> | undefined;
   onGoToRegister?: (mailId: string, mailType: MailType, dateKey: string) => void;
 }
 
@@ -35,15 +31,11 @@ export interface MailThreadBuilderLineProps {
  */
 export function MailThreadBuilderLine({
   layout,
-  anchorKey,
   wide,
   draggedKey,
   overId,
   directions,
   cyclicKeys,
-  canDrag,
-  nodeOverState,
-  gapOverState,
   onGoToRegister,
 }: MailThreadBuilderLineProps) {
   const stacked = !wide;
@@ -65,7 +57,7 @@ export function MailThreadBuilderLine({
         zoneId={mailGapDropId({ kind: 'head' })}
         hint={MAIL_DROP_HINT_HEAD}
         droppable={droppable}
-        overState={gapOverState(mailGapDropId({ kind: 'head' }))}
+        overState={'none'}
         stacked={stacked}
       />
 
@@ -76,19 +68,21 @@ export function MailThreadBuilderLine({
             zoneId={mailGapDropId({ kind: 'before', before: node.key })}
             hint={MAIL_DROP_HINT_BEFORE}
             droppable={droppable}
-            overState={gapOverState(mailGapDropId({ kind: 'before', before: node.key }))}
+            overState={'none'}
             stacked={stacked}
           />
-          <MailThreadNode
-            node={node}
+          <MailThreadBuilderLineRowSimple
+            key={node.key}
+            index={node.index}
+            type={node.type}
+            id={node.id}
+            date={node.letter?.date || ''}
+            number={node.letter?.number}
+            subject={node.letter?.subject}
             direction={directions.get(node.key) ?? 'down'}
-            isAnchor={node.key === anchorKey}
             isCyclic={cyclicKeys?.has(node.key) ?? false}
-            canDrag={canDrag(node.type)}
-            droppable={droppable}
-            overState={nodeOverState(node.key)}
-            stacked={stacked}
-            onGoToRegister={onGoToRegister}
+            isDragging={draggedKey === node.key}
+            onClick={() => onGoToRegister?.(node.id, node.type as MailType, '')}
           />
         </div>
       ))}
@@ -98,7 +92,7 @@ export function MailThreadBuilderLine({
         zoneId={mailGapDropId({ kind: 'tail' })}
         hint={MAIL_DROP_HINT_TAIL}
         droppable={droppable}
-        overState={gapOverState(mailGapDropId({ kind: 'tail' }))}
+        overState={'none'}
         stacked={stacked}
       />
     </Box>

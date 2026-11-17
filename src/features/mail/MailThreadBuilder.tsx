@@ -20,7 +20,6 @@ import { useOrgMailThread } from './useOrgMailThread';
 import { useOrgMailFiles } from './useOrgMailFiles';
 import { MailParentPicker } from './MailParentPicker';
 import { MailThreadPrintModal } from './MailThreadPrintModal';
-import { MailThreadBuilderLine } from './components/mail-thread-builder/MailThreadBuilderLine';
 import { useMailThreadDrag } from './components/mail-thread-builder/useMailThreadDrag';
 import { useMailThreadLayout } from './components/mail-thread-builder/useMailThreadLayout';
 import { MailThreadBuilderHeader } from './components/mail-thread-builder/MailThreadBuilderHeader';
@@ -202,7 +201,7 @@ export function MailThreadBuilder({
               }}
               onDragCancel={drag.resetDrag}
             >
-              <MailThreadBuilderLine
+              <MailThreadBuilderLineRowSimple
                 layout={layout}
                 anchorKey={anchorKey}
                 wide={wide}
