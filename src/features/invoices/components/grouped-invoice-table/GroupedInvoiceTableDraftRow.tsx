@@ -3,7 +3,7 @@ import { ActionIcon, Group, Stack, Table, Tooltip } from '@mantine/core';
 import { IconCheck, IconX } from '@tabler/icons-react';
 
 import type { InvoiceColumnId } from '@/shared/types';
-import type { InvoiceColumnRenderer } from './useGroupedInvoiceTableColumnRenderers';
+import type { InvoiceColumnRenderer } from './column-renderers/types';
 
 const DRAFT_ROW_STYLE = {
   backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)',
