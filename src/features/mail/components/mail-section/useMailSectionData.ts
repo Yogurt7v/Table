@@ -261,4 +261,5 @@ export function useMailSectionData(orgId: string, tab: MailType) {
   };
 }
 
+/** Данные раздела почты, которые отдаёт useMailSectionData. */
 export type MailSectionData = ReturnType<typeof useMailSectionData>;

@@ -9,6 +9,7 @@ import type {
   MailThreadDialogProps,
 } from './mail-section-types';
 
+/** Пропсы вспомогательных модалок: файлы, история, дерево и колонки. */
 export interface MailSectionAuxModalsProps {
   files: MailFilesDialogProps;
   history: MailHistoryDialogProps;

@@ -8,6 +8,7 @@ import type { MailType } from '@/shared/types';
 import { MAIL_REGISTER_TAB_LABELS } from '@/features/mail/mail-labels';
 import type { MailFilterChip, UseMailFiltersResult } from '@/features/mail/useMailFilters';
 
+/** Пропсы табличной части: вкладки, строки, фильтры и колонки. */
 export interface MailSectionTableProps {
   orgId: string;
   tab: MailType;

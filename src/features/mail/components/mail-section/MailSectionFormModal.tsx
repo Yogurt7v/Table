@@ -5,6 +5,7 @@ import type { MailNodeKey } from '@/features/mail/mail-thread';
 import type { IIncomingMail, IOutgoingMail, MailType } from '@/shared/types';
 import type { MailFormTarget } from './mail-section-types';
 
+/** Пропсы формы письма: цель открытия, регистр и обработчики сохранения. */
 export interface MailSectionFormModalProps {
   formTarget: MailFormTarget | null;
   formType: MailType;
@@ -45,27 +46,29 @@ export function MailSectionFormModal({
   responsibleOptions,
 }: MailSectionFormModalProps) {
   return (
-    /* Единственная модалка формы: открыта, пока в MailSection задан formTarget */
-    <MailFormModal
-      opened={formTarget !== null}
-      onClose={onCloseForm}
-      mailType={formType}
-      mail={formTarget && formTarget.mode !== 'create' ? (editingMail ?? null) : null}
-      copying={formTarget?.mode === 'copy'}
-      allowedTypes={allowedCreateTypes}
-      accountingObjects={[...objectNames].map(([value, label]) => ({ value, label }))}
-      responsibleOptions={responsibleOptions.map((option) => ({
-        value: option.id,
-        label: option.name,
-      }))}
-      counterpartyOptions={counterpartyOptions}
-      candidates={candidates}
-      parentEdges={parentEdges}
-      canLink={canLinkCurrent}
-      saving={saving}
-      onTypeChange={onTypeChange}
-      onSave={onSave}
-      onOpenThread={onOpenThread}
-    />
+    <>
+      {/* Единственная модалка формы: открыта, пока в MailSection задан formTarget */}
+      <MailFormModal
+        opened={formTarget !== null}
+        onClose={onCloseForm}
+        mailType={formType}
+        mail={formTarget && formTarget.mode !== 'create' ? (editingMail ?? null) : null}
+        copying={formTarget?.mode === 'copy'}
+        allowedTypes={allowedCreateTypes}
+        accountingObjects={[...objectNames].map(([value, label]) => ({ value, label }))}
+        responsibleOptions={responsibleOptions.map((option) => ({
+          value: option.id,
+          label: option.name,
+        }))}
+        counterpartyOptions={counterpartyOptions}
+        candidates={candidates}
+        parentEdges={parentEdges}
+        canLink={canLinkCurrent}
+        saving={saving}
+        onTypeChange={onTypeChange}
+        onSave={onSave}
+        onOpenThread={onOpenThread}
+      />
+    </>
   );
 }

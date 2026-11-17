@@ -4,6 +4,7 @@ import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
 import { MailSearchInput } from '@/features/mail/MailSearchInput';
 import type { MailType } from '@/shared/types';
 
+/** Пропсы шапки раздела: поиск, счётчики и действия. */
 export interface MailSectionHeaderProps {
   searchValue: string;
   onSearchChange: (value: string) => void;

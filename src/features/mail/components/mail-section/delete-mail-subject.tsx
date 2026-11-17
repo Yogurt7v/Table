@@ -24,15 +24,18 @@ export function buildDeleteMailSubject(
       ].filter((part): part is string => Boolean(part))
     : [];
   return (
-    <Paper withBorder radius="md" p="sm">
-      <Text fw={600} lh={1.35} lineClamp={2}>
-        {deleteMailRow?.subject || deleteMailRow?.number || deleteMailRow?.counterparty || '—'}
-      </Text>
-      {meta.length > 0 && (
-        <Text size="xs" c="dimmed" mt={2} lineClamp={1}>
-          {meta.join(' · ')}
+    <>
+      {/* Карточка удаляемого письма: тема, номер, контрагент и дата */}
+      <Paper withBorder radius="md" p="sm">
+        <Text fw={600} lh={1.35} lineClamp={2}>
+          {deleteMailRow?.subject || deleteMailRow?.number || deleteMailRow?.counterparty || '—'}
         </Text>
-      )}
-    </Paper>
+        {meta.length > 0 && (
+          <Text size="xs" c="dimmed" mt={2} lineClamp={1}>
+            {meta.join(' · ')}
+          </Text>
+        )}
+      </Paper>
+    </>
   );
 }

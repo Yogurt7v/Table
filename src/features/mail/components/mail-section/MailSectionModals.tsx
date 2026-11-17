@@ -8,6 +8,7 @@ import type {
   MailThreadDialogProps,
 } from './mail-section-types';
 
+/** Пропсы корневого контейнера модалок: по объекту на группу окон. */
 export interface MailSectionModalsProps {
   /** Форма создания/редактирования/копирования письма. */
   form: MailSectionFormModalProps;

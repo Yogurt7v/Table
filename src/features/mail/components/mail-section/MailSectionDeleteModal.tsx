@@ -3,6 +3,7 @@ import { Group, Text, TextInput } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 
+/** Пропсы подтверждения удаления: письмо, причина и флаги запросов. */
 export interface MailSectionDeleteModalProps {
   deleteFor: string | null;
   deleteMailSubject: ReactNode;
@@ -29,39 +30,41 @@ export function MailSectionDeleteModal({
   deleteOutgoing,
 }: MailSectionDeleteModalProps) {
   return (
-    /* Подтверждение удаления: карточка письма + обязательная причина */
-    <ConfirmModal
-      opened={deleteFor !== null}
-      onClose={closeDeleteModal}
-      onConfirm={confirmDelete}
-      title="Удаление письма"
-      size="md"
-      subject={deleteMailSubject}
-      note="Письмо переместится в архив. Вложения останутся доступны и после восстановления."
-      confirmDisabled={
-        deleteReason.trim() === '' || deleteIncoming.isPending || deleteOutgoing.isPending
-      }
-      confirmLeftSection={<IconTrash size={16} />}
-      confirmBlocked
-    >
-      <TextInput
-        label="Причина удаления"
-        aria-label="Причина удаления"
-        placeholder="Например: письмо отправлено ошибочно"
-        description={
-          <Group component="span" justify="space-between" gap="sm" wrap="nowrap">
-            <Text component="span" size="xs" flex={1}>
-              Сохранится в архивной записи и в истории письма.
-            </Text>
-            <Text component="span" size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-              {deleteReason.length > 0 ? `${deleteReason.length} симв.` : ''}
-            </Text>
-          </Group>
+    <>
+      {/* Подтверждение удаления: карточка письма и обязательная причина */}
+      <ConfirmModal
+        opened={deleteFor !== null}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDelete}
+        title="Удаление письма"
+        size="md"
+        subject={deleteMailSubject}
+        note="Письмо переместится в архив. Вложения останутся доступны и после восстановления."
+        confirmDisabled={
+          deleteReason.trim() === '' || deleteIncoming.isPending || deleteOutgoing.isPending
         }
-        required
-        value={deleteReason}
-        onChange={(event) => setDeleteReason(event.currentTarget.value)}
-      />
-    </ConfirmModal>
+        confirmLeftSection={<IconTrash size={16} />}
+        confirmBlocked
+      >
+        <TextInput
+          label="Причина удаления"
+          aria-label="Причина удаления"
+          placeholder="Например: письмо отправлено ошибочно"
+          description={
+            <Group component="span" justify="space-between" gap="sm" wrap="nowrap">
+              <Text component="span" size="xs" flex={1}>
+                Сохранится в архивной записи и в истории письма.
+              </Text>
+              <Text component="span" size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                {deleteReason.length > 0 ? `${deleteReason.length} симв.` : ''}
+              </Text>
+            </Group>
+          }
+          required
+          value={deleteReason}
+          onChange={(event) => setDeleteReason(event.currentTarget.value)}
+        />
+      </ConfirmModal>
+    </>
   );
 }
