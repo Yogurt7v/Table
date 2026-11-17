@@ -1,136 +1,32 @@
-import {
-  useState,
-  useMemo,
-  useRef,
-  useEffect,
-  type KeyboardEvent,
-  type CSSProperties,
-} from 'react';
-import dayjs from 'dayjs';
-import {
-  Autocomplete,
-  NumberInput,
-  Table,
-  Text,
-  Badge,
-  Box,
-  ActionIcon,
-  Button,
-  Group,
-  Tooltip,
-  Anchor,
-  TextInput,
-  FileButton,
-  Stack,
-} from '@mantine/core';
-import {
-  IconX,
-  IconCheck,
-  IconPaperclip,
-  IconGripVertical,
-  IconInbox,
-  IconPlus,
-} from '@tabler/icons-react';
-import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useState, useMemo, useEffect } from 'react';
+import { Table, Text, Badge, Box, ActionIcon, Button, Group, Tooltip } from '@mantine/core';
+import { IconX, IconGripVertical, IconInbox, IconPlus } from '@tabler/icons-react';
+import { DndContext } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
-import { getInvoiceFileUrl } from '@/api/collections';
-import { formatAmountNumber, formatAmountRub } from '@/shared/utils/format-currency';
-import { shortenFileName } from '@/shared/utils/shorten-file-name';
-import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
-import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
+import { formatAmountRub } from '@/shared/utils/format-currency';
 import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
-import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import type {
-  DraftFieldErrorKey,
-  DraftFieldErrors,
-  DraftInvoiceForm,
-  InvoiceEditableField,
-} from './invoice-field-access';
-import { isDraftDirty, validateDraftFields } from './invoice-field-access';
-import { PaymentMarkCell } from './components/PaymentMarkCell';
-import { InvoiceActionsCell } from './components/InvoiceActionsCell';
-import { markRowColor } from './payment-mark-row-style';
-import { PayModal } from './components/PayModal';
-import { PartialPaymentModal } from './components/PartialPaymentModal';
-import { InvoiceMobileCardView } from './components/InvoiceMobileCardView';
+import type { DraftInvoiceForm, InvoiceEditableField } from './invoice-field-access';
 import {
-  loadColumnSizing,
-  saveColumnSizing,
-  type ColumnSizingState,
-} from './invoice-table-column-sizing';
+  SortableGroupBody,
+  StaticGroupBody,
+} from './components/grouped-invoice-table/GroupedInvoiceTableGroupBodies';
+import { GroupedInvoiceTableDraftRow } from './components/grouped-invoice-table/GroupedInvoiceTableDraftRow';
+import { GroupedInvoiceTableModals } from './components/grouped-invoice-table/GroupedInvoiceTableModals';
+import { useGroupedInvoiceTableColumnSizing } from './components/grouped-invoice-table/useGroupedInvoiceTableColumnSizing';
+import { useGroupedInvoiceTableDragDrop } from './components/grouped-invoice-table/useGroupedInvoiceTableDragDrop';
+import { useGroupedInvoiceTableColumnRenderers } from './components/grouped-invoice-table/useGroupedInvoiceTableColumnRenderers';
+import { useGroupedInvoiceTableDraft } from './components/grouped-invoice-table/useGroupedInvoiceTableDraft';
+import { markRowColor } from './payment-mark-row-style';
+import { InvoiceMobileCardView } from './components/InvoiceMobileCardView';
 
 const NUM_COLUMN_ID = 'num' as const;
 const NUM_COLUMN_DEFAULT_WIDTH = 68;
 
-const DRAFT_ROW_STYLE: CSSProperties = {
-  backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)',
-  borderTop: '2px solid var(--org-color, #228be6)',
-  borderBottom: '2px solid var(--org-color, #228be6)',
-  boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--org-color, #228be6) 40%, transparent)',
-  animation: 'draft-pulse 1.4s ease-out 1',
-};
-
-const DRAFT_INPUT_STYLE: CSSProperties = {
-  fontWeight: 600,
-  fontSize: 13,
-};
-
-function SortableGroupBody({
-  id,
-  children,
-}: {
-  id: string;
-  children: (ctx: {
-    listeners: object | undefined;
-    isDragging: boolean;
-    isOver: boolean;
-  }) => React.ReactNode;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging, index, overIndex } =
-    useSortable({ id });
-
-  const isOver = !isDragging && overIndex === index;
-
-  return (
-    <Table.Tbody
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.3 : 1,
-      }}
-      {...attributes}
-    >
-      {children({ listeners, isDragging, isOver })}
-    </Table.Tbody>
-  );
-}
-
-function StaticGroupBody({
-  children,
-}: {
-  children: (ctx: {
-    listeners: object | undefined;
-    isDragging: boolean;
-    isOver: boolean;
-  }) => React.ReactNode;
-}) {
-  return (
-    <Table.Tbody>
-      {children({ listeners: undefined, isDragging: false, isOver: false })}
-    </Table.Tbody>
-  );
-}
-
+/** Пропсы таблицы счетов с группировкой по контрагентам. */
 interface GroupedInvoiceTableProps {
   orgId: string;
   invoices: IInvoice[];
@@ -178,6 +74,12 @@ interface GroupedInvoiceTableProps {
   counterpartyOrder?: string[];
 }
 
+/**
+ * Таблица счетов, сгруппированных по контрагентам.
+ * Рендерит мобильные карточки и десктопную таблицу с перетаскиванием групп,
+ * черновиком нового счёта, изменением ширины колонок и модалками оплаты/отметок.
+ * Отображение колонок и доступные действия определяются правами пользователя.
+ */
 export function GroupedInvoiceTable({
   orgId,
   invoices,
@@ -240,50 +142,26 @@ export function GroupedInvoiceTable({
   const [payModalInvoice, setPayModalInvoice] = useState<IInvoice | null>(null);
   const [payModalAmount, setPayModalAmount] = useState<string>('');
   const [clearConfirmInvoiceId, setClearConfirmInvoiceId] = useState<string | null>(null);
-  const [draftErrors, setDraftErrors] = useState<DraftFieldErrors>({});
-  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
-  const [amountFocused, setAmountFocused] = useState(false);
-  const [amountDisplay, setAmountDisplay] = useState<string>('');
 
-  const requestDraftCancel = () => {
-    if (draftForm && isDraftDirty(draftForm)) {
-      setDiscardConfirmOpen(true);
-      return;
-    }
-    setDraftErrors({});
-    onDraftCancel?.();
-  };
-
-  const handleDraftSaveClick = () => {
-    if (!draftForm) {
-      onDraftSave?.();
-      return;
-    }
-    const errors = validateDraftFields(draftForm);
-    if (Object.keys(errors).length > 0) {
-      setDraftErrors(errors);
-      return;
-    }
-    setDraftErrors({});
-    onDraftSave?.();
-  };
-
-  const handleDraftChange = (field: keyof DraftInvoiceForm, value: unknown) => {
-    setDraftErrors((prev) => {
-      if (!(field in prev)) return prev;
-      const next = { ...prev };
-      delete next[field as DraftFieldErrorKey];
-      return next;
-    });
-    onDraftChange?.(field, value);
-  };
-
-  const handleDraftKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter') return;
-    if (e.currentTarget.getAttribute('aria-expanded') === 'true') return;
-    e.preventDefault();
-    handleDraftSaveClick();
-  };
+  const {
+    draftErrors,
+    setDraftErrors,
+    discardConfirmOpen,
+    setDiscardConfirmOpen,
+    amountFocused,
+    setAmountFocused,
+    amountDisplay,
+    setAmountDisplay,
+    requestDraftCancel,
+    handleDraftSaveClick,
+    handleDraftChange,
+    handleDraftKeyDown,
+  } = useGroupedInvoiceTableDraft({
+    draftForm,
+    onDraftChange,
+    onDraftSave,
+    onDraftCancel,
+  });
 
   const filteredColumns = useMemo(
     () =>
@@ -303,94 +181,14 @@ export function GroupedInvoiceTable({
     [visibleColumns, permissions],
   );
 
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() =>
-    loadColumnSizing(orgId),
-  );
-  const columnSizingRef = useRef<ColumnSizingState>(columnSizing);
+  const { columnSizing, handleResizeStart } = useGroupedInvoiceTableColumnSizing({ orgId });
 
   useEffect(() => {
-    columnSizingRef.current = columnSizing;
-  }, [columnSizing]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAmountDisplay(String(draftForm?.amount ?? 0));
     setAmountFocused(false);
-  }, [draftForm]);
+  }, [draftForm, setAmountDisplay, setAmountFocused]);
 
-  useEffect(() => {
-    const sizing = loadColumnSizing(orgId);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setColumnSizing(sizing);
-    columnSizingRef.current = sizing;
-  }, [orgId]);
-
-  const resizingRef = useRef<{ colId: string; startX: number; startWidth: number } | null>(null);
-  const resizeFrameRef = useRef<number | null>(null);
-  const resizePosRef = useRef<number>(0);
-
-  const handleResizeStart = (colId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const col = columnRenderers[colId as InvoiceColumnId];
-    const startWidth = columnSizing[colId] ?? (col ? col.width : NUM_COLUMN_DEFAULT_WIDTH);
-    resizingRef.current = { colId, startX: e.clientX, startWidth };
-
-    const applyResize = () => {
-      resizeFrameRef.current = null;
-      const state = resizingRef.current;
-      if (!state) return;
-      const delta = resizePosRef.current - state.startX;
-      const newWidth = Math.max(50, state.startWidth + delta);
-      setColumnSizing((prev) => ({ ...prev, [state.colId]: newWidth }));
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!resizingRef.current) return;
-      resizePosRef.current = e.clientX;
-      if (resizeFrameRef.current !== null) return;
-      resizeFrameRef.current = requestAnimationFrame(applyResize);
-    };
-
-    const handleMouseUp = () => {
-      if (resizingRef.current) {
-        saveColumnSizing(orgId, columnSizingRef.current);
-      }
-      resizingRef.current = null;
-      if (resizeFrameRef.current !== null) {
-        cancelAnimationFrame(resizeFrameRef.current);
-        resizeFrameRef.current = null;
-      }
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = groups.findIndex((g) => g.counterparty === active.id);
-    const newIndex = groups.findIndex((g) => g.counterparty === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const newOrder = arrayMove(
-      groups.map((g) => g.counterparty),
-      oldIndex,
-      newIndex,
-    );
-
-    onReorderGroups?.(newOrder);
-  };
+  const { sensors, handleDragEnd } = useGroupedInvoiceTableDragDrop({ groups, onReorderGroups });
 
   function handlePaySubmit(invoice: IInvoice, amount: number) {
     if (invoice.id.endsWith('__r')) {
@@ -400,6 +198,38 @@ export function GroupedInvoiceTable({
       onPayInvoice(invoice.id, amount);
     }
   }
+
+  const columnRenderers = useGroupedInvoiceTableColumnRenderers({
+    draftForm,
+    draftErrors,
+    amountFocused,
+    amountDisplay,
+    counterpartyResults,
+    permissions,
+    marksByInvoice,
+    filesByInvoice,
+    userMap,
+    onEdit,
+    onCopy,
+    onDelete,
+    onHistory,
+    onMove,
+    onFiles,
+    onMarkForPayment,
+    onMarkForApproval,
+    onClearPaymentMark,
+    onApproveMark,
+    onDraftChange,
+    handleDraftChange,
+    handleDraftKeyDown,
+    setAmountDisplay,
+    setAmountFocused,
+    setDraftErrors,
+    setPayModalInvoice,
+    setPayModalAmount,
+    setClearConfirmInvoiceId,
+    setPartialModal,
+  });
 
   if (groups.length === 0 && !isDraftOpen) {
     return (
@@ -417,329 +247,9 @@ export function GroupedInvoiceTable({
     );
   }
 
-  const columnRenderers: Record<
-    InvoiceColumnId,
-    {
-      width: number;
-      header: string;
-      renderCell: (invoice: IInvoice) => React.ReactNode;
-      renderDraft: () => React.ReactNode;
-    }
-  > = {
-    counterparty: {
-      width: 180,
-      header: 'Контрагент',
-      renderCell: () => null,
-      renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
-          <Autocomplete
-            size="xs"
-            value={draftForm?.counterparty ?? ''}
-            onChange={(v) => handleDraftChange('counterparty', v)}
-            onKeyDown={handleDraftKeyDown}
-            data={counterpartyResults || []}
-            placeholder="Контрагент"
-            error={draftErrors.counterparty}
-          />
-        </div>
-      ),
-    },
-    purpose: {
-      width: 200,
-      header: 'Назначение платежа',
-      renderCell: (invoice) => <>{invoice.purpose}</>,
-      renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
-          <TextInput
-            size="xs"
-            value={draftForm?.purpose ?? ''}
-            onChange={(e) => handleDraftChange('purpose', e.currentTarget.value)}
-            onKeyDown={handleDraftKeyDown}
-            placeholder="Назначение"
-            error={draftErrors.purpose}
-          />
-        </div>
-      ),
-    },
-    contract_no: {
-      width: 150,
-      header: 'Договор',
-      renderCell: (invoice) => <>{invoice.contract_no || '—'}</>,
-      renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
-          <TextInput
-            size="xs"
-            value={draftForm?.contract_no ?? ''}
-            onChange={(e) => handleDraftChange('contract_no', e.currentTarget.value)}
-            onKeyDown={handleDraftKeyDown}
-            placeholder="Договор"
-          />
-        </div>
-      ),
-    },
-    invoice_no: {
-      width: 120,
-      header: 'Счет',
-      renderCell: (invoice) => <>{invoice.invoice_no}</>,
-      renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
-          <TextInput
-            size="xs"
-            value={draftForm?.invoice_no ?? ''}
-            onChange={(e) => handleDraftChange('invoice_no', e.currentTarget.value)}
-            onKeyDown={handleDraftKeyDown}
-            placeholder="Счет"
-            error={draftErrors.invoice_no}
-          />
-        </div>
-      ),
-    },
-    amount: {
-      width: 100,
-      header: 'Сумма',
-      renderCell: (invoice) => (
-        <Text fw={400}>{formatAmountNumber(getEffectiveAmount(invoice))}</Text>
-      ),
-      renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
-          <NumberInput
-            size="xs"
-            value={amountFocused && draftForm?.amount === 0 ? (undefined as unknown as number) : (draftForm?.amount ?? 0)}
-            onChange={(v) => {
-              setAmountDisplay(v ?? '');
-              handleDraftChange('amount', v ?? 0);
-              setDraftErrors((prev) => {
-                const next = { ...prev };
-                delete next.amount;
-                return next;
-              });
-            }}
-            onKeyDown={handleDraftKeyDown}
-            onFocus={() => {
-              if (draftForm?.amount === 0) {
-                setAmountFocused(true);
-                setAmountDisplay('');
-                setDraftErrors((prev) => {
-                  const next = { ...prev };
-                  delete next.amount;
-                  return next;
-                });
-              }
-            }}
-            onBlur={() => {
-              setAmountFocused(false);
-              if (amountDisplay.trim() === '') {
-                setAmountDisplay('0');
-                handleDraftChange('amount', 0);
-              }
-            }}
-            thousandSeparator=" "
-            decimalSeparator=","
-            placeholder="Сумма"
-            error={draftErrors.amount}
-          />
-        </div>
-      ),
-    },
-    paid: {
-      width: 130,
-      header: 'Оплачено',
-      renderCell: (invoice) => {
-        const amounts = invoice.payment_amounts;
-        if (permissions.canPay) {
-          if (amounts.length > 0) {
-            const isLast = amounts.length === 1;
-            return (
-              <Group gap={2} wrap="nowrap">
-                <Badge color="green" variant="light">
-                  {formatAmountRub(amounts[0]!)}
-                </Badge>
-                {isLast && (
-                  <Tooltip label="Снять оплату">
-                    <ActionIcon
-                      size="md"
-                      color="red"
-                      variant="filled"
-                      aria-label="Снять оплату"
-                      onClick={() => setClearConfirmInvoiceId(invoice.id)}
-                    >
-                      <IconX size={14} />
-                    </ActionIcon>
-                  </Tooltip>
-                )}
-              </Group>
-            );
-          }
-          if (invoice.paid) {
-            return (
-              <Badge color="green" variant="light">
-                {formatAmountRub(
-                  invoice.payment_amounts?.reduce((s, a) => s + a, 0) ?? invoice.amount,
-                )}
-              </Badge>
-            );
-          }
-          return (
-            <Button
-              size="compact-xs"
-              variant="light"
-              color="orange"
-              onClick={() => {
-                setPayModalInvoice(invoice);
-                setPayModalAmount(String(invoice.amount));
-              }}
-            >
-              Оплатить
-            </Button>
-          );
-        }
-        if (amounts.length > 0) {
-          return (
-            <Badge color="green" variant="light">
-              {formatAmountRub(amounts[0]!)}
-            </Badge>
-          );
-        }
-        if (invoice.paid) {
-          return (
-            <Badge color="green" variant="light">
-              {formatAmountRub(invoice.paid_amount ?? invoice.amount)}
-            </Badge>
-          );
-        }
-        return (
-          <Badge color="orange" variant="light">
-            Не оплачено
-          </Badge>
-        );
-      },
-      renderDraft: () => null,
-    },
-    paid_date: {
-      width: 120,
-      header: 'Дата оплаты',
-      renderCell: (invoice) => (
-        <>{invoice.paid_date ? dayjs(invoice.paid_date).format('DD.MM.YYYY') : '—'}</>
-      ),
-      renderDraft: () => null,
-    },
-    comment: {
-      width: 180,
-      header: 'Комментарий',
-      renderCell: (invoice) => <>{invoice.comment || '—'}</>,
-      renderDraft: () => (
-        <div style={DRAFT_INPUT_STYLE} className="draft-input-cell">
-          <TextInput
-            size="xs"
-            value={draftForm?.comment ?? ''}
-            onChange={(e) => handleDraftChange('comment', e.currentTarget.value)}
-            onKeyDown={handleDraftKeyDown}
-            placeholder="Комментарий"
-          />
-        </div>
-      ),
-    },
-    files: {
-      width: 40,
-      header: 'Файлы',
-      renderCell: (invoice) => {
-        const invoiceFiles = filesByInvoice?.[invoice.id];
-        if (invoiceFiles?.length) {
-          return (
-            <Stack gap={2}>
-              {invoiceFiles.map((f) => (
-                <Anchor
-                  key={f.id}
-                  href={getInvoiceFileUrl(f)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  size="xs"
-                >
-                  {shortenFileName(f.name)}
-                </Anchor>
-              ))}
-            </Stack>
-          );
-        }
-        return (
-          <Text size="xs" c="dimmed">
-            —
-          </Text>
-        );
-      },
-      renderDraft: () => (
-        <FileButton onChange={(v) => onDraftChange?.('file', v)}>
-          {(props) => (
-            <Tooltip label={draftForm?.file?.name ?? 'Прикрепить файл'}>
-              <ActionIcon
-                {...props}
-                variant={draftForm?.file ? 'light' : 'subtle'}
-                color={draftForm?.file ? 'blue' : 'gray'}
-                size="sm"
-              >
-                <IconPaperclip size={16} />
-              </ActionIcon>
-            </Tooltip>
-          )}
-        </FileButton>
-      ),
-    },
-    actions: {
-      width: 50,
-      header: 'Действия',
-      renderCell: (invoice) => (
-        <InvoiceActionsCell
-          invoice={invoice}
-          canUpdate={permissions.canUpdate}
-          canDelete={permissions.canDelete}
-          canViewHistory={permissions.canViewHistory}
-          canMove={permissions.canMove}
-          canCreate={permissions.canCreate}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onHistory={onHistory}
-          onMove={onMove}
-          onFiles={onFiles}
-          onCopy={onCopy}
-        />
-      ),
-      renderDraft: () => null,
-    },
-    payment_mark: {
-      width: 180,
-      header: 'Отметка',
-      renderCell: (invoice) => {
-        const lookupId = invoice.id.endsWith('__r') ? invoice.id.slice(0, -3) : invoice.id;
-        const mark = invoice.paid ? undefined : marksByInvoice[lookupId];
-        return (
-          <PaymentMarkCell
-            invoice={invoice}
-            mark={mark}
-            canMarkPayment={permissions.canMarkPayment}
-            canViewPaymentMarks={permissions.canViewPaymentMarks}
-            canRemoveApprovalMark={permissions.canRemoveApprovalMark}
-            onMarkForPayment={onMarkForPayment}
-            onMarkForApproval={onMarkForApproval}
-            onOpenPartialModal={(inv) => setPartialModal({ invoice: inv, amount: '', comment: '' })}
-            onClearPaymentMark={onClearPaymentMark}
-            onApproveMark={onApproveMark}
-          />
-        );
-      },
-      renderDraft: () => null,
-    },
-    initiator: {
-      width: 120,
-      header: 'Инициатор',
-      renderCell: (invoice) => (
-        <>{getInitiatorDisplayName(invoice.created_by, invoice.created_by_name, userMap)}</>
-      ),
-      renderDraft: () => null,
-    },
-  };
-
   return (
     <>
+      {/* Мобильное представление: карточки счетов вместо таблицы */}
       <InvoiceMobileCardView
         invoices={invoices}
         allInvoices={allInvoices}
@@ -763,7 +273,7 @@ export function GroupedInvoiceTable({
         onDelete={onDelete}
       />
 
-      {/* Desktop table */}
+      {/* Десктопная таблица: группы контрагентов, черновик и перетаскивание */}
       <Box visibleFrom="sm">
         {permissions.canCreate && onAddClick && (
           <Group justify="flex-end" mb="sm">
@@ -796,7 +306,13 @@ export function GroupedInvoiceTable({
                 >
                   №
                   <div
-                    onMouseDown={(e) => handleResizeStart(NUM_COLUMN_ID, e)}
+                    onMouseDown={(e) =>
+                      handleResizeStart(
+                        NUM_COLUMN_ID,
+                        e,
+                        columnSizing[NUM_COLUMN_ID] ?? NUM_COLUMN_DEFAULT_WIDTH,
+                      )
+                    }
                     className="col-resize-handle"
                     style={{
                       position: 'absolute',
@@ -827,7 +343,9 @@ export function GroupedInvoiceTable({
                     >
                       <div style={{ overflow: 'hidden', maxWidth: '100%' }}>{col.header}</div>
                       <div
-                        onMouseDown={(e) => handleResizeStart(colId, e)}
+                        onMouseDown={(e) =>
+                          handleResizeStart(colId, e, columnSizing[colId] ?? col.width)
+                        }
                         className="col-resize-handle"
                         style={{
                           position: 'absolute',
@@ -1158,70 +676,14 @@ export function GroupedInvoiceTable({
                   );
                 })}
                 {isDraftOpen && draftForm && (
-                  <Table.Tbody>
-                    <Table.Tr ref={draftRowRef} style={DRAFT_ROW_STYLE}>
-                      <Table.Td>
-                        <Stack
-                          gap={2}
-                          align="center"
-                          style={{ overflow: 'hidden', maxWidth: '100%' }}
-                        >
-                          {/*<Badge
-                          size="xs"
-                          variant="light"
-                          style={{
-                            backgroundColor:
-                              'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)',
-                            color: 'var(--org-color, #228be6)',
-                          }}
-                        >
-                          Новый
-                        </Badge>
-                        <Text size={10} c="dimmed">
-                          черновик
-                        </Text>*/}
-                        </Stack>
-                      </Table.Td>
-                      {filteredColumns.map((colId) => {
-                        const col = columnRenderers[colId];
-                        const width = columnSizing[colId] ?? col.width;
-                        return (
-                          <Table.Td key={colId} style={{ width }}>
-                            <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
-                              {colId === 'actions' ? (
-                                <Group gap={4} wrap="nowrap">
-                                  <Tooltip label="Сохранить">
-                                    <ActionIcon
-                                      size="lg"
-                                      color="green"
-                                      variant="filled"
-                                      aria-label="Сохранить счёт"
-                                      onClick={handleDraftSaveClick}
-                                    >
-                                      <IconCheck size={14} />
-                                    </ActionIcon>
-                                  </Tooltip>
-                                  <Tooltip label="Отмена">
-                                    <ActionIcon
-                                      size="lg"
-                                      color="gray"
-                                      variant="filled"
-                                      aria-label="Отменить добавление"
-                                      onClick={requestDraftCancel}
-                                    >
-                                      <IconX size={14} />
-                                    </ActionIcon>
-                                  </Tooltip>
-                                </Group>
-                              ) : (
-                                col.renderDraft()
-                              )}
-                            </div>
-                          </Table.Td>
-                        );
-                      })}
-                    </Table.Tr>
-                  </Table.Tbody>
+                  <GroupedInvoiceTableDraftRow
+                    draftRowRef={draftRowRef}
+                    filteredColumns={filteredColumns}
+                    columnRenderers={columnRenderers}
+                    columnSizing={columnSizing}
+                    onSave={handleDraftSaveClick}
+                    onCancel={requestDraftCancel}
+                  />
                 )}
               </SortableContext>
             ) : (
@@ -1498,70 +960,14 @@ export function GroupedInvoiceTable({
                   );
                 })}
                 {isDraftOpen && draftForm && (
-                  <Table.Tbody>
-                    <Table.Tr ref={draftRowRef} style={DRAFT_ROW_STYLE}>
-                      <Table.Td>
-                        <Stack
-                          gap={2}
-                          align="center"
-                          style={{ overflow: 'hidden', maxWidth: '100%' }}
-                        >
-                          {/*<Badge
-                            size="xs"
-                            variant="light"
-                            style={{
-                              backgroundColor:
-                                'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)',
-                              color: 'var(--org-color, #228be6)',
-                            }}
-                          >
-                            Новый
-                          </Badge>
-                          <Text size={10} c="dimmed">
-                            черновик
-                          </Text>*/}
-                        </Stack>
-                      </Table.Td>
-                      {filteredColumns.map((colId) => {
-                        const col = columnRenderers[colId];
-                        const width = columnSizing[colId] ?? col.width;
-                        return (
-                          <Table.Td key={colId} style={{ width }}>
-                            <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
-                              {colId === 'actions' ? (
-                                <Group gap={4} wrap="nowrap">
-                                  <Tooltip label="Сохранить">
-                                    <ActionIcon
-                                      size="lg"
-                                      color="green"
-                                      variant="filled"
-                                      aria-label="Сохранить счёт"
-                                      onClick={handleDraftSaveClick}
-                                    >
-                                      <IconCheck size={14} />
-                                    </ActionIcon>
-                                  </Tooltip>
-                                  <Tooltip label="Отмена">
-                                    <ActionIcon
-                                      size="lg"
-                                      color="gray"
-                                      variant="filled"
-                                      aria-label="Отменить добавление"
-                                      onClick={requestDraftCancel}
-                                    >
-                                      <IconX size={14} />
-                                    </ActionIcon>
-                                  </Tooltip>
-                                </Group>
-                              ) : (
-                                col.renderDraft()
-                              )}
-                            </div>
-                          </Table.Td>
-                        );
-                      })}
-                    </Table.Tr>
-                  </Table.Tbody>
+                  <GroupedInvoiceTableDraftRow
+                    draftRowRef={draftRowRef}
+                    filteredColumns={filteredColumns}
+                    columnRenderers={columnRenderers}
+                    columnSizing={columnSizing}
+                    onSave={handleDraftSaveClick}
+                    onCancel={requestDraftCancel}
+                  />
                 )}
               </>
             )}
@@ -1569,56 +975,35 @@ export function GroupedInvoiceTable({
         </DndContext>
       </Box>
 
-      {/* Modals */}
-      <PayModal
-        opened={!!payModalInvoice}
-        onClose={() => {
+      {/* Модальные окна: оплата, частичная отметка и подтверждения */}
+      <GroupedInvoiceTableModals
+        payModalInvoice={payModalInvoice}
+        payModalAmount={payModalAmount}
+        onPayModalClose={() => {
           setPayModalInvoice(null);
           setPayModalAmount('');
         }}
-        invoice={payModalInvoice}
-        amount={payModalAmount}
-        onAmountChange={(v) => setPayModalAmount(v)}
-        onPay={(invoice, amount) => {
-          handlePaySubmit(invoice, amount);
-        }}
-      />
-
-      <PartialPaymentModal
-        opened={!!partialModal}
-        onClose={() => setPartialModal(null)}
-        data={partialModal}
-        onAmountChange={(v) => setPartialModal((prev) => (prev ? { ...prev, amount: v } : null))}
-        onCommentChange={(v) => setPartialModal((prev) => (prev ? { ...prev, comment: v } : null))}
-        onSave={(invoiceId, amount, comment) => {
-          onMarkPartialPayment?.(invoiceId, amount, comment);
-        }}
-      />
-
-      <ConfirmModal
-        opened={!!clearConfirmInvoiceId}
-        onClose={() => setClearConfirmInvoiceId(null)}
-        onConfirm={() => {
-          if (clearConfirmInvoiceId) {
-            onClearPayment(clearConfirmInvoiceId);
-          }
-          setClearConfirmInvoiceId(null);
-        }}
-        title="Снятие оплаты"
-        message="Снять отметку об оплате счёта?"
-      />
-
-      <ConfirmModal
-        opened={discardConfirmOpen}
-        onClose={() => setDiscardConfirmOpen(false)}
-        onConfirm={() => {
+        onPayModalAmountChange={(v) => setPayModalAmount(v)}
+        onPaySubmit={handlePaySubmit}
+        partialModal={partialModal}
+        onPartialModalClose={() => setPartialModal(null)}
+        onPartialAmountChange={(v) =>
+          setPartialModal((prev) => (prev ? { ...prev, amount: v } : null))
+        }
+        onPartialCommentChange={(v) =>
+          setPartialModal((prev) => (prev ? { ...prev, comment: v } : null))
+        }
+        onPartialSave={onMarkPartialPayment}
+        clearConfirmInvoiceId={clearConfirmInvoiceId}
+        onClearConfirmClose={() => setClearConfirmInvoiceId(null)}
+        onClearPayment={onClearPayment}
+        discardConfirmOpen={discardConfirmOpen}
+        onDiscardConfirmClose={() => setDiscardConfirmOpen(false)}
+        onDiscardConfirm={() => {
           setDiscardConfirmOpen(false);
           setDraftErrors({});
           onDraftCancel?.();
         }}
-        title="Несохранённый счёт"
-        message="Отменить добавление счёта? Введённые данные будут потеряны."
-        confirmLabel="Отменить без сохранения"
       />
     </>
   );
