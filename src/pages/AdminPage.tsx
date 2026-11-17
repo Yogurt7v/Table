@@ -1,185 +1,82 @@
-import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Anchor, Container, Title, Group, Text, Stack, Tabs } from '@mantine/core';
+import { useState } from 'react';
+import { Anchor, Container, Group, Tabs, Text, Title } from '@mantine/core';
 import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
-import { notifications } from '@mantine/notifications';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useUsers, useDeleteUser } from '@/shared/hooks/useUsers';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useCurrentOrgUser } from '@/shared/hooks/useCurrentOrgUser';
 import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
-import {
-  useCreateOrganization,
-  useUpdateOrganization,
-  useDeleteOrganization,
-} from '@/shared/hooks/useOrganizations';
 import { useAuth } from '@/shared/context/AuthContext';
-import { CreateUserModal } from '@/features/admin/CreateUserModal';
-import { EditUserModal } from '@/features/admin/EditUserModal';
-import { CreateOrgModal } from '@/features/admin/CreateOrgModal';
-import { EditOrgModal } from '@/features/admin/EditOrgModal';
-import { DeleteOrgModal } from '@/features/admin/DeleteOrgModal';
+import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { OrganizationAdminTable } from '@/features/admin/OrganizationAdminTable';
 import { UserAdminTable } from '@/features/admin/UserAdminTable';
 import { DeletedInvoicesSection } from '@/features/admin/DeletedInvoicesSection';
 import { DeletedMailsSection } from '@/features/admin/DeletedMailsSection';
 import { DeletedDocumentsSection } from '@/features/admin/DeletedDocumentsSection';
-import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
-import { buildUserDeleteConsequences } from '@/features/admin/user-delete-consequences';
-import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import {
-  getBankAccounts,
-  getAllBankAccounts,
-  getAccountingObjects,
-  getAllAccountingObjects,
-  createBankAccount,
-  countInvoicesByOrg,
-} from '@/api/collections';
-import type { IBankAccount, IAccountingObject, IUser } from '@/shared/types';
+import type { OrgDeleteStats } from '@/features/admin/DeleteOrgModal';
+import { AdminUserModals } from '@/features/admin/components/admin-page/AdminUserModals';
+import { AdminOrgModals } from '@/features/admin/components/admin-page/AdminOrgModals';
+import { useAdminPageData } from '@/features/admin/components/admin-page/useAdminPageData';
+import { useAdminPageTabs } from '@/features/admin/components/admin-page/useAdminPageTabs';
+import { useAdminPageOrgs } from '@/features/admin/components/admin-page/useAdminPageOrgs';
+import type { AdminUserTarget } from '@/features/admin/components/admin-page/admin-page-types';
+import type { IUser } from '@/shared/types';
 import { ORG_COLOR_NAME } from '@/shared/utils/org-colors';
 
+/**
+ * Страница администрирования: организации, пользователи и архивы.
+ * Здесь только композиция: данные даёт `useAdminPageData`, вкладки и параметры
+ * адреса — `useAdminPageTabs`, действия с организациями — `useAdminPageOrgs`,
+ * модальные окна — `AdminUserModals` и `AdminOrgModals`.
+ *
+ * Вкладку архива писем гейтит почтовый флаг, а не строка роли: у `deleted_*`
+ * пустой `listRule`, и скрыть вкладку — единственная клиентская проверка.
+ */
 export function AdminPage() {
   const { organizations, currentOrgId } = useOrg();
-  const queryClient = useQueryClient();
   const { data: users } = useUsers();
   const { data: orgUsers } = useOrganizationUsers();
   const deleteUser = useDeleteUser();
   const { user: currentUser } = useAuth();
   const currentRole = useCurrentUserRole(currentOrgId);
-  // Вкладку архива писем гейтит почтовый флаг, а не строка роли: у `deleted_*`
-  // пустой `listRule`, и скрыть вкладку — единственная клиентская проверка.
   const mailPermissions = useMailPermissions(currentOrgId);
   const canViewMailArchive = mailPermissions.canViewArchive;
 
-  const isRestricted = !!(currentOrgId && currentRole !== 'admin' && currentRole !== 'moderator');
-  const createOrg = useCreateOrganization();
-  const updateOrg = useUpdateOrganization();
-  const deleteOrg = useDeleteOrganization();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const requestedTab = searchParams.get('tab') ?? 'organizations';
-  const activeTab =
-    requestedTab === 'mail-archive' && !canViewMailArchive ? 'organizations' : requestedTab;
-  const highlightDeletedId = searchParams.get('highlight') || null;
+  const orgs = useAdminPageOrgs({ organizations });
+  const tabs = useAdminPageTabs({ canViewMailArchive });
+
   const [createOpened, setCreateOpened] = useState(false);
-  const [showOrgForm, setShowOrgForm] = useState(false);
-  const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: string; name: string } | null>(
-    null,
-  );
   const [editUserTarget, setEditUserTarget] = useState<IUser | null>(null);
+  const [deleteUserTarget, setDeleteUserTarget] = useState<AdminUserTarget | null>(null);
+
+  const data = useAdminPageData({
+    editOrgId: orgs.editOrgId,
+    deleteOrgTarget: orgs.deleteOrgTarget,
+    deleteUserTarget,
+    orgUsers,
+    organizations,
+  });
+
+  const isRestricted = !!(currentOrgId && currentRole !== 'admin' && currentRole !== 'moderator');
   const canEditUsers = currentRole === 'admin' || currentRole === 'moderator';
   const canDeleteUsers = currentRole === 'admin';
   const canManageMailPermissions = currentRole === 'admin' || currentRole === 'moderator';
-  const [deleteOrgTarget, setDeleteOrgTarget] = useState<{ id: string; name: string } | null>(null);
-  const [editOrgId, setEditOrgId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editColor, setEditColor] = useState<string>('');
-
-  const { data: allAccounts = [] } = useQuery({
-    queryKey: ['bank_accounts'],
-    queryFn: getAllBankAccounts,
-  });
-
-  const { data: allObjects = [] } = useQuery({
-    queryKey: ['accounting_objects'],
-    queryFn: getAllAccountingObjects,
-  });
-
-  const accountsByOrg = useMemo(() => {
-    const map: Record<string, IBankAccount[]> = {};
-    for (const acc of allAccounts) {
-      (map[acc.organization_id] ??= []).push(acc);
-    }
-    return map;
-  }, [allAccounts]);
-
-  const objectsByOrg = useMemo(() => {
-    const map: Record<string, IAccountingObject[]> = {};
-    for (const obj of allObjects) {
-      (map[obj.organization_id] ??= []).push(obj);
-    }
-    return map;
-  }, [allObjects]);
-
-  const { data: editAccounts } = useQuery({
-    queryKey: ['bank_accounts', editOrgId],
-    queryFn: () => getBankAccounts(editOrgId!),
-    enabled: !!editOrgId,
-  });
-
-  const { data: editObjects = [] } = useQuery({
-    queryKey: ['accounting_objects', editOrgId],
-    queryFn: () => getAccountingObjects(editOrgId!),
-    enabled: !!editOrgId,
-  });
-
-  const { data: deleteOrgInvoicesCount } = useQuery({
-    queryKey: ['invoices_count', deleteOrgTarget?.id],
-    queryFn: () => countInvoicesByOrg(deleteOrgTarget!.id),
-    enabled: !!deleteOrgTarget,
-  });
-
-  const deleteUserConsequences = useMemo(() => {
-    if (!deleteUserTarget) return null;
-    return buildUserDeleteConsequences(deleteUserTarget.id, orgUsers ?? [], organizations);
-  }, [deleteUserTarget, orgUsers, organizations]);
-
-  const editOrgRole = useCurrentOrgUser(editOrgId)?.role;
-  const canEditAccountingObjects = editOrgRole === 'admin' || editOrgRole === 'moderator';
   const canDelete = currentRole === 'admin';
+  const editOrgRole = useCurrentOrgUser(orgs.editOrgId)?.role;
+  const canEditAccountingObjects = editOrgRole === 'admin' || editOrgRole === 'moderator';
 
-  const editOrg = organizations.find((o) => o.id === editOrgId);
-
-  const openEditOrg = (orgId: string) => {
-    const org = organizations.find((o) => o.id === orgId);
-    if (org) {
-      setEditName(org.name);
-      setEditColor(org.color);
-    }
-    setEditOrgId(orgId);
-  };
-
-  const closeEditOrg = () => {
-    setEditOrgId(null);
-  };
-
-  const handleSaveOrg = async () => {
-    if (!editOrgId || !editName.trim()) return;
-    try {
-      await updateOrg.mutateAsync({
-        id: editOrgId,
-        name: editName.trim(),
-        color: editColor,
-      });
-      closeEditOrg();
-    } catch {
-      /* тост об ошибке показывает onError в useUpdateOrganization */
-    }
-  };
-
-  const handleTabChange = (value: string | null) => {
-    const next = new URLSearchParams(searchParams);
-    if (value) next.set('tab', value);
-    else next.delete('tab');
-    setSearchParams(next, { replace: true });
-    if (value === 'archive') {
-      queryClient.invalidateQueries({ queryKey: ['deleted_invoices'] });
-    }
-    if (value === 'mail-archive') {
-      queryClient.invalidateQueries({ queryKey: ['deletedIncomingMails'] });
-      queryClient.invalidateQueries({ queryKey: ['deletedOutgoingMails'] });
-    }
-    if (value === 'documents-archive') {
-      queryClient.invalidateQueries({ queryKey: ['documents-archive'] });
-    }
-  };
-
-  const clearHighlightParam = () => {
-    if (!searchParams.has('highlight')) return;
-    const next = new URLSearchParams(searchParams);
-    next.delete('highlight');
-    setSearchParams(next, { replace: true });
-  };
+  /** Счётчики удаляемой организации: счета, объекты, банковские счета и участники. */
+  const deleteOrgTarget = orgs.deleteOrgTarget;
+  const deleteOrgStats: OrgDeleteStats | undefined = deleteOrgTarget
+    ? {
+        invoicesCount: data.deleteOrgInvoicesCount ?? null,
+        objectsCount: (data.objectsByOrg[deleteOrgTarget.id] ?? []).length,
+        accountsCount: (data.accountsByOrg[deleteOrgTarget.id] ?? []).length,
+        membersCount: (orgUsers ?? []).filter(
+          (membership) => membership.organization_id === deleteOrgTarget.id,
+        ).length,
+      }
+    : undefined;
 
   if (isRestricted) {
     return (
@@ -201,12 +98,14 @@ export function AdminPage() {
       mih="calc(100dvh - var(--app-shell-header-height, 0px) - 2 * var(--app-shell-padding, 0px))"
       style={{ display: 'flex', flexDirection: 'column' }}
     >
+      {/* Заголовок страницы: хлебные крошки и название */}
       <Group justify="space-between" mb="lg">
         <BreadcrumbsNav />
         <Title order={3}>Администрирование</Title>
       </Group>
 
-      <Tabs value={activeTab} onChange={handleTabChange}>
+      {/* Вкладки администрирования: организации, пользователи и архивы */}
+      <Tabs value={tabs.activeTab} onChange={tabs.handleTabChange}>
         <Tabs.List>
           <Tabs.Tab value="organizations">Организации</Tabs.Tab>
           <Tabs.Tab value="users">Пользователи</Tabs.Tab>
@@ -218,13 +117,13 @@ export function AdminPage() {
         <Tabs.Panel value="organizations" pt="md">
           <OrganizationAdminTable
             organizations={organizations}
-            accountsByOrg={accountsByOrg}
-            objectsByOrg={objectsByOrg}
+            accountsByOrg={data.accountsByOrg}
+            objectsByOrg={data.objectsByOrg}
             colorName={ORG_COLOR_NAME}
             canDelete={canDelete}
-            onAdd={() => setShowOrgForm(true)}
-            onEdit={openEditOrg}
-            onDelete={(org) => setDeleteOrgTarget({ id: org.id, name: org.name })}
+            onAdd={() => orgs.setShowOrgForm(true)}
+            onEdit={orgs.openEditOrg}
+            onDelete={(org) => orgs.setDeleteOrgTarget({ id: org.id, name: org.name })}
           />
         </Tabs.Panel>
 
@@ -233,7 +132,7 @@ export function AdminPage() {
             users={users}
             orgUsers={orgUsers}
             currentUserId={currentUser?.id}
-            accessibleOrgIds={organizations.map((o) => o.id)}
+            accessibleOrgIds={organizations.map((org) => org.id)}
             canEdit={canEditUsers}
             canDelete={canDeleteUsers}
             canManageMailPermissions={canManageMailPermissions}
@@ -247,8 +146,8 @@ export function AdminPage() {
           {currentOrgId && (
             <DeletedInvoicesSection
               orgId={currentOrgId}
-              highlightInvoiceId={highlightDeletedId}
-              onHighlightConsumed={clearHighlightParam}
+              highlightInvoiceId={tabs.highlightDeletedId}
+              onHighlightConsumed={tabs.clearHighlightParam}
             />
           )}
         </Tabs.Panel>
@@ -264,6 +163,7 @@ export function AdminPage() {
         )}
       </Tabs>
 
+      {/* Подвал страницы */}
       <Text size="sm" c="dimmed" ta="center" mt="auto" pt="xl">
         © {new Date().getFullYear()} Реестры счетов ·{' '}
         <Anchor href="https://github.com/Yogurt7v/Table" target="_blank" rel="noreferrer">
@@ -271,117 +171,52 @@ export function AdminPage() {
         </Anchor>
       </Text>
 
-      <CreateUserModal opened={createOpened} onClose={() => setCreateOpened(false)} />
-      <EditUserModal
-        opened={!!editUserTarget}
-        user={editUserTarget}
-        onClose={() => setEditUserTarget(null)}
-      />
-
-      <ConfirmModal
-        opened={!!deleteUserTarget}
-        onClose={() => setDeleteUserTarget(null)}
-        onConfirm={() => {
+      {/* Модальные окна пользователей: создание, редактирование, удаление */}
+      <AdminUserModals
+        createOpened={createOpened}
+        onCloseCreate={() => setCreateOpened(false)}
+        editUser={editUserTarget}
+        onCloseEdit={() => setEditUserTarget(null)}
+        deleteTarget={deleteUserTarget}
+        deleteConsequences={data.deleteUserConsequences}
+        deletePending={deleteUser.isPending}
+        onCloseDelete={() => setDeleteUserTarget(null)}
+        onConfirmDelete={() => {
           if (deleteUserTarget) {
             deleteUser.mutate(deleteUserTarget.id);
           }
           setDeleteUserTarget(null);
         }}
-        title="Удаление пользователя"
-        loading={deleteUser.isPending}
-        message={
-          <Stack gap={6}>
-            <Text size="sm">
-              Вы уверены, что хотите удалить пользователя «{deleteUserTarget?.name ?? ''}»?
-              Созданные им счета останутся в системе.
-            </Text>
-            {deleteUserConsequences && deleteUserConsequences.memberships.length > 0 && (
-              <Text size="sm">
-                Будет исключён из организаций:{' '}
-                {deleteUserConsequences.memberships
-                  .map((m) => `«${m.orgName}» (${m.roleLabel.toLowerCase()})`)
-                  .join(', ')}
-                .
-              </Text>
-            )}
-            {deleteUserConsequences && deleteUserConsequences.memberships.length === 0 && (
-              <Text size="sm" c="dimmed">
-                Не состоит ни в одной организации.
-              </Text>
-            )}
-            {deleteUserConsequences?.soleAdminOf.map((orgName) => (
-              <Text key={orgName} size="sm" c="orange">
-                Внимание: он единственный администратор организации «{orgName}». Без админа
-                управление ею будет невозможно.
-              </Text>
-            ))}
-          </Stack>
-        }
       />
 
-      <DeleteOrgModal
-        opened={!!deleteOrgTarget}
-        orgName={deleteOrgTarget?.name ?? ''}
-        isPending={deleteOrg.isPending}
-        stats={
-          deleteOrgTarget
-            ? {
-                invoicesCount: deleteOrgInvoicesCount ?? null,
-                objectsCount: (objectsByOrg[deleteOrgTarget.id] ?? []).length,
-                accountsCount: (accountsByOrg[deleteOrgTarget.id] ?? []).length,
-                membersCount: (orgUsers ?? []).filter(
-                  (ou) => ou.organization_id === deleteOrgTarget.id,
-                ).length,
-              }
-            : undefined
-        }
-        onClose={() => {
-          setDeleteOrgTarget(null);
+      {/* Модальные окна организаций: создание, редактирование, удаление */}
+      <AdminOrgModals
+        create={{
+          opened: orgs.showOrgForm,
+          onClose: () => orgs.setShowOrgForm(false),
+          onSave: orgs.handleCreateOrg,
         }}
-        onConfirm={() => {
-          if (deleteOrgTarget) {
-            deleteOrg.mutate(deleteOrgTarget.id);
-          }
-          setDeleteOrgTarget(null);
+        edit={{
+          org: orgs.editOrg,
+          orgId: orgs.editOrgId,
+          name: orgs.editName,
+          color: orgs.editColor,
+          accounts: data.editAccounts,
+          objects: data.editObjects,
+          canEditObjects: canEditAccountingObjects,
+          pending: orgs.updatePending,
+          onClose: orgs.closeEditOrg,
+          onNameChange: orgs.setEditName,
+          onColorChange: orgs.setEditColor,
+          onSave: orgs.handleSaveOrg,
         }}
-      />
-
-      <CreateOrgModal
-        opened={showOrgForm}
-        onClose={() => {
-          setShowOrgForm(false);
+        remove={{
+          target: orgs.deleteOrgTarget,
+          pending: orgs.deletePending,
+          stats: deleteOrgStats,
+          onClose: () => orgs.setDeleteOrgTarget(null),
+          onConfirm: orgs.confirmDeleteOrg,
         }}
-        onSave={async (data) => {
-          const org = await createOrg.mutateAsync({ name: data.name, color: data.color });
-          const results = await Promise.allSettled(
-            data.accountNames.map((name) => createBankAccount(org.id, name)),
-          );
-          const failed = results.filter((r) => r.status === 'rejected').length;
-          if (failed > 0) {
-            notifications.show({
-              color: 'yellow',
-              title: 'Организация создана',
-              message: `Счета добавлены частично (${data.accountNames.length - failed} из ${data.accountNames.length}). Остальные добавьте через редактирование организации.`,
-              autoClose: 10000,
-            });
-          }
-        }}
-      />
-
-      <EditOrgModal
-        opened={!!editOrgId}
-        orgName={editOrg?.name}
-        editName={editName}
-        editColor={editColor}
-        editOrgId={editOrgId ?? ''}
-        editAccounts={editAccounts}
-        editObjects={editObjects}
-        canEditAccountingObjects={canEditAccountingObjects}
-        isPending={updateOrg.isPending}
-        onClose={closeEditOrg}
-        onNameChange={setEditName}
-        onColorChange={setEditColor}
-        onSave={handleSaveOrg}
       />
     </Container>
   );
