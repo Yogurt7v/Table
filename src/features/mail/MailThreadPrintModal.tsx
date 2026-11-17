@@ -1,29 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import {
-  Badge,
-  Box,
-  Button,
-  Checkbox,
-  Group,
-  Loader,
-  Modal,
-  ScrollArea,
-  Stack,
-  Text,
-} from '@mantine/core';
+import { useMemo, useState } from 'react';
+import { Button, Group, Loader, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import { IconPrinter } from '@tabler/icons-react';
 import { useOrgMailFiles } from './useOrgMailFiles';
-import { MAIL_TREE_INDENT } from './mail-thread-builder';
-import type { ThreadLineNode } from './mail-thread-builder';
 import {
   buildThreadPrintLetters,
   countPrintFiles,
   groupPrintFilesByLetter,
   printSelectionLabel,
 } from './mail-thread-print';
-import type { MailPrintFile, MailPrintFileKind, MailPrintLetter } from './mail-thread-print';
-import { MAIL_REGISTER_BADGE_LABELS, MAIL_REGISTER_COLORS } from './mail-labels';
+import { MailThreadPrintDocument } from './components/mail-thread-print/MailThreadPrintDocument';
+import { MailThreadPrintLetterList } from './components/mail-thread-print/MailThreadPrintLetterList';
+import { usePrintBlobs } from './components/mail-thread-print/usePrintBlobs';
+import type {
+  MailThreadPrintModalProps,
+  PrintBlobEntry,
+  PrintRow,
+} from './components/mail-thread-print/mail-thread-print-types';
 
 /**
  * Печать вложений переписки: та же линия писем деревом, под каждым письмом —
@@ -38,261 +30,10 @@ import { MAIL_REGISTER_BADGE_LABELS, MAIL_REGISTER_COLORS } from './mail-labels'
  * Чего модалка не делает: она не выводит содержимое файлов, которые браузер
  * показать не может. Для `.docx`, `.xlsx` и прочего на печать попадает блок с
  * названием и письмом — выдумывать содержимое нечестно.
- */
-
-interface MailThreadPrintModalProps {
-  opened: boolean;
-  onClose: () => void;
-  orgId: string;
-  /** Линия писем из конструктора: тот же порядок и те же глубины. */
-  nodes: readonly ThreadLineNode[];
-  /** Широкий экран: модалка встаёт рядом с конструктором, узкий — во весь экран. */
-  wide: boolean;
-}
-
-/** Письмо и то, что отмечено под ним к печати. */
-interface PrintRow {
-  readonly letter: MailPrintLetter;
-  readonly files: readonly MailPrintFile[];
-}
-
-/** Состояние одного файла: блоб получен или не получен. */
-type PrintBlobStatus = 'loading' | 'ready' | 'failed';
-
-interface PrintBlobEntry {
-  readonly id: string;
-  readonly url: string;
-}
-
-/** Что удалось получить по файлу: готовый объектный URL или ничего. */
-interface PrintBlobs {
-  readonly statuses: ReadonlyMap<string, Exclude<PrintBlobStatus, 'loading'>>;
-  readonly urlFor: (id: string) => string | null;
-}
-
-/**
- * Сколько ждать один файл, прежде чем признать его недоступным.
  *
- * `fetch` без предела ждать нельзя. Ответ, который не пришёл никогда, не
- * оставляет в состоянии ни успеха, ни провала, — а «загружается» здесь выводится
- * из отсутствия записи, поэтому `preparing` не доходит до нуля, кнопка печати
- * остаётся на «Готовятся файлы…», и одно зависшее вложение выключает печать
- * всего документа. Никто при этом ничего не говорит: выглядит как аккуратная
- * очередь, которой почему-то не кончается.
- *
- * Минута — не «сколько обычно», а граница между двумя плохими исходами. Здесь
- * лежат в основном сканы документов: несколько мегабайт по обычному мобильному
- * каналу докачиваются за секунды, и настоящая медленная передача укладывается в
- * этот запас. Всё, что не уложилось, почти наверняка уже не придёт, а ждать его
- * дальше — значит оставлять печать заблокированной без причины и без срока. Что
- * бы ни случилось, к исходу минуты на листе появляется честная пометка о провале,
- * а не вечное ожидание.
+ * Дерево писем живёт в `MailThreadPrintLetterList`, печатный документ — в
+ * `MailThreadPrintDocument`, загрузка блобов — в `usePrintBlobs`.
  */
-const PRINT_BLOB_TIMEOUT_MS = 60_000;
-
-/**
- * Блобы отмеченных файлов.
- *
- * Отдельный хук, а не эффект внутри модалки, потому что у него своя жизнь: он
- * переживает перерисовку дерева и умирает вместе с модалкой. «Загружается» не
- * хранится — файла, для которого нет записи об успехе или провале, ещё не
- * разбирали, и состояние выводится из отсутствия записи, а не пишется заранее.
- *
- * Полученный блоб живёт до закрытия модалки и повторно не качается: отпускать
- * его при снятии флажка нельзя, потому что на флажок успевают нажимать руками
- * (снял-поставил), и каждый такой обмен иначе то ли загружал бы файл заново,
- * то ли оставлял бы на экране «готовый» файл, блоба которого уже нет.
- */
-function usePrintBlobs(entries: readonly PrintBlobEntry[]): PrintBlobs {
-  const [settled, setSettled] = useState<ReadonlyMap<string, Exclude<PrintBlobStatus, 'loading'>>>(
-    () => new Map(),
-  );
-  const urlsRef = useRef(new Map<string, string>());
-  const startedRef = useRef(new Set<string>());
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    for (const entry of entries) {
-      if (startedRef.current.has(entry.id)) continue;
-      startedRef.current.add(entry.id);
-
-      void (async () => {
-        const controller = new AbortController();
-        // Таймер и прерывает запрос, и сам становится ответом. Одной отмены
-        // мало: `AbortController` — обещание браузера, а не гарантия (прокси
-        // в середине может её и не выполнить), а итог обязан появиться в
-        // состоянии независимо от того, послушался ли запрос отмене. Иначе
-        // зависшее вложение снова оставит «готовится» навсегда.
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        const expired = new Promise<never>((_resolve, reject) => {
-          timer = setTimeout(() => {
-            controller.abort();
-            reject(new Error(`вложение ${entry.id} не дождалось ответа`));
-          }, PRINT_BLOB_TIMEOUT_MS);
-        });
-        try {
-          const response = await Promise.race([
-            fetch(entry.url, { signal: controller.signal }),
-            expired,
-          ]);
-          if (!response.ok) throw new Error(String(response.status));
-          const blob = await response.blob();
-          if (!mountedRef.current) return;
-          urlsRef.current.set(entry.id, URL.createObjectURL(blob));
-          setSettled((prev) => new Map(prev).set(entry.id, 'ready'));
-        } catch {
-          // Сорванный по таймауту запрос попадает сюда же и уходит в провал, а не
-          // в «получен»: готовый файл без блоба печатается пустым местом.
-          if (!mountedRef.current) return;
-          setSettled((prev) => new Map(prev).set(entry.id, 'failed'));
-        } finally {
-          clearTimeout(timer);
-        }
-      })();
-    }
-  }, [entries]);
-
-  useEffect(() => {
-    // Не в инициализаторе `useRef`: `StrictMode` в разработке прогоняет
-    // размонтирование и монтирование снова на том же экземпляре, и рефы при этом
-    // сохраняются. Выставленное один раз значение после первого cleanup навсегда
-    // осталось бы `false`, и каждый результат загрузки выбрасывался бы молча:
-    // файл не дошёл бы до `ready` и не попал бы в печать.
-    mountedRef.current = true;
-  }, []);
-
-  useEffect(
-    () => () => {
-      mountedRef.current = false;
-      // Отметка «уже качали» снимается ровно для тех файлов, блоб которых
-      // сейчас отпускается: держать её после этого нельзя, иначе файл больше не
-      // заберут никогда. Загрузки, которые ещё летят, отметку сохраняют — их
-      // результат переживает размонтирование и дойдёт до `ready` сам.
-      for (const id of urlsRef.current.keys()) startedRef.current.delete(id);
-      for (const url of urlsRef.current.values()) URL.revokeObjectURL(url);
-      urlsRef.current.clear();
-    },
-    [],
-  );
-
-  const urlFor = (id: string) => urlsRef.current.get(id) ?? null;
-
-  return { statuses: settled, urlFor };
-}
-
-/**
- * Печатный документ. Портал в `body` и класс `print-root` — по образцу
- * `PrintableInvoices`: правило `body > *:not(.print-root)` убирает со страницы
- * приложение целиком. Отличие одно: на экране корень скрыт, поэтому модалка с
- * флажками остаётся поверх и не превращается в предпросмотр в полстраницы.
- */
-const PRINT_CSS = `
-  .print-root { display: none; }
-  @media print {
-    @page { margin: 10mm; }
-    html, body { height: auto; overflow: visible; }
-    body > *:not(.print-root) { display: none !important; }
-    .print-root {
-      display: block !important;
-      color: #000;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 10pt;
-      line-height: 1.4;
-    }
-    .mail-print-block { break-inside: avoid; page-break-inside: avoid; margin-bottom: 10mm; }
-    .mail-print-heading {
-      font-size: 11pt;
-      font-weight: 700;
-      margin: 0 0 4mm 0;
-      padding-bottom: 1.5mm;
-      border-bottom: 1px solid #000;
-    }
-    .mail-print-file { break-inside: avoid; page-break-inside: avoid; margin-bottom: 8mm; }
-    .mail-print-file-name { font-size: 9pt; margin: 0 0 2mm 0; }
-    .mail-print-image { display: block; max-width: 100%; max-height: 225mm; object-fit: contain; margin: 0 auto; }
-    .mail-print-frame { display: block; width: 100%; height: 235mm; border: 1px solid #999; }
-    .mail-print-note {
-      border: 1px dashed #666;
-      padding: 4mm;
-      font-size: 9pt;
-      margin: 0;
-    }
-  }
-`;
-
-function MailThreadPrintDocument({
-  rows,
-  blobs,
-}: {
-  rows: readonly PrintRow[];
-  blobs: PrintBlobs;
-}) {
-  return createPortal(
-    <div className="print-root">
-      <style>{PRINT_CSS}</style>
-      {rows.map((row) => (
-        <section key={row.letter.key} className="mail-print-block">
-          <h2 className="mail-print-heading">{row.letter.heading}</h2>
-          {row.files.map((file) => (
-            <PrintableFile key={file.id} file={file} blobs={blobs} />
-          ))}
-        </section>
-      ))}
-    </div>,
-    document.body,
-  );
-}
-
-/**
- * Один файл на печати. Картинка рисуется `<img>`, PDF — рамкой с его же
- * содержимым, всё остальное — рамкой с названием: показать содержимое документа
- * или таблицы без библиотеки нельзя, и делать вид, что можно, нечестно.
- */
-function PrintableFile({ file, blobs }: { file: MailPrintFile; blobs: PrintBlobs }) {
-  const status = blobs.statuses.get(file.id) ?? 'loading';
-  const url = blobs.urlFor(file.id);
-  const note = printFileNote(file.kind, status);
-
-  return (
-    <div className="mail-print-file">
-      <p className="mail-print-file-name">{file.displayName}</p>
-      {note !== null ? (
-        <p className="mail-print-note">{note}</p>
-      ) : file.kind === 'image' ? (
-        <img className="mail-print-image" src={url ?? ''} alt={file.displayName} />
-      ) : (
-        <iframe className="mail-print-frame" title={file.displayName} src={url ?? ''} />
-      )}
-    </div>
-  );
-}
-
-/**
- * Чем заменить содержимое файла, который печатать нечем. Три случая различаются
- * намеренно: «нечем», «не получилось» и «ещё не готово» — это разные вещи, и
- * свалить их в одно сообщение значит соврать о том, что произошло.
- *
- * Порядок проверок — часть этого же контракта, и он несимметричен:
- *
- *  1. **Провал проверяется первым и без оглядки на тип.** Отсутствующая страница
- *     скана опасна сама по себе, а «печатать нечем» опасности не имеет: про
- *     `.docx` читатель и так знает, что увидит одно название. Сказать про
- *     сорванный `.docx` «содержимое не выводится» — значит уверить его, что
- *     вложение на месте, когда его, может быть, уже удалили.
- *  2. **«Нечем» выше «ещё не готово».** `.docx`, который ещё грузится, не
- *     напечатает содержимое ни через минуту, ни через час, поэтому «нечем» —
- *     правда и ответ окончательный. Обратный порядок заставлял бы строку
- *     перескакивать между двумя формулировками на каждой медленной загрузке.
- */
-function printFileNote(kind: MailPrintFileKind, status: PrintBlobStatus): string | null {
-  if (status === 'failed') return 'Файл получить не удалось: вложение недоступно или удалено.';
-  if (kind === 'other') {
-    return 'Содержимое файла на печать не выводится — в документ попадёт только его название.';
-  }
-  if (status === 'loading') return 'Файл ещё не получен — печать начнётся, когда он будет готов.';
-  return null;
-}
-
 export function MailThreadPrintModal({
   opened,
   onClose,
@@ -350,6 +91,7 @@ export function MailThreadPrintModal({
         fullScreen={!wide}
       >
         <Stack gap="sm">
+          {/* Пояснение и счётчик выбранного */}
           <Group justify="space-between" gap="xs" wrap="wrap">
             <Text size="xs" c="dimmed">
               Отметьте файлы, которые должны попасть в печать: на принтер уйдёт один документ из
@@ -380,6 +122,7 @@ export function MailThreadPrintModal({
             </Group>
           </Group>
 
+          {/* Загрузка, ошибка и отсутствие писем */}
           {isLoading && <Loader size="sm" />}
 
           {!isLoading && isError && (
@@ -394,57 +137,14 @@ export function MailThreadPrintModal({
             </Text>
           )}
 
+          {/* Дерево писем с флажками файлов */}
           {!isLoading && !isError && letters.length > 0 && (
             <ScrollArea.Autosize mah="min(56vh, 30rem)">
-              <Stack gap="xs" pr={4}>
-                {letters.map((letter) => (
-                  <Box key={letter.key} pl={letter.depth * MAIL_TREE_INDENT}>
-                    <Group gap={6} wrap="wrap">
-                      <Badge size="xs" variant="light" color={MAIL_REGISTER_COLORS[letter.type]}>
-                        {MAIL_REGISTER_BADGE_LABELS[letter.type]}
-                      </Badge>
-                      <Text size="sm" fw={600} style={{ overflowWrap: 'anywhere' }}>
-                        {letter.heading}
-                      </Text>
-                    </Group>
-
-                    {letter.files.length === 0 ? (
-                      <Text size="xs" c="dimmed" pl={MAIL_TREE_INDENT}>
-                        Вложений нет
-                      </Text>
-                    ) : (
-                      <Stack gap={4} pl={MAIL_TREE_INDENT}>
-                        {letter.files.map((file) => (
-                          <Checkbox
-                            key={file.id}
-                            size="xs"
-                            checked={checked.has(file.id)}
-                            onChange={() => toggle(file.id)}
-                            label={
-                              <Text
-                                size="xs"
-                                style={{
-                                  overflowWrap: 'anywhere',
-                                  color:
-                                    file.kind === 'other'
-                                      ? 'var(--mantine-color-dimmed)'
-                                      : undefined,
-                                }}
-                              >
-                                {file.displayName}
-                                {file.kind === 'other' && ' — печатается только название'}
-                              </Text>
-                            }
-                          />
-                        ))}
-                      </Stack>
-                    )}
-                  </Box>
-                ))}
-              </Stack>
+              <MailThreadPrintLetterList letters={letters} checked={checked} onToggle={toggle} />
             </ScrollArea.Autosize>
           )}
 
+          {/* Кнопки закрытия и печати */}
           <Group justify="flex-end" gap="xs">
             <Button variant="default" onClick={onClose}>
               Закрыть
@@ -460,6 +160,7 @@ export function MailThreadPrintModal({
         </Stack>
       </Modal>
 
+      {/* Печатный документ: только при открытой модалке с выбранными файлами */}
       {opened && rows.length > 0 && <MailThreadPrintDocument rows={rows} blobs={blobs} />}
     </>
   );
