@@ -93,7 +93,9 @@ vi.mock('@/shared/context/InvoiceNavigationContext', () => ({
     setSelectedDate: vi.fn(),
     highlightedInvoiceId: null,
     highlightRequestId: 0,
+    highlightDateCandidates: [],
     requestHighlight: vi.fn(),
+    requestHighlightWithCandidates: vi.fn(),
   }),
 }));
 

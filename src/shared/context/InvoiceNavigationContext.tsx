@@ -5,29 +5,47 @@ interface InvoiceNavigationContextValue {
   setSelectedDate: (date: Date) => void;
   highlightedInvoiceId: string | null;
   highlightRequestId: number;
+  highlightDateCandidates: string[];
   requestHighlight: (invoiceId: string, date: Date) => void;
+  requestHighlightWithCandidates: (invoiceId: string, dates: string[]) => void;
   clearHighlight: () => void;
 }
 
 const InvoiceNavigationContext = createContext<InvoiceNavigationContextValue | null>(null);
 
+function dateFromYmd(date: string): Date {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
+
 export function InvoiceNavigationProvider({ children }: { children: ReactNode }) {
   const [selectedDate, setSelectedDateState] = useState<Date>(() => new Date());
   const [highlightedInvoiceId, setHighlightedInvoiceId] = useState<string | null>(null);
   const [highlightRequestId, setHighlightRequestId] = useState(0);
+  const [highlightDateCandidates, setHighlightDateCandidates] = useState<string[]>([]);
 
   const setSelectedDate = useCallback((date: Date) => {
     setSelectedDateState(date);
   }, []);
 
   const requestHighlight = useCallback((invoiceId: string, date: Date) => {
+    setHighlightDateCandidates([]);
     setSelectedDateState(date);
+    setHighlightedInvoiceId(invoiceId);
+    setHighlightRequestId((r) => r + 1);
+  }, []);
+
+  const requestHighlightWithCandidates = useCallback((invoiceId: string, dates: string[]) => {
+    const [first] = dates;
+    if (first) setSelectedDateState(dateFromYmd(first));
+    setHighlightDateCandidates(dates);
     setHighlightedInvoiceId(invoiceId);
     setHighlightRequestId((r) => r + 1);
   }, []);
 
   const clearHighlight = useCallback(() => {
     setHighlightedInvoiceId(null);
+    setHighlightDateCandidates([]);
   }, []);
 
   return (
@@ -37,7 +55,9 @@ export function InvoiceNavigationProvider({ children }: { children: ReactNode })
         setSelectedDate,
         highlightedInvoiceId,
         highlightRequestId,
+        highlightDateCandidates,
         requestHighlight,
+        requestHighlightWithCandidates,
         clearHighlight,
       }}
     >

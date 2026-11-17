@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import dayjs from 'dayjs';
 import {
   Affix,
   Paper,
@@ -489,15 +490,40 @@ function flashHighlightRow(invoiceId: string) {
 function AutoExpandOnHighlight({
   highlightedInvoiceId,
   highlightRequestId,
+  highlightDateCandidates,
   objects,
   invoices,
 }: {
   highlightedInvoiceId: string | null;
   highlightRequestId: number;
+  highlightDateCandidates: string[];
   objects: IAccountingObject[] | undefined;
   invoices: IInvoice[] | undefined;
 }) {
   const { expand } = useCollapsedObjects();
+  const { selectedDate, setSelectedDate } = useInvoiceNavigation();
+  const selectedDay = dayjs(selectedDate).format('YYYY-MM-DD');
+
+  // Если по цепочке дат (день уведомления -> сегодня/день счёта и т.п.) счёт не найден
+  // в данных выбранного дня, пробуем следующий день-кандидат.
+  useEffect(() => {
+    if (!highlightedInvoiceId || !highlightDateCandidates.length || !invoices) return;
+    const candidateIndex = highlightDateCandidates.indexOf(selectedDay);
+    if (candidateIndex === -1) return;
+    if (invoices.some((i) => i.id === highlightedInvoiceId)) return;
+    if (candidateIndex < highlightDateCandidates.length - 1) {
+      const nextDay = highlightDateCandidates[candidateIndex + 1]!;
+      const [y, m, d] = nextDay.split('-').map(Number);
+      setSelectedDate(new Date(y, (m ?? 1) - 1, d ?? 1));
+    }
+  }, [
+    highlightDateCandidates,
+    highlightedInvoiceId,
+    highlightRequestId,
+    invoices,
+    selectedDay,
+    setSelectedDate,
+  ]);
 
   const pollIntervalRef = useRef<number | null>(null);
   const stopHighlightPolling = useCallback(() => {
@@ -535,7 +561,7 @@ function AutoExpandOnHighlight({
     // при медленном рендере. Интервал живёт в ref, чтобы рефетч invoices
     // не убивал ожидание через cleanup эффекта.
     stopHighlightPolling();
-    
+
     // Небольшая задержка перед началом polling, чтобы дать время на
     // анимацию открытия объекта (Collapse). Иначе строка счёта может ещё
     // не быть отрисована в DOM при первом опросе.
@@ -567,7 +593,7 @@ export function InvoiceSection({
   bankTotal,
 }: InvoiceSectionProps) {
   const { debouncedSearchText } = useSearch();
-  const { highlightedInvoiceId, highlightRequestId, clearHighlight } = useInvoiceNavigation();
+  const { highlightedInvoiceId, highlightRequestId, highlightDateCandidates, clearHighlight } = useInvoiceNavigation();
   const objects = useAccessibleObjects(orgId);
   const { visibleObjects, hiddenObjects } = useMemo(() => {
     const visible: IAccountingObject[] = [];
@@ -797,6 +823,7 @@ export function InvoiceSection({
         <AutoExpandOnHighlight
           highlightedInvoiceId={highlightedInvoiceId}
           highlightRequestId={highlightRequestId}
+          highlightDateCandidates={highlightDateCandidates}
           objects={objects}
           invoices={displayInvoices}
         />

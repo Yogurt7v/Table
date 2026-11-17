@@ -17,13 +17,14 @@ import {
 } from '@mantine/core';
 import { Calendar } from '@mantine/dates';
 import { IconAlertCircle, IconBell, IconBellFilled } from '@tabler/icons-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useNotifications, useNotificationsByDate } from '@/shared/hooks/useNotifications';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
 import { getInvoice, getDeletedInvoiceByOriginalId } from '@/api/collections';
-import type { INotification } from '@/shared/types';
+import type { IInvoice, INotification } from '@/shared/types';
 
 // `describeFailure` в useNotifications.ts возвращает эту же строку как fallback,
 // поэтому деталь ниже печатается только если error отличается от шапки.
@@ -150,7 +151,8 @@ export function NotificationsBell() {
     markAsRead,
     markAllAsRead,
   } = useNotifications();
-  const { requestHighlight } = useInvoiceNavigation();
+  const queryClient = useQueryClient();
+  const { selectedDate, requestHighlight, requestHighlightWithCandidates } = useInvoiceNavigation();
   const navigate = useNavigate();
 
   const selectedDateStr = calendarDate ? dayjs(calendarDate).format('YYYY-MM-DD') : '';
@@ -200,17 +202,59 @@ export function NotificationsBell() {
         return;
       }
 
+      const todayStr = dayjs().format('YYYY-MM-DD');
+      const currentDayStr = dayjs(selectedDate).format('YYYY-MM-DD');
+      const notificationDay = n.created ? dayjs(n.created).format('YYYY-MM-DD') : todayStr;
+      const orgId = n.organization_id ?? currentOrgId;
+
       getInvoice(n.invoice_id)
         .then((invoice) => {
+          const invoiceDay = dayjs(invoice.date).format('YYYY-MM-DD');
+          const currentInvoices =
+            queryClient.getQueryData<IInvoice[]>(['invoices', orgId, currentDayStr]) ?? [];
+
           navigate('/');
-          requestHighlight(invoice.id, new Date(dayjs(invoice.date).toISOString()));
+
+          // 1) Счёт уже есть в текущем выбранном дне — подсветить без смены даты.
+          if (currentInvoices.some((inv) => inv.id === invoice.id)) {
+            requestHighlight(invoice.id, selectedDate);
+            return;
+          }
+
+          // 2) Если не найден в текущем дне: старое уведомление -> день уведомления, затем день счёта;
+          // сегодняшнее -> сегодня, затем день счёта.
+          const candidates: string[] = [];
+          const push = (d: string) => {
+            if (d && !candidates.includes(d)) candidates.push(d);
+          };
+          if (notificationDay !== todayStr) {
+            push(notificationDay);
+            push(invoiceDay);
+          } else {
+            push(todayStr);
+            push(invoiceDay);
+          }
+
+          if (candidates.length === 1) {
+            requestHighlight(invoice.id, dayjs(candidates[0]).toDate());
+            return;
+          }
+          requestHighlightWithCandidates(invoice.id, candidates);
         })
         .catch(() => {
           navigate('/');
           requestHighlight('', new Date());
         });
     },
-    [currentOrgId, requestHighlight, setCurrentOrgId, navigate],
+    [
+      currentOrgId,
+      navigate,
+      queryClient,
+      requestHighlight,
+      requestHighlightWithCandidates,
+      selectedDate,
+      setCurrentOrgId,
+    ],
   );
 
   return (

@@ -11,6 +11,7 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
   const { selectedDate: date, setSelectedDate: setDate } = useInvoiceNavigation();
   const isHeader = variant === 'header';
   const isPage = variant === 'page';
+  const isNonToday = !dayjs(date).isSame(dayjs(), 'day');
 
   return (
     <DatePickerInput
@@ -22,6 +23,7 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
       size={isHeader ? 'sm' : undefined}
       maw={isPage ? { base: '100%', sm: 400 } : 320}
       w={isPage ? { base: '100%', sm: 'auto' } : '100%'}
+      data-non-today={isNonToday ? 'true' : undefined}
       styles={{
         input: {
           fontWeight: 700,
@@ -35,6 +37,13 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
           textOverflow: 'ellipsis',
           overflow: 'hidden',
           ...(isPage ? { boxShadow: 'var(--mantine-shadow-sm)' } : {}),
+          ...(isNonToday
+            ? {
+                borderColor: 'var(--mantine-color-orange-5)',
+                boxShadow:
+                  '0 0 0 2px color-mix(in srgb, var(--mantine-color-orange-4) 35%, transparent)',
+              }
+            : {}),
         },
       }}
       popoverProps={{

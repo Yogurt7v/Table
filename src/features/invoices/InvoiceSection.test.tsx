@@ -105,6 +105,8 @@ vi.mock('@/shared/context/InvoiceNavigationContext', async (importOriginal) => {
       highlightedInvoiceId: null,
       highlightRequestId: 0,
       requestHighlight: () => {},
+      requestHighlightWithCandidates: () => {},
+      highlightDateCandidates: [],
       clearHighlight: () => {},
     }),
   };
