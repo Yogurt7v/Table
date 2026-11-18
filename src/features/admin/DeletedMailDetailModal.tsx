@@ -41,10 +41,7 @@ export function DeletedMailDetailModal({
       <Stack gap="xs">
         <Row label="Тип" value={MAIL_TYPE_LABELS[mailType]} />
         <Row label="Номер" value={numberOf(mail, mailType) || '—'} />
-        <Row
-          label="Дата"
-          value={mail.date ? dayjs(mail.date).format('DD.MM.YYYY') : '—'}
-        />
+        <Row label="Дата" value={mail.date ? dayjs(mail.date).format('DD.MM.YYYY') : '—'} />
         <Row label="Контрагент" value={counterpartyOf(mail, mailType) || '—'} />
         <Row label="Тема" value={mail.subject || '—'} />
         <Row label="Комментарий" value={mail.comment || '—'} />

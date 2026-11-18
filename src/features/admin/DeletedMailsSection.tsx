@@ -101,10 +101,7 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
   }, [accountingObjects]);
 
   const pageRows = useMemo(() => (active.data?.items ?? []) as DeletedMail[], [active.data]);
-  const allRows = useMemo(
-    () => ((allActive.data ?? []) as DeletedMail[]),
-    [allActive.data],
-  );
+  const allRows = useMemo(() => (allActive.data ?? []) as DeletedMail[], [allActive.data]);
 
   const rows = useMemo(() => {
     if (!isSearchMode) return pageRows;
@@ -240,20 +237,12 @@ export function DeletedMailsSection({ orgId }: DeletedMailsSectionProps) {
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text
-                              lineClamp={1}
-                              title={counterparty}
-                              aria-label={counterparty}
-                            >
+                            <Text lineClamp={1} title={counterparty} aria-label={counterparty}>
                               {counterparty || MAIL_EMPTY_CELL}
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text
-                              lineClamp={1}
-                              title={mail.subject}
-                              aria-label={mail.subject}
-                            >
+                            <Text lineClamp={1} title={mail.subject} aria-label={mail.subject}>
                               {mail.subject || MAIL_EMPTY_CELL}
                             </Text>
                           </Table.Td>

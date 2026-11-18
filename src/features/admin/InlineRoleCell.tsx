@@ -1,12 +1,5 @@
 import { useState } from 'react';
-import {
-  ActionIcon,
-  Button,
-  Group,
-  Select,
-  Stack,
-  Text,
-} from '@mantine/core';
+import { ActionIcon, Button, Group, Select, Stack, Text } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import {
   useCreateOrganizationUser,
