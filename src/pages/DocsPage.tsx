@@ -17,7 +17,10 @@ import { DocumentColumnSettingsModal } from '@/features/documents/DocumentColumn
 import { DocumentCardModal } from '@/features/documents/DocumentCardModal';
 import { DocumentsTable } from '@/features/documents/DocumentsTable';
 import { ManualDocumentModal } from '@/features/documents/ManualDocumentModal';
-import { saveDocumentColumnSizing, saveDocumentColumns } from '@/features/documents/document-columns';
+import {
+  saveDocumentColumnSizing,
+  saveDocumentColumns,
+} from '@/features/documents/document-columns';
 import { DocsPageToolbar } from './docs-page/DocsPageToolbar';
 import { useDocsPage } from './docs-page/useDocsPage';
 
@@ -25,6 +28,7 @@ import { useDocsPage } from './docs-page/useDocsPage';
 export function DocsPage() {
   const page = useDocsPage();
 
+  // Организация не выбрана: показываем загрузку или заглушку «без организации»
   if (!page.currentOrgId) {
     if (page.organizationsLoading) {
       return (
@@ -40,6 +44,7 @@ export function DocsPage() {
     );
   }
 
+  // Гостю доступ к документам запрещён
   if (page.role === 'guest') {
     return (
       <Container size="sm" py="xl">
@@ -53,6 +58,7 @@ export function DocsPage() {
     );
   }
 
+  // Нет прав просмотра базы документов
   if (!page.documentPermissions.canView) {
     return (
       <Container size="sm" py="xl">
@@ -69,7 +75,7 @@ export function DocsPage() {
   return (
     <Container size="fluid" py={{ base: 'xs', sm: 'md' }}>
       <Stack gap="md">
-        {/* Заголовок страницы и настройки колонок */}
+        {/* Заголовок страницы, хлебные крошки и настройка колонок */}
         <Group justify="space-between" align="flex-end" wrap="wrap">
           <Group gap="sm">
             <BreadcrumbsNav />

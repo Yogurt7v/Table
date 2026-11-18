@@ -12,12 +12,7 @@ import {
   Tooltip,
   Collapse,
 } from '@mantine/core';
-import {
-  IconHome,
-  IconChevronUp,
-  IconSettings,
-  IconLogout,
-} from '@tabler/icons-react';
+import { IconHome, IconChevronUp, IconSettings, IconLogout } from '@tabler/icons-react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useOrg } from '@/shared/context/OrgContext';
@@ -55,7 +50,7 @@ function AppLayoutContent() {
 
   const isHomePage = pathname === '/';
   const isMailPage = pathname === '/mail';
-  const isDocsName = pathname === '/docs'
+  const isDocsName = pathname === '/docs';
   const showScrollUp = isHomePage && scrolled;
 
   useEffect(() => {
@@ -156,9 +151,10 @@ function AppLayoutContent() {
                 />
               </Group>
               <Group gap={4} wrap="nowrap">
-                {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator' || currentRole === 'user') && (
-                  <NotificationsBell />
-                )}
+                {currentOrgId &&
+                  (currentRole === 'admin' ||
+                    currentRole === 'moderator' ||
+                    currentRole === 'user') && <NotificationsBell />}
                 {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
                   <Tooltip label="Панель администратора">
                     <ActionIcon
@@ -260,12 +256,13 @@ function AppLayoutContent() {
                   </Group>
                 )}
               />
-              {!isMailPage && !isDocsName &&<InvoiceSearch />}
+              {!isMailPage && !isDocsName && <InvoiceSearch />}
             </Group>
             <Group>
-              {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator' || currentRole === 'user') && (
-                <NotificationsBell />
-              )}
+              {currentOrgId &&
+                (currentRole === 'admin' ||
+                  currentRole === 'moderator' ||
+                  currentRole === 'user') && <NotificationsBell />}
               {currentOrgId && (currentRole === 'admin' || currentRole === 'moderator') && (
                 <Anchor size="sm" onClick={() => navigate('/admin')}>
                   Панель администратора

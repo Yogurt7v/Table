@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Container, Paper, TextInput, PasswordInput, Button, Title, Text, Alert } from '@mantine/core';
+import {
+  Container,
+  Paper,
+  TextInput,
+  PasswordInput,
+  Button,
+  Title,
+  Text,
+  Alert,
+} from '@mantine/core';
 import { ClientResponseError } from 'pocketbase';
 import { useAuth } from '@/shared/context/AuthContext';
 

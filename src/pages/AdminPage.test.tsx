@@ -307,7 +307,9 @@ describe('AdminPage', () => {
     it('admin видит панель администрирования', async () => {
       renderPage();
 
-      expect(await screen.findByRole('heading', { name: 'Администрирование', level: 3 })).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', { name: 'Администрирование', level: 3 }),
+      ).toBeInTheDocument();
       expect(screen.queryByText('Доступ запрещён')).not.toBeInTheDocument();
     });
 
@@ -318,7 +320,9 @@ describe('AdminPage', () => {
 
       renderPage();
 
-      expect(await screen.findByRole('heading', { name: 'Администрирование', level: 3 })).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', { name: 'Администрирование', level: 3 }),
+      ).toBeInTheDocument();
     });
 
     it('boss не проходит гейт', async () => {
@@ -330,7 +334,9 @@ describe('AdminPage', () => {
 
       expect(await screen.findByText('Доступ запрещён')).toBeInTheDocument();
       expect(screen.getByText('У вас нет прав для просмотра этой страницы.')).toBeInTheDocument();
-      expect(screen.queryByRole('heading', { name: 'Администрирование', level: 3 })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Администрирование', level: 3 }),
+      ).not.toBeInTheDocument();
       expect(screen.queryAllByRole('tab')).toHaveLength(0);
     });
 
@@ -363,7 +369,9 @@ describe('AdminPage', () => {
 
       renderPage();
 
-      expect(await screen.findByRole('heading', { name: 'Администрирование', level: 3 })).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', { name: 'Администрирование', level: 3 }),
+      ).toBeInTheDocument();
       expect(screen.queryByTestId('deleted-invoices-section')).not.toBeInTheDocument();
     });
   });
@@ -382,7 +390,9 @@ describe('AdminPage', () => {
 
       release();
 
-      expect(await screen.findByRole('heading', { name: 'Администрирование', level: 3 })).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', { name: 'Администрирование', level: 3 }),
+      ).toBeInTheDocument();
       expect(screen.queryByText('Доступ запрещён')).not.toBeInTheDocument();
     });
 
