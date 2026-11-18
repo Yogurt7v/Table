@@ -34,7 +34,8 @@ function renderManager(canEdit: boolean, objectsArg?: IAccountingObject[]) {
   );
 }
 
-const visibilitySwitch = (name: string) => screen.getByRole('switch', { name: `Показывать в реестре: ${name}` });
+const visibilitySwitch = (name: string) =>
+  screen.getByRole('switch', { name: `Показывать в реестре: ${name}` });
 
 describe('AccountingObjectManager', () => {
   beforeEach(() => {

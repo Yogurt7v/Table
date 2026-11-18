@@ -26,9 +26,7 @@ export function DeletedDocumentDetailModal({
         <Row label="Номер" value={String(document.seq)} />
         <Row
           label="Дата оплаты"
-          value={
-            document.payment_date ? dayjs(document.payment_date).format('DD.MM.YYYY') : '—'
-          }
+          value={document.payment_date ? dayjs(document.payment_date).format('DD.MM.YYYY') : '—'}
         />
         <Row label="Объект" value={objectName || '—'} />
         <Row label="Контрагент" value={document.counterparty || '—'} />
@@ -55,9 +53,7 @@ export function DeletedDocumentDetailModal({
             <Text size="xs" c="dimmed">
               Когда:{' '}
               <Text component="span" c="dark.6">
-                {document.deleted_at
-                  ? dayjs(document.deleted_at).format('DD.MM.YYYY HH:mm')
-                  : '—'}
+                {document.deleted_at ? dayjs(document.deleted_at).format('DD.MM.YYYY HH:mm') : '—'}
               </Text>
             </Text>
             <Text size="xs" c="dimmed">

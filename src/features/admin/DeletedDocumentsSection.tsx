@@ -151,7 +151,7 @@ export function DeletedDocumentsSection({ orgId }: DeletedDocumentsSectionProps)
       )}
 
       {!archivedQuery.isLoading && pageDocuments.length > 0 && (
-        <Box >
+        <Box>
           <Table striped highlightOnHover withTableBorder>
             <Table.Thead>
               <Table.Tr>

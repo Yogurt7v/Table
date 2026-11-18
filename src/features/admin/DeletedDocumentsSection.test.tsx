@@ -62,7 +62,9 @@ function makeDocument(i: number): IDocument {
 const documents = Array.from({ length: 5 }, (_, index) => makeDocument(index + 1));
 
 function renderSection() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return render(
     <QueryClientProvider client={queryClient}>
       <MantineProvider>
@@ -76,8 +78,16 @@ describe('DeletedDocumentsSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useArchivedDocuments.mockReturnValue({ data: documents, isLoading: false });
-    useAccountingObjects.mockReturnValue({ data: [{ id: 'obj1', name: 'Объект 1' }, { id: 'obj2', name: 'Объект 2' }] });
-    useRestoreDocument.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false });
+    useAccountingObjects.mockReturnValue({
+      data: [
+        { id: 'obj1', name: 'Объект 1' },
+        { id: 'obj2', name: 'Объект 2' },
+      ],
+    });
+    useRestoreDocument.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+      isPending: false,
+    });
   });
 
   it('renders archived documents with object names and reasons', async () => {
@@ -153,7 +163,9 @@ describe('DeletedDocumentsSection', () => {
     const confirmButtons = screen.getAllByRole('button', { name: 'Восстановить' });
     await user.click(confirmButtons[confirmButtons.length - 1]!);
 
-    await waitFor(() => expect(restore).toHaveBeenCalledWith(expect.objectContaining({ id: 'doc-2' })));
+    await waitFor(() =>
+      expect(restore).toHaveBeenCalledWith(expect.objectContaining({ id: 'doc-2' })),
+    );
   });
 
   it('paginates the archive with 15 rows per page', async () => {
