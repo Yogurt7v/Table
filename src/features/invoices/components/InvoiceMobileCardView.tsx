@@ -181,6 +181,7 @@ export function InvoiceMobileCardView({
               const hasRemainder = !invoice.paid && totalPaid > 0 && invoice.amount - totalPaid > 0;
               const invoiceFiles = filesByInvoice?.[invoice.id];
               const showDelete = permissions.canDelete && !!onDelete;
+              const isHighlighted = highlightedIds.includes(invoice.id);
 
               return (
                 <Paper
@@ -189,14 +190,21 @@ export function InvoiceMobileCardView({
                   radius="sm"
                   p="xs"
                   mb="sm"
+                  data-highlight-id={isHighlighted ? invoice.id : undefined}
                   style={{
                     backgroundColor: invoice.paid
                       ? 'var(--mantine-color-green-1)'
                       : marksByInvoice[invoice.id]
                         ? markRowColor(marksByInvoice[invoice.id]!, invoice.amount)
-                        : highlightedIds.includes(invoice.id)
+                        : isHighlighted
                           ? 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)'
                           : undefined,
+                    ...(isHighlighted
+                      ? {
+                          boxShadow:
+                            'inset 4px 0 0 var(--org-color, #228be6), inset 0 0 0 2px color-mix(in srgb, var(--org-color, #228be6) 45%, transparent)',
+                        }
+                      : {}),
                   }}
                 >
                   <Group justify="space-between" wrap="nowrap" gap={4}>

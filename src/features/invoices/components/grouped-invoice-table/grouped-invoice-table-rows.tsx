@@ -77,20 +77,29 @@ export function buildInvoiceRows({
   const extraRows = (hasCopies ? amounts.length - 1 : 0) + (hasRemainder ? 1 : 0);
   const isLastRow = isGroupLast && extraRows === 0;
 
+  const baseBackground = paid
+    ? 'var(--mantine-color-green-1)'
+    : mark
+      ? markRowColor(mark, invoice.amount)
+      : isHighlighted
+        ? { backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)' }
+        : undefined;
+  const activeHighlightStyle: CSSProperties | undefined = isHighlighted
+    ? {
+        boxShadow:
+          'inset 4px 0 0 var(--org-color, #228be6), inset 0 0 0 2px color-mix(in srgb, var(--org-color, #228be6) 45%, transparent)',
+      }
+    : undefined;
+
   const rowStyle: CSSProperties = {
     borderLeft: GROUP_BORDER,
     borderRight: GROUP_BORDER,
     ...(isGroupFirst ? { borderTop: GROUP_BORDER } : {}),
     ...(isLastRow ? { borderBottom: GROUP_BORDER } : {}),
-    ...(paid
-      ? { backgroundColor: 'var(--mantine-color-green-1)' }
-      : mark
-        ? { backgroundColor: markRowColor(mark, invoice.amount) }
-        : isHighlighted
-          ? {
-              backgroundColor: 'color-mix(in srgb, var(--org-color, #228be6) 15%, transparent)',
-            }
-          : {}),
+    ...(typeof baseBackground === 'string'
+      ? { backgroundColor: baseBackground }
+      : baseBackground ?? {}),
+    ...activeHighlightStyle,
     ...(draggable && isOver && isGroupFirst
       ? { borderTop: '3px solid var(--mantine-color-blue-6)' }
       : {}),
@@ -106,7 +115,7 @@ export function buildInvoiceRows({
     <Table.Tr
       key={invoice.id}
       style={rowStyle}
-      data-highlight-id={draggable && isHighlighted ? invoice.id : undefined}
+      data-highlight-id={isHighlighted ? invoice.id : undefined}
     >
       <Table.Td
         {...(isNumHandle ? (dragListeners as Record<string, unknown>) : {})}
@@ -191,6 +200,7 @@ export function buildInvoiceRows({
               : {}),
             backgroundColor: 'var(--mantine-color-green-1)',
             fontSize: '0.9em',
+            ...activeHighlightStyle,
           }}
         >
           <Table.Td
@@ -279,6 +289,7 @@ export function buildInvoiceRows({
           ...(isGroupLast ? { borderBottom: GROUP_BORDER } : {}),
           backgroundColor: 'var(--mantine-color-gray-0)',
           fontSize: '0.9em',
+          ...activeHighlightStyle,
         }}
       >
         <Table.Td style={{ overflow: 'hidden', maxWidth: '100%' }}>
