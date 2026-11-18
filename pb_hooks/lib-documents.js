@@ -72,11 +72,7 @@ function actorNameFrom(app, e, invoice, actorId) {
     var name = e.auth.get('name') || e.auth.get('login') || e.auth.get('email') || '';
     if (name) return name;
   }
-  return resolveName(app, [
-    actorId,
-    invoice.get('updated_by'),
-    invoice.get('created_by'),
-  ]);
+  return resolveName(app, [actorId, invoice.get('updated_by'), invoice.get('created_by')]);
 }
 
 function writeHistory(app, document, type, data, actorId, actorName) {
@@ -138,7 +134,10 @@ function createAutoDocument(app, e, invoice, root, actorId, actorName) {
   document.set('accounting_object_id', objectId);
   document.set('seq', nextSeq(app, organizationId, objectId));
   document.set('payment_date', isoDate(invoice.get('paid_date') || invoice.get('date')));
-  document.set('counterparty', String(root.get('counterparty') || invoice.get('counterparty') || ''));
+  document.set(
+    'counterparty',
+    String(root.get('counterparty') || invoice.get('counterparty') || ''),
+  );
   document.set('purpose', String(root.get('purpose') || ''));
   document.set('contract_no', String(root.get('contract_no') || ''));
   document.set('invoice_no', String(root.get('invoice_no') || ''));
@@ -156,11 +155,18 @@ function createAutoDocument(app, e, invoice, root, actorId, actorName) {
   document.set('payment_cancelled', false);
   document.set('is_deleted', false);
   app.save(document);
-  writeHistory(app, document, 'document_auto_created', {
-    source_invoice_id: root.id,
-    source_invoice_no: root.get('invoice_no') || '',
-    amount: Number(root.get('amount')) || 0,
-  }, actorId, actorName);
+  writeHistory(
+    app,
+    document,
+    'document_auto_created',
+    {
+      source_invoice_id: root.id,
+      source_invoice_no: root.get('invoice_no') || '',
+      amount: Number(root.get('amount')) || 0,
+    },
+    actorId,
+    actorName,
+  );
   return document;
 }
 
@@ -194,16 +200,25 @@ function cancelPayment(app, e, document, actorId, actorName) {
     document.set('deletion_reason', 'Оплата отменена');
     document.set('payment_cancelled', true);
     app.save(document);
-    writeHistory(app, document, 'document_archived', {
-      reason: 'Оплата отменена',
-      automatic: true,
-    }, actorId, actorName);
+    writeHistory(
+      app,
+      document,
+      'document_archived',
+      {
+        reason: 'Оплата отменена',
+        automatic: true,
+      },
+      actorId,
+      actorName,
+    );
     try {
       require(__hooks + '/lib-document-notify.js').notifyDocument(
         app,
         document,
         'document_archived',
-        'Документ удалён в архив: ' + String(document.get('counterparty') || '') + ' — Оплата отменена',
+        'Документ удалён в архив: ' +
+          String(document.get('counterparty') || '') +
+          ' — Оплата отменена',
         actorId,
         actorName,
       );
@@ -218,9 +233,16 @@ function cancelPayment(app, e, document, actorId, actorName) {
   document.set('confirmed', false);
   document.set('confirmed_file_id', '');
   app.save(document);
-  writeHistory(app, document, 'payment_cancelled', {
-    automatic: true,
-  }, actorId, actorName);
+  writeHistory(
+    app,
+    document,
+    'payment_cancelled',
+    {
+      automatic: true,
+    },
+    actorId,
+    actorName,
+  );
   try {
     require(__hooks + '/lib-document-notify.js').notifyDocument(
       app,
@@ -259,10 +281,17 @@ function handleInvoice(app, e, invoice, oldPaid) {
   if (paid && existing && existing.get('sync_locked') !== true) {
     if (applyInvoiceFields(existing, invoice, root)) {
       app.save(existing);
-      writeHistory(app, existing, 'document_synced', {
-        source_invoice_id: root.id,
-        automatic: true,
-      }, actorId, actorName);
+      writeHistory(
+        app,
+        existing,
+        'document_synced',
+        {
+          source_invoice_id: root.id,
+          automatic: true,
+        },
+        actorId,
+        actorName,
+      );
     }
   }
 
