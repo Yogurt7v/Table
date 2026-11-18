@@ -3,7 +3,11 @@ import { notifications } from '@mantine/notifications';
 import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
 import { useCreateInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
 import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
-import { validateDraftForm, createEmptyDraft, type DraftInvoiceForm } from '@/features/invoices/invoice-field-access';
+import {
+  validateDraftForm,
+  createEmptyDraft,
+  type DraftInvoiceForm,
+} from '@/features/invoices/invoice-field-access';
 import { findDuplicateInvoices } from '@/api/collections';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';
@@ -15,7 +19,7 @@ interface UseInvoiceDraftProps {
   objectId: string;
   date: string;
   onDraftCancel: () => void;
-  onOpenDraft: (objectId: string) => void;
+  onOpenDraft?: (objectId: string) => void;
 }
 
 export function useInvoiceDraft({
@@ -41,7 +45,7 @@ export function useInvoiceDraft({
   const handleCopy = useCallback(
     (invoice: IInvoice) => {
       copySourceRef.current = invoice;
-      onOpenDraft(normalizeRelationId(invoice.accounting_object_id));
+      onOpenDraft?.(normalizeRelationId(invoice.accounting_object_id));
     },
     [onOpenDraft],
   );
@@ -122,7 +126,9 @@ export function useInvoiceDraft({
     draftForm,
     setDraftForm,
     duplicateInvoices,
+    setDuplicateInvoices,
     pendingDuplicateForm,
+    setPendingDuplicateForm,
     copySourceRef,
     handleCopy,
     handleSaveDraft,

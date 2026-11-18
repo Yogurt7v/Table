@@ -7,7 +7,11 @@ import { useCreatePaymentMark } from '@/shared/hooks/usePaymentMarks';
 import { useApprovePaymentMark } from '@/shared/hooks/usePaymentMarks';
 import { syncInvoiceCopy } from '@/api/collections';
 import type { IInvoice, IPaymentMark } from '@/shared/types';
-import { PAID_MARK_STATUS, APPROVAL_MARK_STATUS, PARTIAL_MARK_STATUS } from '@/features/invoices/payment-mark-status';
+import {
+  PAID_MARK_STATUS,
+  APPROVAL_MARK_STATUS,
+  PARTIAL_MARK_STATUS,
+} from '@/features/invoices/payment-mark-status';
 
 interface UseInvoicePaymentActionsProps {
   orgId: string;
@@ -222,6 +226,7 @@ export function useInvoicePaymentActions({
   return {
     clearMarkTarget,
     setClearMarkTarget,
+    deletePaymentMark,
     handlePayInvoice,
     handleClearPayment,
     handleMarkForPayment,

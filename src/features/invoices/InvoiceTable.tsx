@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { notifications } from '@mantine/notifications';
 import type {
   IAccountingObject,
   IInvoice,
@@ -108,7 +109,9 @@ export function InvoiceTable({
   const {
     draftForm,
     duplicateInvoices,
+    setDuplicateInvoices,
     pendingDuplicateForm,
+    setPendingDuplicateForm,
     handleCopy,
     handleSaveDraft,
     patchDraft,
@@ -125,6 +128,7 @@ export function InvoiceTable({
   const {
     clearMarkTarget,
     setClearMarkTarget,
+    deletePaymentMark,
     handlePayInvoice,
     handleClearPayment,
     handleMarkForPayment,
@@ -146,6 +150,24 @@ export function InvoiceTable({
   const [moveInvoiceTarget, setMoveInvoiceTarget] = useState<IInvoice | null>(null);
   const [editInvoice, setEditInvoice] = useState<IInvoice | null>(null);
   const [filesInvoice, setFilesInvoice] = useState<IInvoice | null>(null);
+
+  /**
+   * Строка-копия частичной оплаты (`abc123__p0`) — это не отдельный счёт: правится
+   * комментарий копии, а запись уходит в исходный счёт. Поэтому реальный id и
+   * суффикс разбираются здесь, а `handleEditInvoice` уже дописывает комментарий.
+   */
+  const handleOpenEdit = (invoice: IInvoice) => {
+    const realId = toRealInvoiceId(invoice.id);
+    const suffix = realId === invoice.id ? null : invoice.id.slice(realId.length);
+    const realInvoice = suffix ? invoices.find((i) => i.id === realId) : null;
+    const copyComment = suffix ? (realInvoice?.copy_comments?.[suffix] ?? '') : undefined;
+    setEditInvoice({
+      ...invoice,
+      id: realId,
+      comment: copyComment ?? invoice.comment,
+      _syntheticSuffix: suffix,
+    } as IInvoice & { _syntheticSuffix?: string | null });
+  };
 
   const handleEditInvoice = (data: DraftInvoiceForm) => {
     if (!editInvoice) return;
@@ -215,7 +237,7 @@ export function InvoiceTable({
         onDraftSave={handleSaveDraft}
         onDraftCancel={onCancelDraft}
         highlightedIds={highlightedIds}
-        onEdit={handleEditInvoice}
+        onEdit={handleOpenEdit}
         onCopy={handleCopy}
         onDelete={(inv) => setDeleteTarget(inv)}
         onHistory={(inv) => setHistoryInvoice(inv)}
