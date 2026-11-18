@@ -36,8 +36,26 @@ const objects: IAccountingObject[] = [
 ];
 
 const users: IUser[] = [
-  { id: 'u1', email: 'u1@test.com', login: 'u1', name: 'Ответственный', avatar: '', verified: true, created: '', updated: '' },
-  { id: 'u2', email: 'u2@test.com', login: 'u2', name: 'Автор', avatar: '', verified: true, created: '', updated: '' },
+  {
+    id: 'u1',
+    email: 'u1@test.com',
+    login: 'u1',
+    name: 'Ответственный',
+    avatar: '',
+    verified: true,
+    created: '',
+    updated: '',
+  },
+  {
+    id: 'u2',
+    email: 'u2@test.com',
+    login: 'u2',
+    name: 'Автор',
+    avatar: '',
+    verified: true,
+    created: '',
+    updated: '',
+  },
 ];
 
 const api = vi.hoisted(() => ({
@@ -75,7 +93,9 @@ vi.mock('@/shared/hooks/useDocuments', () => ({
 }));
 
 function makeQueryClient() {
-  return new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  return new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
 }
 
 function wrapper(queryClient: QueryClient) {
@@ -85,7 +105,10 @@ function wrapper(queryClient: QueryClient) {
 
 import { createElement } from 'react';
 
-function renderModal(props: Partial<Parameters<typeof DocumentCardModal>[0]>, queryClient: QueryClient) {
+function renderModal(
+  props: Partial<Parameters<typeof DocumentCardModal>[0]>,
+  queryClient: QueryClient,
+) {
   const defaultProps: Parameters<typeof DocumentCardModal>[0] = {
     documentId: 'doc1',
     opened: true,
@@ -112,15 +135,42 @@ beforeEach(() => {
   api.useDocumentComments.mockReturnValue({ data: [], isLoading: false });
   api.useDocumentHistory.mockReturnValue({ data: [], isLoading: false });
   api.useDocumentSource.mockReturnValue({ data: null, isLoading: false });
-  api.useUpdateDocument.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(document), isPending: false });
-  api.useUpdateDocumentStatus.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(document), isPending: false });
-  api.useUploadDocumentFile.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false });
-  api.useDeleteDocumentFile.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(document), isPending: false });
-  api.useAddDocumentComment.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false });
-  api.useDeleteDocumentComment.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false });
-  api.useArchiveDocument.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(document), isPending: false });
-  api.useMoveDocument.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(document), isPending: false });
-  api.useMarkPaymentCancelled.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(document), isPending: false });
+  api.useUpdateDocument.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue(document),
+    isPending: false,
+  });
+  api.useUpdateDocumentStatus.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue(document),
+    isPending: false,
+  });
+  api.useUploadDocumentFile.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue({}),
+    isPending: false,
+  });
+  api.useDeleteDocumentFile.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue(document),
+    isPending: false,
+  });
+  api.useAddDocumentComment.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue({}),
+    isPending: false,
+  });
+  api.useDeleteDocumentComment.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue(undefined),
+    isPending: false,
+  });
+  api.useArchiveDocument.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue(document),
+    isPending: false,
+  });
+  api.useMoveDocument.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue(document),
+    isPending: false,
+  });
+  api.useMarkPaymentCancelled.mockReturnValue({
+    mutateAsync: vi.fn().mockResolvedValue(document),
+    isPending: false,
+  });
 });
 
 describe('DocumentCardModal', () => {
@@ -170,15 +220,15 @@ describe('DocumentCardModal', () => {
     const user = userEvent.setup();
     renderModal({ role: 'admin' as OrgRole, currentUserId: 'u1' }, queryClient);
 
-    await waitFor(() => expect(screen.getByRole('tab', { name: 'Комментарии' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: 'Комментарии' })).toBeInTheDocument(),
+    );
     await user.click(screen.getByRole('tab', { name: 'Комментарии' }));
 
     await user.type(screen.getByLabelText('Новый комментарий'), 'Тестовый комментарий');
     await user.click(screen.getByRole('button', { name: 'Добавить комментарий' }));
 
-    await waitFor(() =>
-      expect(api.useAddDocumentComment).toBeDefined(),
-    );
+    await waitFor(() => expect(api.useAddDocumentComment).toBeDefined());
     expect(api.useAddDocumentComment).toHaveBeenCalled();
   });
 });

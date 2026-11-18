@@ -29,26 +29,26 @@ function renderTable(visibleColumns: DocumentColumnId[]) {
   return render(
     <MantineProvider>
       <DocumentsTable
-      groups={[
-        {
-          objectId: 'obj-1',
-          objectName: 'Объект 1',
-          documents: [document],
-          total: 1,
-          page: 1,
-        },
-      ]}
-      visibleColumns={visibleColumns}
-      sizing={{}}
-      filesByDocument={{}}
-      commentsByDocument={{}}
-      pageSize={15}
-      collapsedIds={new Set()}
-      onToggleCollapse={() => {}}
-      onPageChange={() => {}}
-      onWidthChange={() => {}}
-      onWidthCommit={() => {}}
-      onOpenDocument={() => {}}
+        groups={[
+          {
+            objectId: 'obj-1',
+            objectName: 'Объект 1',
+            documents: [document],
+            total: 1,
+            page: 1,
+          },
+        ]}
+        visibleColumns={visibleColumns}
+        sizing={{}}
+        filesByDocument={{}}
+        commentsByDocument={{}}
+        pageSize={15}
+        collapsedIds={new Set()}
+        onToggleCollapse={() => {}}
+        onPageChange={() => {}}
+        onWidthChange={() => {}}
+        onWidthCommit={() => {}}
+        onOpenDocument={() => {}}
       />
     </MantineProvider>,
   );
@@ -58,11 +58,7 @@ describe('DocumentsTable', () => {
   it('рендерит колонки в порядке visibleColumns, а не в каноническом', () => {
     renderTable(['amount', 'seq', 'counterparty']);
     const headers = screen.getAllByRole('columnheader');
-    expect(headers.map((header) => header.textContent)).toEqual([
-      'Сумма',
-      '№',
-      'Контрагент',
-    ]);
+    expect(headers.map((header) => header.textContent)).toEqual(['Сумма', '№', 'Контрагент']);
   });
 
   it('пропускает скрытые колонки', () => {

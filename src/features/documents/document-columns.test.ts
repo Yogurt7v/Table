@@ -56,7 +56,10 @@ describe('document-columns', () => {
   });
 
   it('ignores unknown column ids and falls back to defaults when all are unknown', () => {
-    localStorage.setItem('document-table-columns:org1', JSON.stringify(['unknown', 'also-unknown']));
+    localStorage.setItem(
+      'document-table-columns:org1',
+      JSON.stringify(['unknown', 'also-unknown']),
+    );
     expect(loadDocumentColumns('org1')).toEqual(DEFAULT_DOCUMENT_COLUMNS);
   });
 
@@ -67,7 +70,10 @@ describe('document-columns', () => {
   });
 
   it('ignores non-numeric or non-finite sizing values', () => {
-    localStorage.setItem('document-table-column-sizing:org1', '{"seq":80,"counterparty":"wide","amount":null,"purpose":1e999}');
+    localStorage.setItem(
+      'document-table-column-sizing:org1',
+      '{"seq":80,"counterparty":"wide","amount":null,"purpose":1e999}',
+    );
     expect(loadDocumentColumnSizing('org1')).toEqual({ seq: 80 });
   });
 

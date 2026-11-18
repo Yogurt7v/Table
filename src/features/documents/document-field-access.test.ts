@@ -44,18 +44,39 @@ function canEditField(role: OrgRole, isResponsible: boolean, field: keyof IDocum
   if (role === 'boss') return false;
 
   const adminEditable = new Set<keyof IDocument>([
-    'counterparty', 'purpose', 'contract_no', 'invoice_no', 'amount',
-    'payment_date', 'accounting_object_id', 'responsible_id', 'responsible_name',
-    'provided', 'confirmed', 'confirmed_file_id', 'seq', 'source_invoice_id',
-    'source_invoice_no', 'sync_locked', 'payment_cancelled', 'is_deleted',
-    'deletion_reason', 'deleted_by', 'deleted_by_name', 'deleted_at',
+    'counterparty',
+    'purpose',
+    'contract_no',
+    'invoice_no',
+    'amount',
+    'payment_date',
+    'accounting_object_id',
+    'responsible_id',
+    'responsible_name',
+    'provided',
+    'confirmed',
+    'confirmed_file_id',
+    'seq',
+    'source_invoice_id',
+    'source_invoice_no',
+    'sync_locked',
+    'payment_cancelled',
+    'is_deleted',
+    'deletion_reason',
+    'deleted_by',
+    'deleted_by_name',
+    'deleted_at',
   ]);
 
   if (role === 'admin' || role === 'moderator') return adminEditable.has(field);
 
   // user (ответственный)
   const userEditable = new Set<keyof IDocument>([
-    'counterparty', 'purpose', 'contract_no', 'invoice_no', 'amount',
+    'counterparty',
+    'purpose',
+    'contract_no',
+    'invoice_no',
+    'amount',
   ]);
   return isResponsible && userEditable.has(field);
 }
