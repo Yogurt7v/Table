@@ -144,12 +144,7 @@ const DOCUMENT_FIELD_LABELS: Record<string, string> = {
   deletion_reason: 'Причина удаления',
 };
 
-const HIDDEN_FIELDS = new Set([
-  'source_invoice_id',
-  'automatic',
-  'is_deleted',
-  'file_id',
-]);
+const HIDDEN_FIELDS = new Set(['source_invoice_id', 'automatic', 'is_deleted', 'file_id']);
 
 function formatDocumentHistoryValue(key: string, value: unknown): string {
   if (value == null || value === '') return '—';
@@ -511,9 +506,7 @@ export function DocumentCardModal({
                           ? 'var(--mantine-color-green-0)'
                           : 'var(--mantine-color-orange-0)',
                         cursor:
-                          canToggleProvided && !updateStatus.isPending
-                            ? 'pointer'
-                            : 'default',
+                          canToggleProvided && !updateStatus.isPending ? 'pointer' : 'default',
                       }}
                     >
                       <Group gap="md" wrap="nowrap" align="center">
@@ -533,11 +526,7 @@ export function DocumentCardModal({
                           <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
                             Предоставлен
                           </Text>
-                          <Text
-                            size="xl"
-                            fw={700}
-                            c={document.provided ? 'green.9' : 'orange.9'}
-                          >
+                          <Text size="xl" fw={700} c={document.provided ? 'green.9' : 'orange.9'}>
                             {document.provided ? 'Да' : 'Нет'}
                           </Text>
                           <Text size="xs" c="dimmed">
@@ -587,11 +576,7 @@ export function DocumentCardModal({
                           radius="xl"
                           variant={document.confirmed ? 'filled' : 'light'}
                           color={
-                            document.confirmed
-                              ? 'green'
-                              : document.provided
-                                ? 'orange'
-                                : 'gray'
+                            document.confirmed ? 'green' : document.provided ? 'orange' : 'gray'
                           }
                         >
                           {document.confirmed ? (
@@ -693,9 +678,7 @@ export function DocumentCardModal({
                     <TextInput
                       label="Контрагент"
                       value={form.counterparty}
-                      onChange={(event) =>
-                        patchForm({ counterparty: event.currentTarget.value })
-                      }
+                      onChange={(event) => patchForm({ counterparty: event.currentTarget.value })}
                       readOnly={!editing || !canEdit}
                     />
                   </Grid.Col>
@@ -703,9 +686,7 @@ export function DocumentCardModal({
                     <TextInput
                       label="Договор"
                       value={form.contract_no}
-                      onChange={(event) =>
-                        patchForm({ contract_no: event.currentTarget.value })
-                      }
+                      onChange={(event) => patchForm({ contract_no: event.currentTarget.value })}
                       readOnly={!editing || !canEdit}
                     />
                   </Grid.Col>
@@ -713,9 +694,7 @@ export function DocumentCardModal({
                     <TextInput
                       label="Счёт №"
                       value={form.invoice_no}
-                      onChange={(event) =>
-                        patchForm({ invoice_no: event.currentTarget.value })
-                      }
+                      onChange={(event) => patchForm({ invoice_no: event.currentTarget.value })}
                       readOnly={!editing || !canEdit}
                     />
                   </Grid.Col>
@@ -724,9 +703,7 @@ export function DocumentCardModal({
                       label="Объект"
                       data={objectOptions}
                       value={form.accounting_object_id}
-                      onChange={(value) =>
-                        value && patchForm({ accounting_object_id: value })
-                      }
+                      onChange={(value) => value && patchForm({ accounting_object_id: value })}
                       disabled={!editing || !canMove}
                     />
                   </Grid.Col>
@@ -735,9 +712,7 @@ export function DocumentCardModal({
                       label="Дата оплаты"
                       valueFormat="DD.MM.YYYY"
                       value={dateKeyToLocalDate(form.payment_date)}
-                      onChange={(value) =>
-                        patchForm({ payment_date: localDateToDateKey(value) })
-                      }
+                      onChange={(value) => patchForm({ payment_date: localDateToDateKey(value) })}
                       disabled={!editing || !canEditPaymentDate}
                     />
                   </Grid.Col>
@@ -759,26 +734,18 @@ export function DocumentCardModal({
                       label="Ответственный"
                       data={userOptions}
                       value={form.responsible_id}
-                      onChange={(value) =>
-                        value && patchForm({ responsible_id: value })
-                      }
+                      onChange={(value) => value && patchForm({ responsible_id: value })}
                       disabled={!editing || !canEditResponsible}
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, sm: 6 }}>
-                    <TextInput
-                      label="Автор"
-                      value={document.created_by_name || '—'}
-                      readOnly
-                    />
+                    <TextInput label="Автор" value={document.created_by_name || '—'} readOnly />
                   </Grid.Col>
                   <Grid.Col span={12}>
                     <Textarea
                       label="Назначение"
                       value={form.purpose}
-                      onChange={(event) =>
-                        patchForm({ purpose: event.currentTarget.value })
-                      }
+                      onChange={(event) => patchForm({ purpose: event.currentTarget.value })}
                       readOnly={!editing || !canEdit}
                       autosize
                       minRows={2}
@@ -862,17 +829,13 @@ export function DocumentCardModal({
                         onClick={handlePaymentCancelled}
                         loading={markCancelled.isPending}
                       >
-                        {document.payment_cancelled
-                          ? 'Возобновить оплату'
-                          : 'Отменить оплату'}
+                        {document.payment_cancelled ? 'Возобновить оплату' : 'Отменить оплату'}
                       </Button>
                     )}
                   </Group>
                   <Text size="xs" c="dimmed">
                     Создан{' '}
-                    {document.created
-                      ? dayjs(document.created).format('DD.MM.YYYY HH:mm')
-                      : '—'}
+                    {document.created ? dayjs(document.created).format('DD.MM.YYYY HH:mm') : '—'}
                   </Text>
                 </Group>
               </Paper>
@@ -949,11 +912,7 @@ export function DocumentCardModal({
                   <Stack gap="xs">
                     <FileButton onChange={setSelectedFile}>
                       {(props) => (
-                        <Button
-                          {...props}
-                          variant="default"
-                          leftSection={<IconUpload size={16} />}
-                        >
+                        <Button {...props} variant="default" leftSection={<IconUpload size={16} />}>
                           Выбрать файл
                         </Button>
                       )}

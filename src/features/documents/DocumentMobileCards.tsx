@@ -67,7 +67,9 @@ export function DocumentMobileCards({
                 )}
                 {shows('payment_date') && (
                   <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-                    {document.payment_date ? dayjs(document.payment_date).format('DD.MM.YYYY') : '—'}
+                    {document.payment_date
+                      ? dayjs(document.payment_date).format('DD.MM.YYYY')
+                      : '—'}
                   </Text>
                 )}
               </Group>
@@ -87,10 +89,14 @@ export function DocumentMobileCards({
 
             <Group gap="xs" mt="xs" wrap="wrap">
               {shows('invoice_no') && document.invoice_no && (
-                <Text size="xs" c="dimmed">Счёт {document.invoice_no}</Text>
+                <Text size="xs" c="dimmed">
+                  Счёт {document.invoice_no}
+                </Text>
               )}
               {shows('amount') && document.amount && (
-                <Text size="xs" c="dimmed">{formatAmountRub(document.amount)}</Text>
+                <Text size="xs" c="dimmed">
+                  {formatAmountRub(document.amount)}
+                </Text>
               )}
             </Group>
 
@@ -98,13 +104,17 @@ export function DocumentMobileCards({
               {shows('files') && files.length > 0 && (
                 <Group gap={4}>
                   <IconPaperclip size={16} />
-                  <Text size="xs" c="dimmed">{files.length}</Text>
+                  <Text size="xs" c="dimmed">
+                    {files.length}
+                  </Text>
                 </Group>
               )}
               {shows('comments') && comments.length > 0 && (
                 <Group gap={4}>
                   <IconMessage size={16} />
-                  <Text size="xs" c="dimmed">{comments.length}</Text>
+                  <Text size="xs" c="dimmed">
+                    {comments.length}
+                  </Text>
                 </Group>
               )}
             </Group>

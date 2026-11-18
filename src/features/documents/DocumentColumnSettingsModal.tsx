@@ -120,7 +120,10 @@ export function DocumentColumnSettingsModal({
           Перетащите колонки для изменения порядка, отметьте видимые
         </Text>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext
+            items={items.map((item) => item.id)}
+            strategy={verticalListSortingStrategy}
+          >
             {items.map((item) => (
               <SortableColumn
                 key={item.id}
