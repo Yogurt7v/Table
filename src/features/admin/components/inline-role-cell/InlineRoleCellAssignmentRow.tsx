@@ -1,15 +1,9 @@
 import { useState } from 'react';
-import {
-  ActionIcon,
-  Button,
-  Group,
-  Popover,
-  Text,
-} from '@mantine/core';
+import { ActionIcon, Button, Group, Popover, Text } from '@mantine/core';
 import { IconAdjustments, IconTrash } from '@tabler/icons-react';
 import { useUpdateOrganizationUser } from '@/shared/hooks/useOrganizationUsers';
 import type { IOrganizationUser } from '@/shared/types';
-import type { Role } from '@/shared/types';
+import type { Role } from './InlineRoleCellRoleConstants';
 import { InlineRoleCellObjectPicker } from './InlineRoleCellObjectPicker';
 import { InlineRoleCellInvoicePermissionsPopover } from './InlineRoleCellInvoicePermissionsPopover';
 import { InlineRoleCellMailPermissionsPopover } from './InlineRoleCellMailPermissionsPopover';
@@ -103,7 +97,11 @@ export function InlineRoleCellAssignmentRow({
               <Button size="compact-xs" variant="light" onClick={() => setObjectsOpen(false)}>
                 Отмена
               </Button>
-              <Button size="compact-xs" onClick={handleObjectsSave} loading={updateOrgUser.isPending}>
+              <Button
+                size="compact-xs"
+                onClick={handleObjectsSave}
+                loading={updateOrgUser.isPending}
+              >
                 Сохранить
               </Button>
             </Group>

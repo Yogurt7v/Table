@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { ActionIcon, Popover } from '@mantine/core';
 import { IconFile } from '@tabler/icons-react';
 import { OrganizationUserDocumentPermissions } from '@/features/admin/OrganizationUserDocumentPermissions';
+import type { IOrganizationUser } from '@/shared/types';
 
 interface InlineRoleCellDocumentPermissionsPopoverProps {
-  assignment: { can_view_documents?: boolean; id: string; organization_id: string };
+  assignment: IOrganizationUser;
   canEdit: boolean;
   orgName: string;
 }
@@ -19,7 +20,7 @@ export function InlineRoleCellDocumentPermissionsPopover({
   return (
     <Popover
       opened={opened}
-      onClose={setOpened}
+      onClose={() => setOpened(false)}
       closeOnClickOutside={false}
       width="min(460px, calc(100vw - 24px))"
       position="bottom-end"

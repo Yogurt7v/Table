@@ -1,6 +1,6 @@
 import type { IOrganizationUser } from '@/shared/types';
 
-type Role = IOrganizationUser['role'];
+export type Role = IOrganizationUser['role'];
 
 export const ROLE_COLORS: Record<Role, string> = {
   admin: 'red',

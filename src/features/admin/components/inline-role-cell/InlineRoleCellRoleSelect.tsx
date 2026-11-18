@@ -1,4 +1,5 @@
 import { Select } from '@mantine/core';
+import type { Role } from './InlineRoleCellRoleConstants';
 import { ROLE_OPTIONS, roleInputStyles } from './InlineRoleCellRoleConstants';
 
 export { ROLE_OPTIONS };
