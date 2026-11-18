@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { test, expect, loginViaUi, logoutViaUi, uniqueMarker } from '../fixtures';
-import { authAs, createInvoice, payInvoiceFull } from '../utils/pb';
+import { authAs, createInvoice } from '../utils/pb';
 import { E2E_PASSWORD } from '../data';
 
 async function ensureRoleUser(
@@ -10,7 +10,7 @@ async function ensureRoleUser(
   orgId: string,
   objectId: string,
 ) {
-  let users = await adminPb.collection('users').getFullList({ filter: `login = "${login}"` });
+  const users = await adminPb.collection('users').getFullList({ filter: `login = "${login}"` });
   let user = users[0];
   if (!user) {
     user = await adminPb.collection('users').create({
@@ -45,7 +45,9 @@ async function ensureRoleUser(
       can_create_invoices: true,
     });
   } else {
-    const currentObjects = Array.isArray(membership.objects) ? (membership.objects as string[]) : [];
+    const currentObjects = Array.isArray(membership.objects)
+      ? (membership.objects as string[])
+      : [];
     await adminPb.collection('organization_users').update(membership.id, {
       role,
       objects: Array.from(new Set([...currentObjects, objectId])),
@@ -91,7 +93,9 @@ async function resolveTestContext(): Promise<{ orgId: string; orgName: string; o
     });
     const adminMembership = adminMemberships[0];
     if (adminMembership) {
-      const current = Array.isArray(adminMembership.objects) ? (adminMembership.objects as string[]) : [];
+      const current = Array.isArray(adminMembership.objects)
+        ? (adminMembership.objects as string[])
+        : [];
       if (!current.includes(objectId!)) {
         await adminPb.collection('organization_users').update(adminMembership.id, {
           objects: [...current, objectId],
@@ -104,7 +108,7 @@ async function resolveTestContext(): Promise<{ orgId: string; orgName: string; o
 
   if (!chosen) {
     const org = orgs[0]!;
-    let objects = await adminPb.collection('accounting_objects').getFullList({
+    const objects = await adminPb.collection('accounting_objects').getFullList({
       filter: `organization_id = "${org.id}"`,
       sort: 'created',
     });
@@ -119,7 +123,9 @@ async function resolveTestContext(): Promise<{ orgId: string; orgName: string; o
       });
       objectId = created.id as string;
     }
-    const adminUser = (await adminPb.collection('users').getFullList({ filter: 'login = "admin"' }))[0];
+    const adminUser = (
+      await adminPb.collection('users').getFullList({ filter: 'login = "admin"' })
+    )[0];
     if (adminUser) {
       const existing = await adminPb.collection('organization_users').getFullList({
         filter: `user_id = "${adminUser.id}" && organization_id = "${org.id}"`,
