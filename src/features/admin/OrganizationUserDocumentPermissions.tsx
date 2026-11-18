@@ -5,7 +5,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateOrganizationUserModulePermissions } from '@/api/module-permissions';
 import type { IOrganizationUser } from '@/shared/types';
 
-const DOCUMENT_FLAG_KEYS = ['can_view_documents'] as const satisfies readonly (keyof IOrganizationUser)[];
+const DOCUMENT_FLAG_KEYS = [
+  'can_view_documents',
+] as const satisfies readonly (keyof IOrganizationUser)[];
 
 function readDocumentFlags(assignment: IOrganizationUser | null) {
   return {
@@ -87,7 +89,9 @@ export function OrganizationUserDocumentPermissions({
 
   return (
     <Stack gap="sm">
-      <Text size="sm" fw={500}>Права на документы</Text>
+      <Text size="sm" fw={500}>
+        Права на документы
+      </Text>
 
       <Checkbox
         label="Видеть документы"
@@ -105,7 +109,14 @@ export function OrganizationUserDocumentPermissions({
 
       {canEdit && (
         <Group justify="flex-end" gap={6}>
-          <Button size="compact-xs" variant="light" onClick={() => { setDraft(serverFlags); onClose?.(); }}>
+          <Button
+            size="compact-xs"
+            variant="light"
+            onClick={() => {
+              setDraft(serverFlags);
+              onClose?.();
+            }}
+          >
             Отмена
           </Button>
           <Button

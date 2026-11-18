@@ -79,7 +79,11 @@ function roleSelect(): HTMLInputElement {
   return input as HTMLInputElement;
 }
 
-async function pickOption(user: ReturnType<typeof userEvent.setup>, input: HTMLElement, name: string) {
+async function pickOption(
+  user: ReturnType<typeof userEvent.setup>,
+  input: HTMLElement,
+  name: string,
+) {
   await user.click(input);
   await user.click(await screen.findByRole('option', { name }));
 }

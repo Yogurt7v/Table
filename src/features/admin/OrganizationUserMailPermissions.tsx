@@ -211,7 +211,7 @@ export function OrganizationUserMailPermissions({
 
       {canEdit && (
         <Group justify="flex-end" gap={6}>
-          <Button size="compact-xs" variant="light" onClick={handleCancel} >
+          <Button size="compact-xs" variant="light" onClick={handleCancel}>
             Отмена
           </Button>
           <Button

@@ -5,7 +5,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateOrganizationUserModulePermissions } from '@/api/module-permissions';
 import type { IOrganizationUser } from '@/shared/types';
 
-const INVOICE_FLAG_KEYS = ['can_view_invoices'] as const satisfies readonly (keyof IOrganizationUser)[];
+const INVOICE_FLAG_KEYS = [
+  'can_view_invoices',
+] as const satisfies readonly (keyof IOrganizationUser)[];
 
 function readInvoiceFlags(assignment: IOrganizationUser | null) {
   return {
@@ -87,7 +89,9 @@ export function OrganizationUserInvoicePermissions({
 
   return (
     <Stack gap="sm">
-      <Text size="sm" fw={500}>Права на счета</Text>
+      <Text size="sm" fw={500}>
+        Права на счета
+      </Text>
 
       <Checkbox
         label="Видеть счета"
@@ -105,7 +109,14 @@ export function OrganizationUserInvoicePermissions({
 
       {canEdit && (
         <Group justify="flex-end" gap={6}>
-          <Button size="compact-xs" variant="light" onClick={() => { setDraft(serverFlags); onClose?.(); }}>
+          <Button
+            size="compact-xs"
+            variant="light"
+            onClick={() => {
+              setDraft(serverFlags);
+              onClose?.();
+            }}
+          >
             Отмена
           </Button>
           <Button
