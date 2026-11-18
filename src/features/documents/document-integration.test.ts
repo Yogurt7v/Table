@@ -32,7 +32,10 @@ vi.mock('@/api/client', () => {
       return Promise.resolve(found);
     },
     getFullList: (params?: unknown) => {
-      h.stub.calls.set(`${name}.getFullList`, [...(h.stub.calls.get(`${name}.getFullList`) ?? []), params]);
+      h.stub.calls.set(`${name}.getFullList`, [
+        ...(h.stub.calls.get(`${name}.getFullList`) ?? []),
+        params,
+      ]);
       return Promise.resolve(h.stub.list.get(name) ?? []);
     },
     create: (body: Payload) => {
@@ -189,7 +192,11 @@ describe('document integration: archive and restore', () => {
 
 describe('document integration: payment cancel and resume', () => {
   it('marks payment cancelled and resets statuses', async () => {
-    const document = documentFixture({ provided: true, confirmed: true, confirmed_file_id: 'file1' });
+    const document = documentFixture({
+      provided: true,
+      confirmed: true,
+      confirmed_file_id: 'file1',
+    });
     const { markPaymentCancelled } = await import('@/api/documents');
     await markPaymentCancelled(document, true);
     const body = updated('documents')!;
@@ -200,7 +207,11 @@ describe('document integration: payment cancel and resume', () => {
   });
 
   it('resumes payment without resetting statuses', async () => {
-    const document = documentFixture({ payment_cancelled: true, provided: false, confirmed: false });
+    const document = documentFixture({
+      payment_cancelled: true,
+      provided: false,
+      confirmed: false,
+    });
     const { markPaymentCancelled } = await import('@/api/documents');
     await markPaymentCancelled(document, false);
     const body = updated('documents')!;
