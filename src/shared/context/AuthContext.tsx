@@ -19,6 +19,10 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Ключ токена в localStorage: `BaseAuthStore` его не отдаёт, а `LocalAuthStore`
+// задаёт только в конструкторе — поэтому значение зафиксировано здесь.
+const AUTH_STORAGE_KEY = 'pocketbase_auth';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,7 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsub = onSessionExpired(() => {
       if (location.pathname === '/login') {
-        navigate('/login', { replace: true, state: { reason: 'expired', from: location.state?.from } });
+        navigate('/login', {
+          replace: true,
+          state: { reason: 'expired', from: location.state?.from },
+        });
         return;
       }
       setSessionExpired(true);
@@ -60,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key !== pb.authStore.storageKey) return;
+      if (e.key !== AUTH_STORAGE_KEY) return;
       if (!pb.authStore.token) {
         setUser(null);
         setSessionExpired(false);
@@ -94,7 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    const from = location.pathname !== '/login' ? { pathname: location.pathname } : location.state?.from;
+    const from =
+      location.pathname !== '/login' ? { pathname: location.pathname } : location.state?.from;
     pb.authStore.clear();
     setUser(null);
     setLastKnownUser(null);
