@@ -1,5 +1,11 @@
 import { test, expect, loginViaUi, uniqueMarker } from '../fixtures';
-import { authAs, resolveTestOrgId, firstObjectId, createInvoice, payInvoiceFull } from '../utils/pb';
+import {
+  authAs,
+  resolveTestOrgId,
+  firstObjectId,
+  createInvoice,
+  payInvoiceFull,
+} from '../utils/pb';
 
 test.describe('Документы: создание', () => {
   test('оплата счёта автоматически создаёт документ', async ({ page }) => {
@@ -7,7 +13,12 @@ test.describe('Документы: создание', () => {
     const orgId = await resolveTestOrgId(pb);
     const objectId = await firstObjectId(pb, orgId);
     const marker = uniqueMarker('ДокАвто');
-    const invoice = await createInvoice(pb, { orgId, objectId, counterparty: marker, amount: 1000 });
+    const invoice = await createInvoice(pb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+    });
     await payInvoiceFull(invoice.id as string, new Date().toISOString().slice(0, 10));
 
     await loginViaUi(page, 'admin');

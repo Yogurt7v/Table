@@ -2,7 +2,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test, expect, loginViaUi, uniqueMarker } from '../fixtures';
-import { authAs, resolveTestOrgId, firstObjectId, createInvoice, payInvoiceFull } from '../utils/pb';
+import {
+  authAs,
+  resolveTestOrgId,
+  firstObjectId,
+  createInvoice,
+  payInvoiceFull,
+} from '../utils/pb';
 
 const filePath = path.join(os.tmpdir(), `docs-human-flow-${Date.now()}.txt`);
 
@@ -21,7 +27,12 @@ test.describe('Документы: сквозной сценарий', () => {
     const objectId = await firstObjectId(pb, orgId);
     const marker = uniqueMarker('ДокСквозной');
     const commentText = uniqueMarker('КомментСквозной');
-    const invoice = await createInvoice(pb, { orgId, objectId, counterparty: marker, amount: 1000 });
+    const invoice = await createInvoice(pb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+    });
     await payInvoiceFull(invoice.id as string, new Date().toISOString().slice(0, 10));
 
     await loginViaUi(page, 'admin');
@@ -49,7 +60,10 @@ test.describe('Документы: сквозной сценарий', () => {
     await modal.getByRole('tab', { name: 'Документ' }).click();
     await modal.getByRole('button', { name: 'В архив' }).click();
     await page.getByLabel('Причина').fill('сквозная архивация');
-    await page.getByRole('dialog', { name: 'Переместить документ в архив' }).getByRole('button', { name: 'В архив' }).click();
+    await page
+      .getByRole('dialog', { name: 'Переместить документ в архив' })
+      .getByRole('button', { name: 'В архив' })
+      .click();
     await expect(page.getByText('Документ перемещён в архив')).toBeVisible();
     await expect(page.locator('tr').filter({ hasText: marker })).toHaveCount(0);
 
@@ -62,7 +76,10 @@ test.describe('Документы: сквозной сценарий', () => {
     await expect(archiveRow).toContainText('сквозная архивация');
 
     await archiveRow.getByRole('button', { name: 'Восстановить' }).click();
-    await page.getByRole('dialog', { name: 'Восстановление документа' }).getByRole('button', { name: 'Восстановить' }).click();
+    await page
+      .getByRole('dialog', { name: 'Восстановление документа' })
+      .getByRole('button', { name: 'Восстановить' })
+      .click();
     await expect(page.getByText('Документ восстановлен')).toBeVisible();
 
     await page.goto('http://localhost:5173/docs');

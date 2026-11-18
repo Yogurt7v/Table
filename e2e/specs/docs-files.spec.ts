@@ -35,7 +35,12 @@ test.describe('Документы: файлы', () => {
     const orgId = await resolveTestOrgId(pb);
     const objectId = await firstObjectId(pb, orgId);
     const marker = uniqueMarker('ДокФайлыМного');
-    const invoice = await createInvoice(pb, { orgId, objectId, counterparty: marker, amount: 1000 });
+    const invoice = await createInvoice(pb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+    });
     await payInvoiceFull(invoice.id as string, new Date().toISOString().slice(0, 10));
 
     await loginViaUi(page, 'admin');
@@ -86,7 +91,12 @@ test.describe('Документы: файлы', () => {
     const orgId = await resolveTestOrgId(adminPb);
     const objectId = await firstObjectId(adminPb, orgId);
     const marker = uniqueMarker('ДокФайлыПрава');
-    const invoice = await createInvoice(userPb, { orgId, objectId, counterparty: marker, amount: 1000 });
+    const invoice = await createInvoice(userPb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+    });
     await payInvoiceFull(invoice.id as string, new Date().toISOString().slice(0, 10));
 
     await loginViaUi(page, 'admin');
@@ -127,12 +137,19 @@ test.describe('Документы: файлы', () => {
     const orgId = await resolveTestOrgId(pb);
     const objectId = await firstObjectId(pb, orgId);
     const marker = uniqueMarker('ДокФайлыСчёта');
-    const invoice = await createInvoice(pb, { orgId, objectId, counterparty: marker, amount: 1000 });
+    const invoice = await createInvoice(pb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+    });
     await pb.collection('invoice_files').create({
       invoice_id: invoice.id,
       organization_id: orgId,
       name: 'исходный-счёт.txt',
-      file: new File([fs.readFileSync(firstFilePath)], 'invoice-source.txt', { type: 'text/plain' }),
+      file: new File([fs.readFileSync(firstFilePath)], 'invoice-source.txt', {
+        type: 'text/plain',
+      }),
     });
     await payInvoiceFull(invoice.id as string, new Date().toISOString().slice(0, 10));
 

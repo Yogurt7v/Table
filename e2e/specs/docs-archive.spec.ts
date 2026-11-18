@@ -1,5 +1,11 @@
 import { test, expect, loginViaUi, uniqueMarker } from '../fixtures';
-import { authAs, resolveTestOrgId, firstObjectId, createInvoice, payInvoiceFull } from '../utils/pb';
+import {
+  authAs,
+  resolveTestOrgId,
+  firstObjectId,
+  createInvoice,
+  payInvoiceFull,
+} from '../utils/pb';
 
 test.describe('Документы: архив', () => {
   test('удаление в архив и восстановление документа', async ({ page }) => {
@@ -7,7 +13,12 @@ test.describe('Документы: архив', () => {
     const orgId = await resolveTestOrgId(pb);
     const objectId = await firstObjectId(pb, orgId);
     const marker = uniqueMarker('ДокАрхив');
-    const invoice = await createInvoice(pb, { orgId, objectId, counterparty: marker, amount: 1000 });
+    const invoice = await createInvoice(pb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+    });
     await payInvoiceFull(invoice.id as string, new Date().toISOString().slice(0, 10));
 
     await loginViaUi(page, 'admin');
@@ -19,7 +30,10 @@ test.describe('Документы: архив', () => {
     const modal = page.getByRole('dialog');
     await modal.getByRole('button', { name: 'В архив' }).click();
     await page.getByLabel('Причина').fill('причина архивации');
-    await page.getByRole('dialog', { name: 'Переместить документ в архив' }).getByRole('button', { name: 'В архив' }).click();
+    await page
+      .getByRole('dialog', { name: 'Переместить документ в архив' })
+      .getByRole('button', { name: 'В архив' })
+      .click();
     await expect(page.getByText('Документ перемещён в архив')).toBeVisible();
     await expect(page.locator('tr').filter({ hasText: marker })).toHaveCount(0);
 
@@ -32,7 +46,10 @@ test.describe('Документы: архив', () => {
     await expect(archiveRow).toContainText('причина архивации');
 
     await archiveRow.getByRole('button', { name: 'Восстановить' }).click();
-    await page.getByRole('dialog', { name: 'Восстановление документа' }).getByRole('button', { name: 'Восстановить' }).click();
+    await page
+      .getByRole('dialog', { name: 'Восстановление документа' })
+      .getByRole('button', { name: 'Восстановить' })
+      .click();
     await expect(page.getByText('Документ восстановлен')).toBeVisible();
 
     await page.goto('http://localhost:5173/docs');

@@ -1,14 +1,27 @@
 import { test, expect, loginViaUi, uniqueMarker } from '../fixtures';
-import { authAs, resolveTestOrgId, firstObjectId, createInvoice, payInvoiceFull } from '../utils/pb';
+import {
+  authAs,
+  resolveTestOrgId,
+  firstObjectId,
+  createInvoice,
+  payInvoiceFull,
+} from '../utils/pb';
 
 test.describe('Документы: комментарии', () => {
-  test('ответственный добавляет комментарий, а босс видит его только для чтения', async ({ page }) => {
+  test('ответственный добавляет комментарий, а босс видит его только для чтения', async ({
+    page,
+  }) => {
     const pb = await authAs('admin');
     const orgId = await resolveTestOrgId(pb);
     const objectId = await firstObjectId(pb, orgId);
     const marker = uniqueMarker('ДокКоммент');
     const commentText = uniqueMarker('Комментарий');
-    const invoice = await createInvoice(pb, { orgId, objectId, counterparty: marker, amount: 1000 });
+    const invoice = await createInvoice(pb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+    });
     await payInvoiceFull(invoice.id as string, new Date().toISOString().slice(0, 10));
 
     await loginViaUi(page, 'admin');

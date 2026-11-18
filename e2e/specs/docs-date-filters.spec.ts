@@ -15,7 +15,12 @@ test.describe('Документы: фильтр по периодам дат', (
     const objectId = await firstObjectId(pb, orgId);
     const marker = uniqueMarker('ДокПериод');
 
-    const invoice = await createInvoice(pb, { orgId, objectId, counterparty: marker, amount: 1000 });
+    const invoice = await createInvoice(pb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+    });
     await payInvoiceFull(invoice.id as string, todayIso());
 
     await loginViaUi(page, 'admin');
