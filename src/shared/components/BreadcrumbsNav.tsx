@@ -17,7 +17,10 @@ function breadcrumbItems(pathname: string) {
   if (!label) return null;
   return pathname === '/'
     ? [{ label: ROOT_LABEL, to: '/' }]
-    : [{ label: ROOT_LABEL, to: '/' }, { label, to: pathname }];
+    : [
+        { label: ROOT_LABEL, to: '/' },
+        { label, to: pathname },
+      ];
 }
 
 export function BreadcrumbsNav() {
@@ -51,7 +54,7 @@ export function BreadcrumbsNav() {
                 <Menu.Item
                   key={item.to}
                   fw={700}
-                  component="div"          // не интерактивный, не попадает в tab-порядок
+                  component="div" // не интерактивный, не попадает в tab-порядок
                   aria-current="page"
                 >
                   {item.label}
@@ -71,10 +74,7 @@ export function BreadcrumbsNav() {
   }
 
   return (
-    <Breadcrumbs
-      separator={<IconChevronRight size={14} />}
-      separatorMargin="xs"
-    >
+    <Breadcrumbs separator={<IconChevronRight size={14} />} separatorMargin="xs">
       {items.map((item, idx) => {
         const isCurrent = idx === items.length - 1;
 

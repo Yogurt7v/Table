@@ -14,8 +14,5 @@ import { useCurrentOrgUser } from '@/shared/hooks/useCurrentOrgUser';
 export function useDocumentPermissions(orgId: string): { canView: boolean } {
   const assignment = useCurrentOrgUser(orgId);
 
-  return useMemo(
-    () => ({ canView: assignment?.can_view_documents !== false }),
-    [assignment],
-  );
+  return useMemo(() => ({ canView: assignment?.can_view_documents !== false }), [assignment]);
 }

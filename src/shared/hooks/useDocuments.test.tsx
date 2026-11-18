@@ -48,7 +48,9 @@ const api = vi.hoisted(() => ({
 vi.mock('@/api/documents', () => api);
 
 function makeQueryClient() {
-  return new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  return new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
 }
 
 function wrapper(queryClient: QueryClient) {
@@ -84,7 +86,9 @@ beforeEach(() => {
 describe('useDocuments', () => {
   it('does not run without organization or role', () => {
     const queryClient = makeQueryClient();
-    const { result } = renderHook(() => useDocuments('', null, 'u1'), { wrapper: wrapper(queryClient) });
+    const { result } = renderHook(() => useDocuments('', null, 'u1'), {
+      wrapper: wrapper(queryClient),
+    });
     expect(result.current.fetchStatus).toBe('idle');
     expect(api.listDocuments).not.toHaveBeenCalled();
   });
@@ -92,10 +96,16 @@ describe('useDocuments', () => {
   it('loads documents with normalized role and user id', async () => {
     api.listDocuments.mockResolvedValue([document]);
     const queryClient = makeQueryClient();
-    const { result } = renderHook(() => useDocuments('org1', 'user', 'u1'), { wrapper: wrapper(queryClient) });
+    const { result } = renderHook(() => useDocuments('org1', 'user', 'u1'), {
+      wrapper: wrapper(queryClient),
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(api.listDocuments).toHaveBeenCalledWith({ organizationId: 'org1', role: 'user', userId: 'u1' });
+    expect(api.listDocuments).toHaveBeenCalledWith({
+      organizationId: 'org1',
+      role: 'user',
+      userId: 'u1',
+    });
     expect(result.current.data).toEqual([document]);
   });
 
@@ -118,9 +128,28 @@ describe('useDocuments', () => {
 describe('document queries', () => {
   it('uses distinct query keys', async () => {
     const doc: IDocument = { ...document, source_invoice_id: 'inv1' };
-    const file: IDocumentFile = { id: 'file1', document_id: 'doc1', organization_id: 'org1', file: 'a.pdf', name: 'a.pdf' };
-    const comment: IDocumentComment = { id: 'comment1', document_id: 'doc1', organization_id: 'org1', author: 'u1', text: 'text' };
-    const history: IDocumentHistory = { id: 'h1', document_id: 'doc1', organization_id: 'org1', changed_at: '2026-10-14T10:00:00.000Z', type: 'document_updated', previous_data: {} };
+    const file: IDocumentFile = {
+      id: 'file1',
+      document_id: 'doc1',
+      organization_id: 'org1',
+      file: 'a.pdf',
+      name: 'a.pdf',
+    };
+    const comment: IDocumentComment = {
+      id: 'comment1',
+      document_id: 'doc1',
+      organization_id: 'org1',
+      author: 'u1',
+      text: 'text',
+    };
+    const history: IDocumentHistory = {
+      id: 'h1',
+      document_id: 'doc1',
+      organization_id: 'org1',
+      changed_at: '2026-10-14T10:00:00.000Z',
+      type: 'document_updated',
+      previous_data: {},
+    };
 
     api.getArchivedDocuments.mockResolvedValue([doc]);
     api.getDocumentById.mockResolvedValue(doc);
@@ -145,7 +174,9 @@ describe('document queries', () => {
     const comments = renderHook(() => useDocumentComments('doc1'), { wrapper: w });
     const histories = renderHook(() => useDocumentHistory('doc1'), { wrapper: w });
     const source = renderHook(() => useDocumentSource(doc), { wrapper: w });
-    const search = renderHook(() => useDocumentCommentSearch('org1', 'query', true), { wrapper: w });
+    const search = renderHook(() => useDocumentCommentSearch('org1', 'query', true), {
+      wrapper: w,
+    });
 
     await waitFor(() => expect(archived.result.current.isSuccess).toBe(true));
     await waitFor(() => expect(one.result.current.isSuccess).toBe(true));
@@ -173,11 +204,19 @@ describe('document queries', () => {
 
 describe('mutations', () => {
   it('invalidates document and archive caches after create', async () => {
-    const input = { organizationId: 'org1', accountingObjectId: 'obj1', paymentDate: '2026-10-14', counterparty: 'ООО', responsibleId: 'u1' };
+    const input = {
+      organizationId: 'org1',
+      accountingObjectId: 'obj1',
+      paymentDate: '2026-10-14',
+      counterparty: 'ООО',
+      responsibleId: 'u1',
+    };
     api.createManualDocument.mockResolvedValue(document);
     const queryClient = makeQueryClient();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
-    const { result } = renderHook(() => useCreateManualDocument('org1'), { wrapper: wrapper(queryClient) });
+    const { result } = renderHook(() => useCreateManualDocument('org1'), {
+      wrapper: wrapper(queryClient),
+    });
 
     result.current.mutate(input);
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -193,21 +232,40 @@ describe('mutations', () => {
     api.updateDocumentWithHistory.mockResolvedValue(updated);
     const queryClient = makeQueryClient();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
-    const { result } = renderHook(() => useUpdateDocument('org1'), { wrapper: wrapper(queryClient) });
+    const { result } = renderHook(() => useUpdateDocument('org1'), {
+      wrapper: wrapper(queryClient),
+    });
 
-    result.current.mutate({ document, data: { counterparty: 'Новый' }, previousData: { counterparty: 'ООО' } });
+    result.current.mutate({
+      document,
+      data: { counterparty: 'Новый' },
+      previousData: { counterparty: 'ООО' },
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(api.updateDocumentWithHistory).toHaveBeenCalledWith(document, { counterparty: 'Новый' }, 'document_updated', { counterparty: 'ООО' });
+    expect(api.updateDocumentWithHistory).toHaveBeenCalledWith(
+      document,
+      { counterparty: 'Новый' },
+      'document_updated',
+      { counterparty: 'ООО' },
+    );
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['document-history', 'doc1'] });
   });
 
   it('uploads a file and invalidates file/history/document caches', async () => {
     const file = new File(['x'], 'scan.pdf');
-    api.uploadDocumentFile.mockResolvedValue({ id: 'file1', document_id: 'doc1', organization_id: 'org1', file: 'scan.pdf', name: 'scan.pdf' } as IDocumentFile);
+    api.uploadDocumentFile.mockResolvedValue({
+      id: 'file1',
+      document_id: 'doc1',
+      organization_id: 'org1',
+      file: 'scan.pdf',
+      name: 'scan.pdf',
+    } as IDocumentFile);
     const queryClient = makeQueryClient();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
-    const { result } = renderHook(() => useUploadDocumentFile('org1'), { wrapper: wrapper(queryClient) });
+    const { result } = renderHook(() => useUploadDocumentFile('org1'), {
+      wrapper: wrapper(queryClient),
+    });
 
     result.current.mutate({ document, file, displayName: 'Скан' });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

@@ -8,9 +8,8 @@ import { useBankAccounts, useUpdateBalance } from './useBankAccounts';
 
 const api = vi.hoisted(() => ({
   getBalancesForOrgDate: vi.fn<(orgId: string, date: string) => Promise<IAccountWithBalance[]>>(),
-  upsertBalance: vi.fn<
-    (accountId: string, date: string, balance: number) => Promise<IBalanceHistory>
-  >(),
+  upsertBalance:
+    vi.fn<(accountId: string, date: string, balance: number) => Promise<IBalanceHistory>>(),
 }));
 
 vi.mock('@/api/collections', () => api);
@@ -157,7 +156,9 @@ describe('useBankAccounts', () => {
     await waitFor(() =>
       expect(api.getBalancesForOrgDate).toHaveBeenLastCalledWith(ORG, OTHER_DATE),
     );
-    expect(client.getQueryData<IAccountWithBalance[]>(['bank_accounts', ORG, OTHER_DATE])).toHaveLength(2);
+    expect(
+      client.getQueryData<IAccountWithBalance[]>(['bank_accounts', ORG, OTHER_DATE]),
+    ).toHaveLength(2);
     expect(client.getQueryData<IAccountWithBalance[]>(KEY)).toHaveLength(2);
   });
 
@@ -172,8 +173,10 @@ describe('useBankAccounts', () => {
     );
     await waitFor(() => expect(api.getBalancesForOrgDate).toHaveBeenCalledTimes(2));
 
-    expect(client.getQueryData<IAccountWithBalance[]>(['bank_accounts', ORG, DATE])?.[0]?.account
-      .organization_id).toBe(ORG);
+    expect(
+      client.getQueryData<IAccountWithBalance[]>(['bank_accounts', ORG, DATE])?.[0]?.account
+        .organization_id,
+    ).toBe(ORG);
     expect(
       client.getQueryData<IAccountWithBalance[]>(['bank_accounts', OTHER_ORG, DATE])?.[0]?.account
         .organization_id,

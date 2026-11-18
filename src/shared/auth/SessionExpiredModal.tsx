@@ -8,7 +8,11 @@ interface SessionExpiredModalProps {
   onAuthenticated: () => void;
 }
 
-export function SessionExpiredModal({ opened, onClose, onAuthenticated }: SessionExpiredModalProps) {
+export function SessionExpiredModal({
+  opened,
+  onClose,
+  onAuthenticated,
+}: SessionExpiredModalProps) {
   const { reauthenticate } = useAuth();
   const [loginValue, setLoginValue] = useState('');
   const [passwordValue, setPasswordValue] = useState('');
@@ -36,8 +40,18 @@ export function SessionExpiredModal({ opened, onClose, onAuthenticated }: Sessio
     <Modal opened={opened} onClose={onClose} title="Сессия истекла" size="md">
       <Text>Ваша сессия истекла. Войдите заново, чтобы продолжить работу.</Text>
       <form onSubmit={handleSubmit}>
-        <TextInput label="Логин" value={loginValue} onChange={(e) => setLoginValue(e.currentTarget.value)} required />
-        <PasswordInput label="Пароль" value={passwordValue} onChange={(e) => setPasswordValue(e.currentTarget.value)} required />
+        <TextInput
+          label="Логин"
+          value={loginValue}
+          onChange={(e) => setLoginValue(e.currentTarget.value)}
+          required
+        />
+        <PasswordInput
+          label="Пароль"
+          value={passwordValue}
+          onChange={(e) => setPasswordValue(e.currentTarget.value)}
+          required
+        />
         {error && <Text color="red">{error}</Text>}
         <Group justify="flex-end" mt="sm">
           <Button variant="default" onClick={onClose} disabled={loading}>
