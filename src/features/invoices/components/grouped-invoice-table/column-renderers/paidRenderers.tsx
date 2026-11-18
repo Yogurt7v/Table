@@ -13,6 +13,7 @@ export function createPaidColumnRenderers(
 ): { paid: InvoiceColumnRenderer; paid_date: InvoiceColumnRenderer } {
   const { permissions, setClearConfirmInvoiceId, setPayModalInvoice, setPayModalAmount } = params;
 
+  // Рендереры колонок «Оплачено» и «Дата оплаты»
   return {
     paid: {
       width: 130,

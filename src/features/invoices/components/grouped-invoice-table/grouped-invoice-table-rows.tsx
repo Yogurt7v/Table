@@ -330,5 +330,6 @@ export function buildInvoiceRows({
     );
   }
 
+  // Итог: основная строка + копии частичных оплат + строка остатка (если есть)
   return rows;
 }

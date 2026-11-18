@@ -18,6 +18,7 @@ export function createTextColumnRenderers(
   const { draftForm, draftErrors, counterpartyResults, handleDraftChange, handleDraftKeyDown } =
     params;
 
+  // Набор текстовых рендереров: контрагент, назначение, договор, счёт, комментарий
   return {
     counterparty: {
       width: 180,
