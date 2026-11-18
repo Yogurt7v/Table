@@ -484,9 +484,7 @@ describe('MailHistoryModal — изменения полей', () => {
 
     expect(screen.getByText('Старые значения зачёркнуты')).toBeInTheDocument();
     expect(diffChips()).toEqual(['Новая тема → Итоговая тема', 'Старая тема → Новая тема']);
-    const changed = diffChipNodes().find(
-      (node) => node.textContent === 'Старая тема → Новая тема',
-    );
+    const changed = diffChipNodes().find((node) => node.textContent === 'Старая тема → Новая тема');
     if (!changed) throw new Error('чипа правки темы нет в ленте');
     expect(within(changed).getByText('Старая тема')).toHaveStyle({
       textDecoration: 'line-through',

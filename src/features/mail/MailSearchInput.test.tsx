@@ -19,27 +19,18 @@ describe('MailSearchInput', () => {
   });
 
   it('рендерит поле ввода с плейсхолдером', () => {
-    renderWithProviders(
-      <MailSearchInput value="" onChange={vi.fn()} scopeLabel="письмам" />,
-    );
-    expect(screen.getByRole('textbox')).toHaveAttribute(
-      'placeholder',
-      'Поиск по письмам...',
-    );
+    renderWithProviders(<MailSearchInput value="" onChange={vi.fn()} scopeLabel="письмам" />);
+    expect(screen.getByRole('textbox')).toHaveAttribute('placeholder', 'Поиск по письмам...');
   });
 
   it('отображает переданное значение', () => {
-    renderWithProviders(
-      <MailSearchInput value="тест" onChange={vi.fn()} scopeLabel="письмам" />,
-    );
+    renderWithProviders(<MailSearchInput value="тест" onChange={vi.fn()} scopeLabel="письмам" />);
     expect(screen.getByRole('textbox')).toHaveValue('тест');
   });
 
   it('onChange вызывается после дебаунса 280мс', () => {
     const onChange = vi.fn();
-    renderWithProviders(
-      <MailSearchInput value="" onChange={onChange} scopeLabel="письмам" />,
-    );
+    renderWithProviders(<MailSearchInput value="" onChange={onChange} scopeLabel="письмам" />);
 
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'а' } });
@@ -58,24 +49,18 @@ describe('MailSearchInput', () => {
   });
 
   it('показывает кнопку очистки при непустом тексте', () => {
-    renderWithProviders(
-      <MailSearchInput value="тест" onChange={vi.fn()} scopeLabel="письмам" />,
-    );
+    renderWithProviders(<MailSearchInput value="тест" onChange={vi.fn()} scopeLabel="письмам" />);
     expect(screen.getByLabelText('Очистить поиск')).toBeInTheDocument();
   });
 
   it('скрывает кнопку очистки при пустом тексте', () => {
-    renderWithProviders(
-      <MailSearchInput value="" onChange={vi.fn()} scopeLabel="письмам" />,
-    );
+    renderWithProviders(<MailSearchInput value="" onChange={vi.fn()} scopeLabel="письмам" />);
     expect(screen.queryByLabelText('Очистить поиск')).not.toBeInTheDocument();
   });
 
   it('очистка сбрасывает значение и вызывает onChange', () => {
     const onChange = vi.fn();
-    renderWithProviders(
-      <MailSearchInput value="тест" onChange={onChange} scopeLabel="письмам" />,
-    );
+    renderWithProviders(<MailSearchInput value="тест" onChange={onChange} scopeLabel="письмам" />);
 
     fireEvent.click(screen.getByLabelText('Очистить поиск'));
 

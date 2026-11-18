@@ -127,9 +127,7 @@ describe('mail-history: formatMailHistoryValue', () => {
   });
 
   it('момент печатается с временем и секундами', () => {
-    expect(formatMailHistoryValue('deleted_at', '2026-10-08T10:00:00')).toBe(
-      '08.10.2026 10:00:00',
-    );
+    expect(formatMailHistoryValue('deleted_at', '2026-10-08T10:00:00')).toBe('08.10.2026 10:00:00');
   });
 
   it('обычное значение печатается как есть, а пустое — прочерком', () => {

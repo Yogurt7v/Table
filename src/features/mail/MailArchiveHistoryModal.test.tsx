@@ -55,7 +55,10 @@ describe('DeletedMailHistoryModal', () => {
   it('показывает Loader во время загрузки', () => {
     let resolve: (v: IDeletedMailHistory[]) => void = () => {};
     mockGetIncoming.mockImplementationOnce(
-      () => new Promise((r) => { resolve = r; }),
+      () =>
+        new Promise((r) => {
+          resolve = r;
+        }),
     );
 
     renderWithProviders(

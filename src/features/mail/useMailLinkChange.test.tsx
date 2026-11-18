@@ -60,11 +60,7 @@ describe('useMailLinkChange', () => {
     await result.current.changeLink({ child, plan });
 
     expect(mockDelete).toHaveBeenCalledWith('rel1', 'org1');
-    expect(mockCreate).toHaveBeenCalledWith(
-      { id: 'mail3', type: 'outgoing' },
-      child,
-      'org1',
-    );
+    expect(mockCreate).toHaveBeenCalledWith({ id: 'mail3', type: 'outgoing' }, child, 'org1');
   });
 
   it('без plan.create — только снимает связь', async () => {
@@ -161,15 +157,16 @@ describe('useMailLinkChange', () => {
       'Не удалось снять прежнюю связь — новый родитель не назначен',
     );
 
-    expect(notifications.show).toHaveBeenCalledWith(
-      expect.objectContaining({ color: 'red' }),
-    );
+    expect(notifications.show).toHaveBeenCalledWith(expect.objectContaining({ color: 'red' }));
   });
 
   it('isPending=true во время выполнения', async () => {
     let resolveCreate: (v: IMailRelation) => void = () => {};
     mockCreate.mockImplementationOnce(
-      () => new Promise((r) => { resolveCreate = r; }),
+      () =>
+        new Promise((r) => {
+          resolveCreate = r;
+        }),
     );
 
     const { result } = renderHook(() => useMailLinkChange('org1'), {

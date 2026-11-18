@@ -7,9 +7,36 @@ import type { MailCandidate, MailCandidateLookup } from './mail-parent';
 const theme = createTheme({});
 
 const candidates: MailCandidate[] = [
-  { key: 'incoming:1', id: 'm1', number: '100', counterparty: 'ООО Ромашка', subject: 'Счёт на оплату', type: 'incoming', dateKey: '2024-01-15', seq: 1 },
-  { key: 'outgoing:2', id: 'm2', number: '200', counterparty: 'ИП Иванов', subject: 'Акт выполненных работ', type: 'outgoing', dateKey: '2024-01-16', seq: 2 },
-  { key: 'incoming:3', id: 'm3', number: '300', counterparty: 'ООО Ромашка', subject: 'Договор', type: 'incoming', dateKey: '2024-01-17', seq: 3 },
+  {
+    key: 'incoming:1',
+    id: 'm1',
+    number: '100',
+    counterparty: 'ООО Ромашка',
+    subject: 'Счёт на оплату',
+    type: 'incoming',
+    dateKey: '2024-01-15',
+    seq: 1,
+  },
+  {
+    key: 'outgoing:2',
+    id: 'm2',
+    number: '200',
+    counterparty: 'ИП Иванов',
+    subject: 'Акт выполненных работ',
+    type: 'outgoing',
+    dateKey: '2024-01-16',
+    seq: 2,
+  },
+  {
+    key: 'incoming:3',
+    id: 'm3',
+    number: '300',
+    counterparty: 'ООО Ромашка',
+    subject: 'Договор',
+    type: 'incoming',
+    dateKey: '2024-01-17',
+    seq: 3,
+  },
 ];
 
 const lookup: MailCandidateLookup = {
