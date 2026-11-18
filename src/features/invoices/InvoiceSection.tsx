@@ -1,80 +1,13 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import dayjs from 'dayjs';
-import {
-  Affix,
-  Paper,
-  Title,
-  Group,
-  Skeleton,
-  Stack,
-  Text,
-  ActionIcon,
-  Tooltip,
-  Menu,
-  Box,
-  Button,
-  Loader,
-  Center,
-  Collapse,
-  useMantineTheme,
-  Anchor,
-} from '@mantine/core';
-import {
-  IconPrinter,
-  IconSettings,
-  IconFileExport,
-  IconChevronsDown,
-  IconChevronsUp,
-  IconChevronDown,
-  IconChevronRight,
-  IconX,
-  IconFilter,
-  IconCheck,
-} from '@tabler/icons-react';
-import { useInvoices } from '@/shared/hooks/useInvoices';
-import { useSearchInvoices } from '@/shared/hooks/useSearchInvoices';
-import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
-import { useOrgInvoiceFiles } from '@/shared/hooks/useInvoiceFiles';
-import { useUserSetting, useUpsertUserSetting } from '@/shared/hooks/useUserSettings';
-import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
-import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
-import { useUserMap } from '@/shared/hooks/useUserMap';
+import { Affix, Center, Loader, Paper, Skeleton, Stack, Text } from '@mantine/core';
+import { CollapsedObjectsProvider } from '@/shared/context/CollapsedObjectsContext';
+import { formatAmountRub } from '@/shared/utils/format-currency';
+import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { InvoiceColumnSettingsModal } from '@/features/invoices/InvoiceColumnSettingsModal';
 import { PrintableInvoices } from '@/features/invoices/PrintableInvoices';
-import { exportInvoicesToExcel } from '@/features/invoices/exportInvoicesToExcel';
 import { SearchResultsView } from '@/features/invoices/components/SearchResultsView';
-import { InvoiceObjectBlock } from '@/features/invoices/components/InvoiceObjectBlock';
-import { DEFAULT_VISIBLE_COLUMNS } from '@/features/invoices/invoice-columns';
-import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
-import {
-  CollapsedObjectsProvider,
-  useCollapsedObjects,
-} from '@/shared/context/CollapsedObjectsContext';
-
-import { useOrg } from '@/shared/context/OrgContext';
-import { useSearch } from '@/shared/context/SearchContext';
-import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
-import { formatAmountRub } from '@/shared/utils/format-currency';
-import type { InvoiceFilterType } from '@/features/invoices/utils/invoice-filter';
-import {
-  ALL_INVOICE_FILTERS,
-  REDUCED_INVOICE_FILTERS,
-  INVOICE_FILTER_LABELS,
-  filterInvoices,
-} from '@/features/invoices/utils/invoice-filter';
-import type {
-  IInvoice,
-  IInvoiceFile,
-  IAccountingObject,
-  IPaymentMark,
-  InvoiceColumnId,
-} from '@/shared/types';
-import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
-import { normalizeInvoiceForDate } from '@/shared/utils/invoice-utils';
-import { useMediaQuery } from '@mantine/hooks';
-import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
-import { useDocumentPermissions } from '@/shared/hooks/useDocumentPermissions';
-import { Link } from 'react-router-dom';
+import { InvoiceSectionObjectsList } from '@/features/invoices/components/invoice-section/InvoiceSectionObjectsList';
+import { AutoExpandOnHighlight } from '@/features/invoices/components/invoice-section/InvoiceSectionHighlight';
+import { useInvoiceSection } from '@/features/invoices/components/invoice-section/useInvoiceSection';
 
 interface InvoiceSectionProps {
   orgId: string;
@@ -84,507 +17,10 @@ interface InvoiceSectionProps {
   bankTotal: number;
 }
 
-function stripInvisible(s: string): string {
-  return s
-    .normalize('NFC')
-    .replace(/[\u00a0\u2000-\u200f\u2028-\u202f\u205f\u3000\ufeff]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function computeHighlightedIds(
-  searchText: string,
-  searchResults: IInvoice[] | undefined,
-  invoices: IInvoice[] | undefined,
-): string[] {
-  if (!searchText) return [];
-  if (searchResults) return searchResults.map((i) => i.id);
-  if (!invoices) return [];
-
-  const lower = stripInvisible(searchText).toLowerCase();
-  return invoices
-    .filter(
-      (inv) =>
-        stripInvisible(inv.counterparty).toLowerCase().includes(lower) ||
-        stripInvisible(inv.purpose).toLowerCase().includes(lower) ||
-        inv.contract_no.toLowerCase().includes(lower) ||
-        inv.invoice_no.toLowerCase().includes(lower) ||
-        inv.comment.toLowerCase().includes(lower) ||
-        String(inv.amount).includes(lower),
-    )
-    .map((i) => i.id);
-}
-
-interface ObjectsListProps {
-  orgId: string;
-  date: string;
-  objects: IAccountingObject[];
-  hiddenObjects: IAccountingObject[];
-  allObjects: IAccountingObject[];
-  invoices: IInvoice[] | undefined;
-  highlightedIds: string[];
-  hasSearch: boolean;
-  draftObjectId: string | null;
-  permissions: { canCreate: boolean; role: string | null };
-  paymentMarks: IPaymentMark[] | undefined;
-  filesByInvoice: Record<string, IInvoiceFile[]>;
-  visibleColumns: InvoiceColumnId[];
-  onOpenDraft: (id: string) => void;
-  onCancelDraft: () => void;
-  onPrint?: (objId: string) => void;
-  onExport?: (objId: string) => void;
-  onColumnSettingsClick: () => void;
-  onPrintAll: () => void;
-  onExportAll: () => void;
-  activeFilters: InvoiceFilterType[];
-  onActiveFiltersChange: (filters: InvoiceFilterType[]) => void;
-  paidTodayTotal: number;
-}
-
-function ObjectsList({
-  orgId,
-  date,
-  objects,
-  hiddenObjects,
-  allObjects,
-  invoices,
-  activeFilters,
-  highlightedIds,
-  hasSearch,
-  draftObjectId,
-  permissions,
-  paymentMarks,
-  filesByInvoice,
-  visibleColumns,
-  onOpenDraft,
-  onCancelDraft,
-  onPrint,
-  onExport,
-  onColumnSettingsClick,
-  onPrintAll,
-  onExportAll,
-  onActiveFiltersChange,
-  paidTodayTotal,
-}: ObjectsListProps) {
-  const { collapsedIds, collapseAll, expand, expandAll } = useCollapsedObjects();
-  const [hiddenOpen, setHiddenOpen] = useState(hasSearch);
-  const allCollapsed =
-    objects.length > 0 && !hiddenOpen && objects.every((o) => collapsedIds.has(o.id));
-  const showCollapseButton = objects.length > 1 || (objects.length > 0 && hiddenObjects.length > 0);
-  const isFullAccess =
-    permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
-
-  const { currentOrgId } = useOrg();
-  const mailPermissions = useMailPermissions(currentOrgId);
-  const documentPermissions = useDocumentPermissions(currentOrgId);
-  const theme = useMantineTheme();
-  const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
-
-  const prevHasSearchRef = useRef(hasSearch);
-
-  useEffect(() => {
-    if (hasSearch) expandAll();
-  }, [hasSearch, expandAll]);
-
-  useEffect(() => {
-    if (hasSearch && !prevHasSearchRef.current) {
-      setHiddenOpen(true);
-    }
-    prevHasSearchRef.current = hasSearch;
-  }, [hasSearch]);
-
-  const handleCollapseAll = () => {
-    collapseAll();
-    setHiddenOpen(false);
-  };
-
-  const handleExpandAll = () => {
-    expand(objects.map((o) => o.id));
-  };
-
-  const renderObjectBlock = (obj: IAccountingObject) => (
-    <InvoiceObjectBlock
-      key={obj.id}
-      obj={obj}
-      invoices={invoices}
-      activeFilters={activeFilters}
-      orgId={orgId}
-      date={date}
-      highlightedIds={highlightedIds}
-      hasSearch={hasSearch}
-      draftObjectId={draftObjectId}
-      permissions={{ canCreate: permissions.canCreate }}
-      accountingObjects={allObjects}
-      paymentMarks={paymentMarks}
-      filesByInvoice={filesByInvoice}
-      visibleColumns={visibleColumns}
-      onOpenDraft={onOpenDraft}
-      onCancelDraft={onCancelDraft}
-      onPrint={onPrint}
-      onExport={onExport}
-    />
-  );
-
-  const filterMenu = (
-    <Menu shadow="md" width={240} closeOnItemClick={false}>
-      <Menu.Target>
-        <Button
-          size="compact-sm"
-          variant="light"
-          style={{ padding: '0 20px' }}
-          color={activeFilters.length > 0 ? 'blue' : 'gray'}
-          leftSection={<IconFilter size={16} />}
-        >
-          {activeFilters.length > 0 ? `Фильтр (${activeFilters.length})` : 'Фильтр'}
-        </Button>
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Label>Статус счёта</Menu.Label>
-        {(isFullAccess ? ALL_INVOICE_FILTERS : REDUCED_INVOICE_FILTERS).map((filter) => {
-          const isActive = activeFilters.includes(filter);
-          return (
-            <Menu.Item
-              key={filter}
-              leftSection={
-                isActive ? (
-                  <IconCheck size={16} color="var(--mantine-color-blue-filled)" />
-                ) : (
-                  <Box w={16} />
-                )
-              }
-              color={isActive ? 'blue' : undefined}
-              onClick={() =>
-                onActiveFiltersChange(
-                  isActive ? activeFilters.filter((f) => f !== filter) : [...activeFilters, filter],
-                )
-              }
-            >
-              {INVOICE_FILTER_LABELS[filter]}
-            </Menu.Item>
-          );
-        })}
-        <Menu.Divider />
-        <Menu.Item
-          color="red"
-          disabled={activeFilters.length === 0}
-          leftSection={<IconX size={16} />}
-          closeMenuOnClick
-          onClick={() => onActiveFiltersChange([])}
-        >
-          Сбросить
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
-  );
-
-  const collapseButton = showCollapseButton ? (
-    <Button
-      size="compact-sm"
-      variant="light"
-      color="gray"
-      flex="1"
-      rightSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
-      onClick={allCollapsed ? handleExpandAll : handleCollapseAll}
-      leftSection={allCollapsed ? <IconChevronsDown size={16} /> : <IconChevronsUp size={16} />}
-    >
-      {allCollapsed ? 'Развернуть' : 'Свернуть'}
-    </Button>
-  ) : null;
-
-  return (
-    <>
-      <Box hiddenFrom="sm">
-        <Group justify="space-between" mb="xs" wrap="wrap" gap="xs">
-          <Group gap={8} justify="flex-start">
-            <Title order={5}>Счета</Title>
-            {!isMobile && (
-              <Tooltip label="Настройка колонок">
-                <ActionIcon
-                  size="md"
-                  variant="subtle"
-                  color="gray"
-                  aria-label="Настройка колонок"
-                  onClick={onColumnSettingsClick}
-                >
-                  <IconSettings size={20} />
-                </ActionIcon>
-              </Tooltip>
-            )}
-            {!isMobile && (
-              <Tooltip label="Печать">
-                <ActionIcon
-                  size="md"
-                  variant="subtle"
-                  color="gray"
-                  aria-label="Печать"
-                  onClick={onPrintAll}
-                >
-                  <IconPrinter size={20} />
-                </ActionIcon>
-              </Tooltip>
-            )}
-            <Tooltip label="Экспорт в Excel">
-              <ActionIcon
-                size="md"
-                variant="subtle"
-                color="gray"
-                aria-label="Экспорт в Excel"
-                onClick={onExportAll}
-              >
-                <IconFileExport size={20} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-          {paidTodayTotal > 0 && (
-            <Text size="sm" fw={700}>
-              Оплачено: {formatAmountRub(paidTodayTotal)}
-            </Text>
-          )}
-        </Group>
-        <Group gap="xs" mb="sm" wrap="wrap">
-          {filterMenu}
-          {collapseButton}
-        </Group>
-      </Box>
-      <Box visibleFrom="sm">
-        <Group justify="space-between" mb="sm" wrap="wrap">
-          <Group gap={8} justify="flex-start" flex="1">
-            {mailPermissions.canView && (
-              <Group gap={6} wrap="nowrap">
-                <Anchor
-                  size="sm"
-                  component={Link}
-                  to="/mail"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    color: 'black',
-                    fontWeight: 'bolder',
-                    fontSize: '16px',
-                  }}
-                >
-                  Почта
-                  {/*<IconMail size={16} aria-hidden /> */}
-                </Anchor>
-                /{' '}
-              </Group>
-            )}
-            {documentPermissions.canView && (
-              <Group gap={6} wrap="nowrap">
-                <Anchor
-                  size="sm"
-                  component={Link}
-                  to="/docs"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    color: 'black',
-                    fontWeight: 'bolder',
-                    fontSize: '16px',
-                  }}
-                >
-                  Документы
-                </Anchor>
-                /{' '}
-              </Group>
-            )}
-
-            <Title order={3}>Счета</Title>
-            <Tooltip label="Настройка колонок">
-              <ActionIcon
-                size="md"
-                variant="subtle"
-                color="gray"
-                aria-label="Настройка колонок"
-                onClick={onColumnSettingsClick}
-              >
-                <IconSettings size={20} />
-              </ActionIcon>
-            </Tooltip>
-
-            <Tooltip label="Печать">
-              <ActionIcon
-                size="md"
-                variant="subtle"
-                color="gray"
-                aria-label="Печать"
-                onClick={onPrintAll}
-              >
-                <IconPrinter size={20} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label="Экспорт в Excel">
-              <ActionIcon
-                size="md"
-                variant="subtle"
-                color="gray"
-                aria-label="Экспорт в Excel"
-                onClick={onExportAll}
-              >
-                <IconFileExport size={20} />
-              </ActionIcon>
-            </Tooltip>
-
-            {filterMenu}
-
-            {collapseButton}
-          </Group>
-          {paidTodayTotal > 0 && <Text size="lg">Оплачено: {formatAmountRub(paidTodayTotal)}</Text>}
-        </Group>
-      </Box>
-      {objects.map(renderObjectBlock)}
-      {hiddenObjects.length > 0 && (
-        <Paper
-          withBorder
-          p={0}
-          style={{
-            borderLeft: '3px dashed var(--mantine-color-gray-4)',
-            boxShadow: 'var(--mantine-shadow-sm)',
-          }}
-        >
-          <Group
-            gap={4}
-            onClick={() => setHiddenOpen((v) => !v)}
-            style={{
-              cursor: 'pointer',
-              userSelect: 'none',
-              padding: 'var(--mantine-spacing-xs)',
-              height: 48,
-              display: 'flex',
-              alignItems: 'center',
-              color: 'var(--mantine-color-dimmed)',
-            }}
-            role="button"
-            aria-expanded={hiddenOpen}
-            aria-label={
-              hiddenOpen ? 'Свернуть объекты без счетов' : 'Развернуть объекты без счетов'
-            }
-          >
-            {hiddenOpen ? <IconChevronDown size={18} /> : <IconChevronRight size={18} />}
-            <Title order={5} c="dimmed">
-              Объекты без счетов ({hiddenObjects.length})
-            </Title>
-          </Group>
-          <Collapse in={hiddenOpen}>
-            <Stack gap="sm" p="sm">
-              {hiddenObjects.map(renderObjectBlock)}
-            </Stack>
-          </Collapse>
-        </Paper>
-      )}
-    </>
-  );
-}
-
-function flashHighlightRow(invoiceId: string) {
-  const el = document.querySelector(`[data-highlight-id="${CSS.escape(invoiceId)}"]`);
-  if (!el || el.classList.contains('row-flash')) return;
-  el.classList.add('row-flash');
-  window.setTimeout(() => {
-    el.classList.remove('row-flash');
-  }, 2600);
-}
-
-function AutoExpandOnHighlight({
-  highlightedInvoiceId,
-  highlightRequestId,
-  highlightDateCandidates,
-  objects,
-  invoices,
-}: {
-  highlightedInvoiceId: string | null;
-  highlightRequestId: number;
-  highlightDateCandidates: string[];
-  objects: IAccountingObject[] | undefined;
-  invoices: IInvoice[] | undefined;
-}) {
-  const { expand } = useCollapsedObjects();
-  const { selectedDate, setSelectedDate } = useInvoiceNavigation();
-  const selectedDay = dayjs(selectedDate).format('YYYY-MM-DD');
-
-  // Если по цепочке дат (день уведомления -> сегодня/день счёта и т.п.) счёт не найден
-  // в данных выбранного дня, пробуем следующий день-кандидат.
-  useEffect(() => {
-    if (!highlightedInvoiceId || !highlightDateCandidates.length || !invoices) return;
-    const candidateIndex = highlightDateCandidates.indexOf(selectedDay);
-    if (candidateIndex === -1) return;
-    if (invoices.some((i) => i.id === highlightedInvoiceId)) return;
-    if (candidateIndex < highlightDateCandidates.length - 1) {
-      const nextDay = highlightDateCandidates[candidateIndex + 1]!;
-      const [y, m, d] = nextDay.split('-').map(Number);
-      setSelectedDate(new Date(y, (m ?? 1) - 1, d ?? 1));
-    }
-  }, [
-    highlightDateCandidates,
-    highlightedInvoiceId,
-    highlightRequestId,
-    invoices,
-    selectedDay,
-    setSelectedDate,
-  ]);
-
-  const pollIntervalRef = useRef<number | null>(null);
-  const stopHighlightPolling = useCallback(() => {
-    if (pollIntervalRef.current != null) {
-      window.clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-  }, []);
-  useEffect(() => () => stopHighlightPolling(), [stopHighlightPolling]);
-
-  // Эффект A: разворачиваем объект, содержащий подсвечиваемый счёт.
-  // Зависит от objects/invoices — если при первом срабатывании objects ещё
-  // пустые (переход из /docs через уведомление), эффект перезапустится при
-  // их загрузке и вызовет expand повторно. expand идемпотентен (no-op если
-  // объект уже развёрнут), поэтому повторные вызовы безопасны.
-  useEffect(() => {
-    if (!highlightedInvoiceId || !invoices || !objects) return;
-    const target = invoices.find((i) => i.id === highlightedInvoiceId);
-    if (!target) return;
-    const objectId = normalizeRelationId(target.accounting_object_id);
-    const hasObject = objects.some((o) => o.id === objectId);
-    if (hasObject) expand([objectId]);
-  }, [highlightedInvoiceId, invoices, objects, expand]);
-
-  // Эффект B: ищем строку счёта в DOM и подсвечиваем + скроллим к ней.
-  // Зависит от highlightRequestId, чтобы перезапускаться при новом запросе
-  // подсветки (новый навигационный переход).
-  useEffect(() => {
-    if (!highlightedInvoiceId || !invoices) return;
-    const target = invoices.find((i) => i.id === highlightedInvoiceId);
-    if (!target) return;
-
-    // Строка появляется после раскрытия группы и рендера таблицы, поэтому
-    // поллим DOM до её появления: единичный ретрай через 120ms терял подсветку
-    // при медленном рендере. Интервал живёт в ref, чтобы рефетч invoices
-    // не убивал ожидание через cleanup эффекта.
-    stopHighlightPolling();
-
-    // Небольшая задержка перед началом polling, чтобы дать время на
-    // анимацию открытия объекта (Collapse). Иначе строка счёта может ещё
-    // не быть отрисована в DOM при первом опросе.
-    const startPolling = () => {
-      const selector = `[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`;
-      const startedAt = Date.now();
-      pollIntervalRef.current = window.setInterval(() => {
-        const el = document.querySelector(selector);
-        if (el) {
-          stopHighlightPolling();
-          flashHighlightRow(highlightedInvoiceId);
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return;
-        }
-        if (Date.now() - startedAt > 5000) stopHighlightPolling();
-      }, 100);
-    };
-    pollIntervalRef.current = window.setTimeout(startPolling, 400);
-  }, [highlightedInvoiceId, highlightRequestId, invoices, stopHighlightPolling]);
-
-  return null;
-}
-
+/**
+ * Секция счетов за выбранную дату: список объектов с таблицами счетов,
+ * поиск по всем счетам, печать/экспорт и подсветка строки из уведомления.
+ */
 export function InvoiceSection({
   orgId,
   date,
@@ -592,176 +28,13 @@ export function InvoiceSection({
   onBackToDate,
   bankTotal,
 }: InvoiceSectionProps) {
-  const { debouncedSearchText } = useSearch();
-  const { highlightedInvoiceId, highlightRequestId, highlightDateCandidates, clearHighlight } = useInvoiceNavigation();
-  const objects = useAccessibleObjects(orgId);
-  const { visibleObjects, hiddenObjects } = useMemo(() => {
-    const visible: IAccountingObject[] = [];
-    const hidden: IAccountingObject[] = [];
-    for (const o of objects ?? []) {
-      (o.is_active === false ? hidden : visible).push(o);
-    }
-    return { visibleObjects: visible, hiddenObjects: hidden };
-  }, [objects]);
-  const { data: invoices } = useInvoices(orgId, date);
-  const displayInvoices = useMemo(
-    () => (invoices ?? []).map((inv) => normalizeInvoiceForDate(inv, date)),
-    [invoices, date],
-  );
-  const { data: searchResults, isLoading: searchResultsLoading } = useSearchInvoices(orgId);
-  const { data: paymentMarks } = usePaymentMarks(orgId);
-  const { data: orgFiles } = useOrgInvoiceFiles(orgId);
-  const permissions = useInvoicePermissions(orgId);
-  const usersMap = useUserMap();
-  const { currentOrg } = useOrg();
-  const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
-  const [columnSettingsOpen, setColumnSettingsOpen] = useState(false);
-  const [printingTarget, setPrintingTarget] = useState<null | 'all' | string>(null);
-  const [activeFilters, setActiveFilters] = useState<InvoiceFilterType[]>([]);
-
-  const isPrinting = printingTarget !== null;
-
-  const handlePrint = (objectId?: string) => {
-    setPrintingTarget(objectId ?? 'all');
-  };
-
-  useEffect(() => {
-    if (printingTarget) {
-      const timer = setTimeout(() => window.print(), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [printingTarget]);
-
-  useEffect(() => {
-    const onAfterPrint = () => setPrintingTarget(null);
-    window.addEventListener('afterprint', onAfterPrint);
-    return () => window.removeEventListener('afterprint', onAfterPrint);
-  }, []);
-
-  const { data: savedColumns } = useUserSetting('invoice_columns');
-  const saveColumns = useUpsertUserSetting('invoice_columns');
-
-  const visibleColumns: InvoiceColumnId[] = useMemo(() => {
-    const allowedColumns = getVisibleColumnsForRole(permissions.role);
-    if (Array.isArray(savedColumns) && savedColumns.length > 0) {
-      return savedColumns.filter((c) => allowedColumns.includes(c)) as InvoiceColumnId[];
-    }
-    return DEFAULT_VISIBLE_COLUMNS.filter((c) => allowedColumns.includes(c));
-  }, [savedColumns, permissions.role]);
-
-  const handleColumnChange = (columns: InvoiceColumnId[]) => {
-    saveColumns.mutate(columns);
-  };
-
-  const filesByInvoice = useMemo(() => {
-    if (!orgFiles) return {};
-    const map: Record<string, IInvoiceFile[]> = {};
-    for (const f of orgFiles) {
-      if (!map[f.invoice_id]) map[f.invoice_id] = [];
-      map[f.invoice_id]!.push(f);
-    }
-    return map;
-  }, [orgFiles]);
-
-  const highlightedIds = useMemo(
-    () =>
-      highlightedInvoiceId
-        ? Array.from(
-            new Set([
-              ...computeHighlightedIds(debouncedSearchText, searchResults, displayInvoices),
-              highlightedInvoiceId,
-            ]),
-          )
-        : computeHighlightedIds(debouncedSearchText, searchResults, displayInvoices),
-    [debouncedSearchText, searchResults, displayInvoices, highlightedInvoiceId],
-  );
-
-  const markedTotal = useMemo(() => {
-    if (!displayInvoices || !paymentMarks) return 0;
-    const visibleIds = new Set(visibleObjects.map((o) => o.id));
-    const registryInvoices = displayInvoices.filter((inv) =>
-      visibleIds.has(normalizeRelationId(inv.accounting_object_id)),
-    );
-    return registryInvoices.reduce((sum, inv) => {
-      const mark = paymentMarks.find((m) => m.invoice_id === inv.id);
-      if (!mark) return sum;
-      return sum + (mark.amount ?? inv.amount);
-    }, 0);
-  }, [displayInvoices, paymentMarks, visibleObjects]);
-
-  const isOverBalance = markedTotal > bankTotal;
-
-  const paidTodayTotal = useMemo(() => {
-    if (!displayInvoices) return 0;
-    const visibleIds = new Set(visibleObjects.map((o) => o.id));
-    const registryInvoices = displayInvoices.filter(
-      (inv) =>
-        inv.paid &&
-        inv.paid_date === date &&
-        visibleIds.has(normalizeRelationId(inv.accounting_object_id)),
-    );
-    return registryInvoices.reduce((sum, inv) => {
-      if (inv.payment_amounts?.length) {
-        return sum + inv.payment_amounts.reduce((s, a) => s + a, 0);
-      }
-      return sum + (inv.paid_amount ?? inv.amount);
-    }, 0);
-  }, [displayInvoices, date, visibleObjects]);
-
-  const printInvoices = useMemo(() => {
-    const visibleIds = new Set(visibleObjects.map((o) => o.id));
-    return filterInvoices(
-      displayInvoices.filter((inv) =>
-        visibleIds.has(normalizeRelationId(inv.accounting_object_id)),
-      ),
-      paymentMarks,
-      activeFilters,
-    );
-  }, [displayInvoices, paymentMarks, activeFilters, visibleObjects]);
-
-  const grandTotal = useMemo(() => {
-    return printInvoices.reduce((sum, inv) => {
-      if (!inv.paid) return sum + inv.amount;
-      return sum;
-    }, 0);
-  }, [printInvoices]);
-
-  const handleExportExcel = (objectId?: string) => {
-    if (!currentOrg || !displayInvoices || !objects) return;
-    const targetObjects = objectId ? objects.filter((obj) => obj.id === objectId) : visibleObjects;
-    const targetInvoices = objectId
-      ? printInvoices.filter((inv) => normalizeRelationId(inv.accounting_object_id) === objectId)
-      : printInvoices;
-    exportInvoicesToExcel({
-      invoices: targetInvoices,
-      objects: targetObjects,
-      date,
-      visibleColumns,
-      paymentMarks,
-      canViewPaymentMarks: permissions.canViewPaymentMarks,
-      canViewPaidDate: permissions.canViewPaidDate,
-      orgName: currentOrg.name,
-      usersMap,
-    });
-  };
-
-  const objectIds = useMemo(() => objects?.map((o) => o.id) ?? [], [objects]);
-
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if ((e.target as HTMLElement | null)?.closest?.('.mantine-Drawer-root')) return;
-      clearHighlight();
-      document.querySelectorAll('.row-flash').forEach((el) => el.classList.remove('row-flash'));
-    };
-    document.addEventListener('click', onDocClick);
-    return () => document.removeEventListener('click', onDocClick);
-  }, [clearHighlight]);
+  const page = useInvoiceSection({ orgId, date, searchAll, bankTotal });
 
   if (!orgId) return null;
 
-  if (!permissions.canView) return null;
+  if (!page.permissions.canView) return null;
 
-  if (!objects)
+  if (!page.objects)
     return (
       <Stack gap="sm" py="xs">
         <Skeleton height={32} radius="sm" />
@@ -770,7 +43,7 @@ export function InvoiceSection({
       </Stack>
     );
 
-  if (searchAll && searchResultsLoading) {
+  if (searchAll && page.searchResultsLoading) {
     return (
       <Paper withBorder p="xl">
         <Center py="xl">
@@ -780,99 +53,107 @@ export function InvoiceSection({
     );
   }
 
-  if (searchAll && searchResults) {
+  if (searchAll && page.searchResults) {
     return (
       <SearchResultsView
-        searchText={debouncedSearchText}
-        searchResults={searchResults}
+        searchText={page.debouncedSearchText}
+        searchResults={page.searchResults}
         date={date}
         onBackToDate={onBackToDate}
       />
     );
   }
 
-  if (isPrinting) {
-    const baseObjects = printingTarget === 'all' ? visibleObjects : objects;
+  if (page.isPrinting) {
+    const baseObjects = page.printingTarget === 'all' ? page.visibleObjects : page.objects;
     const printObjects = baseObjects.filter(
-      (obj) => printingTarget === 'all' || obj.id === printingTarget,
+      (obj) => page.printingTarget === 'all' || obj.id === page.printingTarget,
     );
     const printInvoicesFiltered =
-      printingTarget === 'all'
-        ? printInvoices
-        : printInvoices.filter(
-            (inv) => normalizeRelationId(inv.accounting_object_id) === printingTarget,
+      page.printingTarget === 'all'
+        ? page.printInvoices
+        : page.printInvoices.filter(
+            (inv) => normalizeRelationId(inv.accounting_object_id) === page.printingTarget,
           );
     return (
       <PrintableInvoices
         invoices={printInvoicesFiltered}
         objects={printObjects}
         date={date}
-        visibleColumns={visibleColumns}
-        paymentMarks={paymentMarks}
-        canViewPaymentMarks={permissions.canViewPaymentMarks}
-        canViewPaidDate={permissions.canViewPaidDate}
-        usersMap={usersMap}
-        role={permissions.role}
+        visibleColumns={page.visibleColumns}
+        paymentMarks={page.paymentMarks}
+        canViewPaymentMarks={page.permissions.canViewPaymentMarks}
+        canViewPaidDate={page.permissions.canViewPaidDate}
+        usersMap={page.usersMap}
+        role={page.permissions.role}
       />
     );
   }
 
   return (
     <>
-      <CollapsedObjectsProvider orgId={orgId} objectIds={objectIds}>
+      <CollapsedObjectsProvider orgId={orgId} objectIds={page.objectIds}>
         <AutoExpandOnHighlight
-          highlightedInvoiceId={highlightedInvoiceId}
-          highlightRequestId={highlightRequestId}
-          highlightDateCandidates={highlightDateCandidates}
-          objects={objects}
-          invoices={displayInvoices}
+          highlightedInvoiceId={page.highlightedInvoiceId}
+          highlightRequestId={page.highlightRequestId}
+          highlightDateCandidates={page.highlightDateCandidates}
+          objects={page.objects}
+          invoices={page.displayInvoices}
         />
-        <ObjectsList
+        <InvoiceSectionObjectsList
           orgId={orgId}
           date={date}
-          objects={visibleObjects}
-          hiddenObjects={hiddenObjects}
-          allObjects={objects}
-          invoices={displayInvoices}
-          activeFilters={activeFilters}
-          highlightedIds={highlightedIds}
-          hasSearch={!!debouncedSearchText}
-          draftObjectId={draftObjectId}
-          permissions={{ canCreate: permissions.canCreate, role: permissions.role }}
-          paymentMarks={paymentMarks}
-          filesByInvoice={filesByInvoice}
-          visibleColumns={visibleColumns}
-          onOpenDraft={(id) => setDraftObjectId(id)}
-          onCancelDraft={() => setDraftObjectId(null)}
-          onPrint={(objId) => handlePrint(objId)}
-          onExport={(objId) => handleExportExcel(objId)}
-          onColumnSettingsClick={() => setColumnSettingsOpen(true)}
-          onPrintAll={() => handlePrint()}
-          onExportAll={() => handleExportExcel()}
-          onActiveFiltersChange={setActiveFilters}
-          paidTodayTotal={paidTodayTotal}
+          objects={page.visibleObjects}
+          hiddenObjects={page.hiddenObjects}
+          allObjects={page.objects}
+          invoices={page.displayInvoices}
+          activeFilters={page.activeFilters}
+          highlightedIds={page.highlightedIds}
+          hasSearch={!!page.debouncedSearchText}
+          draftObjectId={page.draftObjectId}
+          permissions={{
+            canCreate: page.permissions.canCreate,
+            role: page.permissions.role,
+          }}
+          paymentMarks={page.paymentMarks}
+          filesByInvoice={page.filesByInvoice}
+          visibleColumns={page.visibleColumns}
+          onOpenDraft={(id) => page.setDraftObjectId(id)}
+          onCancelDraft={() => page.setDraftObjectId(null)}
+          onPrint={(objId) => page.handlePrint(objId)}
+          onExport={(objId) => page.handleExportExcel(objId)}
+          onColumnSettingsClick={() => page.setColumnSettingsOpen(true)}
+          onPrintAll={() => page.handlePrint()}
+          onExportAll={() => page.handleExportExcel()}
+          onActiveFiltersChange={page.setActiveFilters}
+          paidTodayTotal={page.paidTodayTotal}
         />
       </CollapsedObjectsProvider>
-      {grandTotal > 0 && (
+
+      {/* Итоговая сумма по неоплаченным счетам */}
+      {page.grandTotal > 0 && (
         <Paper withBorder p="md" mt="lg">
           <Text ta="right" fw={700} size="lg">
-            ИТОГО: {formatAmountRub(grandTotal)}
+            ИТОГО: {formatAmountRub(page.grandTotal)}
           </Text>
         </Paper>
       )}
+
       <InvoiceColumnSettingsModal
-        key={columnSettingsOpen ? 'open' : 'closed'}
-        opened={columnSettingsOpen}
-        value={visibleColumns}
-        onChange={handleColumnChange}
-        onClose={() => setColumnSettingsOpen(false)}
-        role={permissions.role}
+        key={page.columnSettingsOpen ? 'open' : 'closed'}
+        opened={page.columnSettingsOpen}
+        value={page.visibleColumns}
+        onChange={page.handleColumnChange}
+        onClose={() => page.setColumnSettingsOpen(false)}
+        role={page.permissions.role}
       />
-      {permissions.canViewPaymentMarks && markedTotal > 0 && (
+
+      {/* Плавающая сумма к оплате по отметкам */}
+      {page.permissions.canViewPaymentMarks && page.markedTotal > 0 && (
         <Affix position={{ bottom: 20, right: 20 }} zIndex={100}>
           <Paper withBorder p="sm" shadow="lg">
-            <Text ta="right" fw={700} size="md" c={isOverBalance ? 'red' : undefined}>
-              Итого к оплате: {formatAmountRub(markedTotal)}
+            <Text ta="right" fw={700} size="md" c={page.isOverBalance ? 'red' : undefined}>
+              Итого к оплате: {formatAmountRub(page.markedTotal)}
             </Text>
           </Paper>
         </Affix>
