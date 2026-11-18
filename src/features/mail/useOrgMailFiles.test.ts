@@ -29,9 +29,8 @@ import {
  */
 
 const pbMock = vi.hoisted(() => ({
-  getFullList: vi.fn<
-    (collection: string, options?: Record<string, unknown>) => Promise<unknown[]>
-  >(),
+  getFullList:
+    vi.fn<(collection: string, options?: Record<string, unknown>) => Promise<unknown[]>>(),
 }));
 
 vi.mock('@/api/client', () => ({
@@ -179,10 +178,13 @@ describe('useOrgMailFiles: запрос вложений организации'
       return Promise.resolve([mailFile(`mf-${orgId}`, MAIL_A, { organization_id: orgId })]);
     });
     const client = createClient();
-    const { result, rerender } = renderHook(({ orgId }: { orgId: string }) => useOrgMailFiles(orgId), {
-      wrapper: wrapperFor(client),
-      initialProps: { orgId: ORG },
-    });
+    const { result, rerender } = renderHook(
+      ({ orgId }: { orgId: string }) => useOrgMailFiles(orgId),
+      {
+        wrapper: wrapperFor(client),
+        initialProps: { orgId: ORG },
+      },
+    );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.countsByMailId.has(`mf-${ORG}`)).toBe(false);
 
@@ -254,7 +256,9 @@ describe('useOrgMailRelationIds: запрос связей организаци�
     const relations = [relation('rel01hxyz', { parent_incoming_mail_id: MAIL_A })];
     pbMock.getFullList.mockResolvedValue(relations);
     const client = createClient();
-    const { result } = renderHook(() => useOrgMailRelationIds(ORG), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useOrgMailRelationIds(ORG), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(pbMock.getFullList).toHaveBeenCalledTimes(1);
@@ -269,7 +273,9 @@ describe('useOrgMailRelationIds: запрос связей организаци�
   it('пустой ответ даёт два пустых множества', async () => {
     pbMock.getFullList.mockResolvedValue([]);
     const client = createClient();
-    const { result } = renderHook(() => useOrgMailRelationIds(ORG), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useOrgMailRelationIds(ORG), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.linkedByType.incoming.size).toBe(0);
@@ -279,7 +285,9 @@ describe('useOrgMailRelationIds: запрос связей организаци�
   it('отказ запроса оставляет оба множества пустыми', async () => {
     pbMock.getFullList.mockRejectedValue(new Error('сервер недоступен'));
     const client = createClient();
-    const { result } = renderHook(() => useOrgMailRelationIds(ORG), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useOrgMailRelationIds(ORG), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(result.current.linkedByType.incoming.size).toBe(0);
@@ -303,7 +311,9 @@ describe('useOrgMailRelationIds: запрос связей организаци�
       }),
     ]);
     const client = createClient();
-    const { result } = renderHook(() => useOrgMailRelationIds(ORG), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useOrgMailRelationIds(ORG), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect([...result.current.linkedByType.incoming]).toEqual([MAIL_A, MAIL_B]);
@@ -318,7 +328,9 @@ describe('useOrgMailRelationIds: запрос связей организаци�
       }),
     ]);
     const client = createClient();
-    const { result } = renderHook(() => useOrgMailRelationIds(ORG), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useOrgMailRelationIds(ORG), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect([...result.current.linkedByType.incoming]).toEqual([MAIL_A]);
@@ -331,7 +343,9 @@ describe('useOrgMailRelationIds: запрос связей организаци�
       relation('rel02hxyz', { child_outgoing_mail_id: '' }),
     ]);
     const client = createClient();
-    const { result } = renderHook(() => useOrgMailRelationIds(ORG), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useOrgMailRelationIds(ORG), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect([...result.current.linkedByType.incoming]).toEqual([MAIL_A]);
@@ -350,7 +364,9 @@ describe('useOrgMailRelationIds: запрос связей организаци�
       }),
     ]);
     const client = createClient();
-    const { result } = renderHook(() => useOrgMailRelationIds(ORG), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useOrgMailRelationIds(ORG), {
+      wrapper: wrapperFor(client),
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect([...result.current.linkedByType.incoming]).toEqual([MAIL_A, MAIL_B, MAIL_C]);
@@ -379,7 +395,10 @@ describe('filterByAttachments: отбор по вложениям', () => {
   });
 
   it('with оставляет только письма, у которых есть вложение', () => {
-    expect(filterByAttachments(items, counts, 'with', true)).toEqual([{ id: MAIL_A }, { id: MAIL_C }]);
+    expect(filterByAttachments(items, counts, 'with', true)).toEqual([
+      { id: MAIL_A },
+      { id: MAIL_C },
+    ]);
   });
 
   it('without оставляет только письма без вложений', () => {

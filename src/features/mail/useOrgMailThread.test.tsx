@@ -89,7 +89,10 @@ describe('useOrgMailThread', () => {
   it('isLoading=true во время запроса', () => {
     let resolveRelations: (v: IMailRelation[]) => void = () => {};
     mockFetchRelations.mockImplementationOnce(
-      () => new Promise((r) => { resolveRelations = r; }),
+      () =>
+        new Promise((r) => {
+          resolveRelations = r;
+        }),
     );
 
     const { result } = renderHook(() => useOrgMailThread('org1'), {

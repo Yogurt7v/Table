@@ -115,10 +115,13 @@ describe('useOrgCounterparties: ключ запроса и форма ответ
       Promise.resolve(orgId === ORG ? VOCABULARY : ['ИП Ёжик']),
     );
     const client = createClient();
-    const { result, rerender } = renderHook(({ orgId }: { orgId: string }) => useOrgCounterparties(orgId), {
-      wrapper: wrapperFor(client),
-      initialProps: { orgId: ORG },
-    });
+    const { result, rerender } = renderHook(
+      ({ orgId }: { orgId: string }) => useOrgCounterparties(orgId),
+      {
+        wrapper: wrapperFor(client),
+        initialProps: { orgId: ORG },
+      },
+    );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     rerender({ orgId: OTHER_ORG });
@@ -176,9 +179,9 @@ describe('useOrgCounterparties: когда запрос не уходит', () =
 
     expect(api.getOrgCounterpartyVocabulary).not.toHaveBeenCalled();
     expect(result.current.fetchStatus).toBe('idle');
-// Выключенная запись непрочитана, поэтому `isPending` у неё `true` — «данных
-// ещё нет»; мигает индикатор только когда есть и `isPending`, и чтение.
-expect(result.current.isLoading).toBe(false);
+    // Выключенная запись непрочитана, поэтому `isPending` у неё `true` — «данных
+    // ещё нет»; мигает индикатор только когда есть и `isPending`, и чтение.
+    expect(result.current.isLoading).toBe(false);
     expect(result.current.isPending).toBe(true);
     expect(result.current.data).toBeUndefined();
     expect(result.current.counterpartyOptions).toEqual([]);
@@ -186,7 +189,9 @@ expect(result.current.isLoading).toBe(false);
 
   it('пустая организация не отправляет запрос даже при включённом флаге', () => {
     const client = createClient();
-    const { result } = renderHook(() => useOrgCounterparties('', true), { wrapper: wrapperFor(client) });
+    const { result } = renderHook(() => useOrgCounterparties('', true), {
+      wrapper: wrapperFor(client),
+    });
 
     expect(api.getOrgCounterpartyVocabulary).not.toHaveBeenCalled();
     expect(result.current.fetchStatus).toBe('idle');
@@ -210,10 +215,13 @@ expect(result.current.isLoading).toBe(false);
 
   it('пустая организация при выключенном флаге — запрос не уходит и при смене организации', () => {
     const client = createClient();
-    const { rerender } = renderHook(({ orgId }: { orgId: string }) => useOrgCounterparties(orgId, false), {
-      wrapper: wrapperFor(client),
-      initialProps: { orgId: ORG },
-    });
+    const { rerender } = renderHook(
+      ({ orgId }: { orgId: string }) => useOrgCounterparties(orgId, false),
+      {
+        wrapper: wrapperFor(client),
+        initialProps: { orgId: ORG },
+      },
+    );
 
     rerender({ orgId: OTHER_ORG });
 
