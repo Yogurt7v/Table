@@ -1,5 +1,11 @@
 import { test, expect, loginViaUi, uniqueMarker } from '../fixtures';
-import { authAs, resolveTestOrgId, firstObjectId, createInvoice, payInvoiceFull } from '../utils/pb';
+import {
+  authAs,
+  resolveTestOrgId,
+  firstObjectId,
+  createInvoice,
+  payInvoiceFull,
+} from '../utils/pb';
 
 test.describe('Документы: поиск', () => {
   test('поиск по реквизитам и комментариям', async ({ page }) => {
@@ -8,7 +14,13 @@ test.describe('Документы: поиск', () => {
     const objectId = await firstObjectId(pb, orgId);
     const marker = uniqueMarker('ДокПоиск');
     const commentText = uniqueMarker('КомментПоиск');
-    const invoice = await createInvoice(pb, { orgId, objectId, counterparty: marker, amount: 1000, purpose: 'назначение поиска' });
+    const invoice = await createInvoice(pb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+      purpose: 'назначение поиска',
+    });
     await payInvoiceFull(invoice.id as string, new Date().toISOString().slice(0, 10));
 
     await loginViaUi(page, 'admin');

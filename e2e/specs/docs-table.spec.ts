@@ -2,7 +2,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test, expect, loginViaUi, uniqueMarker } from '../fixtures';
-import { authAs, resolveTestOrgId, firstObjectId, createInvoice, payInvoiceFull, findDocumentByMarker } from '../utils/pb';
+import {
+  authAs,
+  resolveTestOrgId,
+  firstObjectId,
+  createInvoice,
+  payInvoiceFull,
+  findDocumentByMarker,
+} from '../utils/pb';
 
 const filePath = path.join(os.tmpdir(), `docs-table-${Date.now()}.txt`);
 
@@ -20,7 +27,12 @@ test.describe('Документы: таблица и колонки', () => {
     const orgId = await resolveTestOrgId(pb);
     const objectId = await firstObjectId(pb, orgId);
     const marker = uniqueMarker('ДокТаблица');
-    const invoice = await createInvoice(pb, { orgId, objectId, counterparty: marker, amount: 1000 });
+    const invoice = await createInvoice(pb, {
+      orgId,
+      objectId,
+      counterparty: marker,
+      amount: 1000,
+    });
     await payInvoiceFull(invoice.id as string, new Date().toISOString().slice(0, 10));
 
     const document = await findDocumentByMarker(pb, marker);

@@ -1,8 +1,16 @@
 import { test, expect, loginViaUi, logoutViaUi, uniqueMarker } from '../fixtures';
-import { authAs, resolveTestOrgId, firstObjectId, createInvoice, payInvoiceFull } from '../utils/pb';
+import {
+  authAs,
+  resolveTestOrgId,
+  firstObjectId,
+  createInvoice,
+  payInvoiceFull,
+} from '../utils/pb';
 
 test.describe('Документы: права доступа', () => {
-  test('admin видит все, user только свои, boss читает, guest не видит раздел', async ({ page }) => {
+  test('admin видит все, user только свои, boss читает, guest не видит раздел', async ({
+    page,
+  }) => {
     const adminPb = await authAs('admin');
     const userPb = await authAs('user');
     const orgId = await resolveTestOrgId(adminPb);
@@ -11,9 +19,19 @@ test.describe('Документы: права доступа', () => {
     const userMarker = uniqueMarker('ДокПользователь');
     const adminMarker = uniqueMarker('ДокАдмин');
 
-    const userInvoice = await createInvoice(userPb, { orgId, objectId, counterparty: userMarker, amount: 1000 });
+    const userInvoice = await createInvoice(userPb, {
+      orgId,
+      objectId,
+      counterparty: userMarker,
+      amount: 1000,
+    });
     await payInvoiceFull(userInvoice.id as string, today);
-    const adminInvoice = await createInvoice(adminPb, { orgId, objectId, counterparty: adminMarker, amount: 2000 });
+    const adminInvoice = await createInvoice(adminPb, {
+      orgId,
+      objectId,
+      counterparty: adminMarker,
+      amount: 2000,
+    });
     await payInvoiceFull(adminInvoice.id as string, today);
 
     await loginViaUi(page, 'user');
