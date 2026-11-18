@@ -44,6 +44,7 @@ export function createMetaColumnRenderers(
     userMap,
   } = params;
 
+  // Служебные рендереры: действия, отметка оплаты, инициатор
   return {
     actions: {
       width: 50,

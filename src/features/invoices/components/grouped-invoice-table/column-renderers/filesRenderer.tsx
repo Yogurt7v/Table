@@ -13,6 +13,7 @@ export function createFilesColumnRenderer(
 ): InvoiceColumnRenderer {
   const { filesByInvoice, draftForm, onDraftChange } = params;
 
+  // Рендерер колонки «Файлы»: вложения + кнопка прикрепления в черновике
   return {
     width: 40,
     header: 'Файлы',

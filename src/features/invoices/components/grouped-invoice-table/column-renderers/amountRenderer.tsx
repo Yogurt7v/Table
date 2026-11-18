@@ -31,6 +31,7 @@ export function createAmountColumnRenderer(
     setDraftErrors,
   } = params;
 
+  // Рендерер колонки «Сумма» (ячейка + поле черновика)
   return {
     width: 100,
     header: 'Сумма',

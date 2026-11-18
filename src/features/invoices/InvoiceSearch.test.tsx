@@ -64,9 +64,7 @@ describe('InvoiceSearch', () => {
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'тест' } });
 
-    const clearBtn = screen
-      .getAllByRole('button')
-      .find((b) => !b.textContent?.includes('Искать'));
+    const clearBtn = screen.getAllByRole('button').find((b) => !b.textContent?.includes('Искать'));
     if (!clearBtn) throw new Error('Кнопка очистки не найдена');
     fireEvent.click(clearBtn);
 
