@@ -27,7 +27,6 @@ const read = (relativePath: string): string =>
 
 const MAIL_SECTION = read('./MailSection.tsx');
 const MAIL_SECTION_HEADER = read('./components/mail-section/MailSectionHeader.tsx');
-const MAIL_SECTION_TABLE = read('./components/mail-section/MailSectionTable.tsx');
 const MAIL_FILTERS = read('./MailFilters.tsx');
 const ADMIN_PAGE = read('../../pages/AdminPage.tsx');
 
