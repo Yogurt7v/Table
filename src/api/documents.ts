@@ -89,9 +89,8 @@ function normalizeDocumentHistory(record: IDocumentHistory): IDocumentHistory {
     author: record.author ? normalizeRelationId(record.author) : undefined,
     author_name: record.author_name || '',
     changed_at: record.changed_at || record.created || '',
-    previous_data: record.previous_data && typeof record.previous_data === 'object'
-      ? record.previous_data
-      : {},
+    previous_data:
+      record.previous_data && typeof record.previous_data === 'object' ? record.previous_data : {},
   };
 }
 
@@ -142,9 +141,7 @@ export async function getAllDocumentFiles(organizationId: string): Promise<IDocu
   return records.map(normalizeDocumentFile);
 }
 
-export async function getAllDocumentComments(
-  organizationId: string,
-): Promise<IDocumentComment[]> {
+export async function getAllDocumentComments(organizationId: string): Promise<IDocumentComment[]> {
   const records = await pb.collection(DOCUMENT_COMMENTS_COLLECTION).getFullList<IDocumentComment>({
     filter: `organization_id = "${qTag(organizationId)}"`,
     sort: 'created',
@@ -458,9 +455,7 @@ export async function markPaymentCancelled(
     document,
     {
       payment_cancelled: cancelled,
-      ...(cancelled
-        ? { provided: false, confirmed: false, confirmed_file_id: '' }
-        : {}),
+      ...(cancelled ? { provided: false, confirmed: false, confirmed_file_id: '' } : {}),
     },
     cancelled ? 'payment_cancelled' : 'payment_resumed',
     { payment_cancelled: document.payment_cancelled },

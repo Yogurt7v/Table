@@ -48,7 +48,10 @@ vi.mock('@/api/client', () => {
       return Promise.resolve(found);
     },
     getFullList: (params?: unknown) => {
-      h.stub.calls.set(`${name}.getFullList`, [...(h.stub.calls.get(`${name}.getFullList`) ?? []), params]);
+      h.stub.calls.set(`${name}.getFullList`, [
+        ...(h.stub.calls.get(`${name}.getFullList`) ?? []),
+        params,
+      ]);
       return Promise.resolve(h.stub.list.get(name) ?? []);
     },
     create: (body: Payload) => {
@@ -82,7 +85,6 @@ vi.mock('@/api/client', () => {
     },
   };
 });
-
 
 function putList(collection: string, value: unknown[]) {
   h.stub.list.set(collection, value);
@@ -150,7 +152,10 @@ beforeEach(() => {
 
 describe('listDocuments', () => {
   it('filters non-deleted documents for admin without responsible restriction', async () => {
-    putList('documents', [documentFixture({ id: 'doc1' }), documentFixture({ id: 'doc2', is_deleted: true })]);
+    putList('documents', [
+      documentFixture({ id: 'doc1' }),
+      documentFixture({ id: 'doc2', is_deleted: true }),
+    ]);
 
     const result = await listDocuments({ organizationId: 'org1', role: 'admin', userId: 'u9' });
 
@@ -177,7 +182,12 @@ describe('listDocuments', () => {
   it('includes deleted documents when requested', async () => {
     putList('documents', [documentFixture({ id: 'deleted', is_deleted: true })]);
 
-    const result = await listDocuments({ organizationId: 'org1', role: 'admin', userId: 'u1', includeDeleted: true });
+    const result = await listDocuments({
+      organizationId: 'org1',
+      role: 'admin',
+      userId: 'u1',
+      includeDeleted: true,
+    });
 
     expect(result.map((doc) => doc.id)).toEqual(['deleted']);
     const params = h.stub.calls.get('documents.getFullList')?.[0] as { filter?: string };
@@ -243,9 +253,14 @@ describe('updateDocumentWithHistory', () => {
   it('locks sync when a synced field changes', async () => {
     const document = documentFixture({ sync_locked: false });
 
-    await updateDocumentWithHistory(document, { counterparty: 'Новый контрагент' }, 'document_updated', {
-      counterparty: document.counterparty,
-    });
+    await updateDocumentWithHistory(
+      document,
+      { counterparty: 'Новый контрагент' },
+      'document_updated',
+      {
+        counterparty: document.counterparty,
+      },
+    );
 
     const body = updated('documents');
     expect(body).toMatchObject({ counterparty: 'Новый контрагент', sync_locked: true });
@@ -267,7 +282,11 @@ describe('updateDocumentWithHistory', () => {
 
 describe('updateDocumentStatus', () => {
   it('resets confirmation when provided becomes false', async () => {
-    const document = documentFixture({ provided: true, confirmed: true, confirmed_file_id: 'file1' });
+    const document = documentFixture({
+      provided: true,
+      confirmed: true,
+      confirmed_file_id: 'file1',
+    });
     putList('document_files', [fileFixture()]);
 
     await updateDocumentStatus(document, { provided: false });
@@ -295,7 +314,12 @@ describe('uploadDocumentFile', () => {
     await uploadDocumentFile(document, file, 'Скан');
 
     const uploaded = await uploadDocumentFile(document, file, 'Скан');
-    expect(uploaded).toMatchObject({ id: 'document_files_new', document_id: 'doc1', name: 'Скан', uploaded_by: 'u1' });
+    expect(uploaded).toMatchObject({
+      id: 'document_files_new',
+      document_id: 'doc1',
+      name: 'Скан',
+      uploaded_by: 'u1',
+    });
     const statusBody = updated('documents');
     expect(statusBody).toMatchObject({ provided: true });
     const histories = h.stub.creates.get('document_history')!;
@@ -307,7 +331,11 @@ describe('uploadDocumentFile', () => {
 
 describe('deleteDocumentFile', () => {
   it('resets both statuses when the last file is removed', async () => {
-    const document = documentFixture({ provided: true, confirmed: true, confirmed_file_id: 'file1' });
+    const document = documentFixture({
+      provided: true,
+      confirmed: true,
+      confirmed_file_id: 'file1',
+    });
     putList('document_files', []);
 
     const result = await deleteDocumentFile(document, fileFixture({ id: 'file1' }));
@@ -321,7 +349,11 @@ describe('deleteDocumentFile', () => {
   });
 
   it('removes confirmation only for the deleted confirmed file', async () => {
-    const document = documentFixture({ provided: true, confirmed: true, confirmed_file_id: 'file1' });
+    const document = documentFixture({
+      provided: true,
+      confirmed: true,
+      confirmed_file_id: 'file1',
+    });
     putList('document_files', [fileFixture({ id: 'file2' })]);
 
     await deleteDocumentFile(document, fileFixture({ id: 'file1' }));
@@ -350,7 +382,15 @@ describe('comments', () => {
 
   it('deletes a comment and records its text in history', async () => {
     const document = documentFixture();
-    const comment = { id: 'comment1', document_id: 'doc1', organization_id: 'org1', author: 'u2', author_name: 'Автор', text: 'Удалить', created: '2026-10-14T10:00:00.000Z' };
+    const comment = {
+      id: 'comment1',
+      document_id: 'doc1',
+      organization_id: 'org1',
+      author: 'u2',
+      author_name: 'Автор',
+      text: 'Удалить',
+      created: '2026-10-14T10:00:00.000Z',
+    };
 
     await deleteDocumentComment(document, comment);
 
@@ -403,12 +443,21 @@ describe('moveDocument and markPaymentCancelled', () => {
   });
 
   it('marks payment cancelled and resets statuses', async () => {
-    const document = documentFixture({ provided: true, confirmed: true, confirmed_file_id: 'file1' });
+    const document = documentFixture({
+      provided: true,
+      confirmed: true,
+      confirmed_file_id: 'file1',
+    });
 
     await markPaymentCancelled(document, true);
 
     const body = updated('documents');
-    expect(body).toMatchObject({ payment_cancelled: true, provided: false, confirmed: false, confirmed_file_id: '' });
+    expect(body).toMatchObject({
+      payment_cancelled: true,
+      provided: false,
+      confirmed: false,
+      confirmed_file_id: '',
+    });
     expect(created('document_history')).toMatchObject({ type: 'payment_cancelled' });
   });
 
@@ -427,8 +476,24 @@ describe('moveDocument and markPaymentCancelled', () => {
 describe('searchDocumentIdsByComment', () => {
   it('returns document ids whose comments match case-insensitively', async () => {
     putList('document_comments', [
-      { id: 'c1', document_id: 'doc1', organization_id: 'org1', author: 'u1', author_name: 'A', text: 'Нужен СЧЁТ', created: '' },
-      { id: 'c2', document_id: 'doc2', organization_id: 'org1', author: 'u1', author_name: 'A', text: 'другой текст', created: '' },
+      {
+        id: 'c1',
+        document_id: 'doc1',
+        organization_id: 'org1',
+        author: 'u1',
+        author_name: 'A',
+        text: 'Нужен СЧЁТ',
+        created: '',
+      },
+      {
+        id: 'c2',
+        document_id: 'doc2',
+        organization_id: 'org1',
+        author: 'u1',
+        author_name: 'A',
+        text: 'другой текст',
+        created: '',
+      },
     ]);
 
     await expect(searchDocumentIdsByComment('org1', 'счёт')).resolves.toEqual(['doc1']);

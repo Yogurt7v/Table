@@ -66,9 +66,9 @@ describe.skipIf(!enabled)('organization_users.objects на живом PocketBase
         },
       });
 
-      const reread = await pb.collection('organization_users').getOne<{ objects: string[] }>(
-        assignment.id,
-      );
+      const reread = await pb
+        .collection('organization_users')
+        .getOne<{ objects: string[] }>(assignment.id);
       expect(reread.objects).toHaveLength(100);
     } finally {
       for (const { collection, id } of created.reverse()) {

@@ -793,22 +793,18 @@ export function getDeletedOutgoingMail(id: string) {
 
 /** Full deleted-incoming archive for client-side search across all pages. */
 export function getAllDeletedIncomingMails(orgId: string): Promise<IDeletedIncomingMail[]> {
-  return pb
-    .collection(DELETED_MAIL_INCOMING_COLLECTION)
-    .getFullList<IDeletedIncomingMail>({
-      filter: `organization_id = "${qTag(orgId)}"`,
-      sort: ARCHIVE_SORT,
-    });
+  return pb.collection(DELETED_MAIL_INCOMING_COLLECTION).getFullList<IDeletedIncomingMail>({
+    filter: `organization_id = "${qTag(orgId)}"`,
+    sort: ARCHIVE_SORT,
+  });
 }
 
 /** Full deleted-outgoing archive for client-side search across all pages. */
 export function getAllDeletedOutgoingMails(orgId: string): Promise<IDeletedOutgoingMail[]> {
-  return pb
-    .collection(DELETED_MAIL_OUTGOING_COLLECTION)
-    .getFullList<IDeletedOutgoingMail>({
-      filter: `organization_id = "${qTag(orgId)}"`,
-      sort: ARCHIVE_SORT,
-    });
+  return pb.collection(DELETED_MAIL_OUTGOING_COLLECTION).getFullList<IDeletedOutgoingMail>({
+    filter: `organization_id = "${qTag(orgId)}"`,
+    sort: ARCHIVE_SORT,
+  });
 }
 
 // --- Restore ---
