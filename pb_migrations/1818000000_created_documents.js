@@ -554,12 +554,7 @@ migrate(
     void orgUsers;
   },
   (app) => {
-    const names = [
-      'document_history',
-      'document_comments',
-      'document_files',
-      'documents',
-    ];
+    const names = ['document_history', 'document_comments', 'document_files', 'documents'];
 
     for (const name of names) {
       try {
