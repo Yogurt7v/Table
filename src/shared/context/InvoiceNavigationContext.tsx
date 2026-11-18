@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { dateKeyToLocalDate } from '@/features/mail/mail-date';
 
 interface InvoiceNavigationContextValue {
   selectedDate: Date;
@@ -12,11 +13,6 @@ interface InvoiceNavigationContextValue {
 }
 
 const InvoiceNavigationContext = createContext<InvoiceNavigationContextValue | null>(null);
-
-function dateFromYmd(date: string): Date {
-  const [y, m, d] = date.split('-').map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1);
-}
 
 export function InvoiceNavigationProvider({ children }: { children: ReactNode }) {
   const [selectedDate, setSelectedDateState] = useState<Date>(() => new Date());
@@ -37,7 +33,8 @@ export function InvoiceNavigationProvider({ children }: { children: ReactNode })
 
   const requestHighlightWithCandidates = useCallback((invoiceId: string, dates: string[]) => {
     const [first] = dates;
-    if (first) setSelectedDateState(dateFromYmd(first));
+    const candidate = dateKeyToLocalDate(first);
+    if (candidate) setSelectedDateState(candidate);
     setHighlightDateCandidates(dates);
     setHighlightedInvoiceId(invoiceId);
     setHighlightRequestId((r) => r + 1);
