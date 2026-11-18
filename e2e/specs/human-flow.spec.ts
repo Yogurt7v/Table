@@ -273,9 +273,7 @@ test.describe.serial('Человеческий тест', () => {
     const history = await openInvoiceHistory(page, c.counterparty);
     await expect(history.getByText('Изменены поля счёта').first()).toBeVisible();
     await expect(history.getByText(/Сумма: 100/).first()).toBeVisible();
-    await expect(
-      history.getByText(`Комментарий: — → Комментарий ${marker}`).first(),
-    ).toBeVisible();
+    await expect(history.getByText(`Комментарий: — → Комментарий ${marker}`).first()).toBeVisible();
     await expect(history.getByText(`Прикреплён файл «${FILE_BASENAME}»`).first()).toBeVisible();
     await expect(history.getByText(`Удалён файл «${FILE_BASENAME}»`)).toBeVisible();
     await expect(history.getByText(humanUserName(marker, 'user')).first()).toBeVisible();
@@ -306,7 +304,9 @@ test.describe.serial('Человеческий тест', () => {
 
     const updated = await getMembership(boss.id, c.orgId);
     expect(String(updated?.role)).toBe('boss');
-    expect(((updated?.objects as string[]) ?? []).slice().sort()).toEqual(orgObjectIds.slice().sort());
+    expect(((updated?.objects as string[]) ?? []).slice().sort()).toEqual(
+      orgObjectIds.slice().sort(),
+    );
   });
 
   test('7. босс отмечает частичную оплату 45% на дату +7', async ({ page }) => {
@@ -428,7 +428,9 @@ test.describe.serial('Человеческий тест', () => {
     ).toBeVisible();
   });
 
-  test('11. модератор проверяет уведомления, снимает отметку, оплачивает и удаляет', async ({ page }) => {
+  test('11. модератор проверяет уведомления, снимает отметку, оплачивает и удаляет', async ({
+    page,
+  }) => {
     test.setTimeout(120_000);
     const c = ctx();
     await loginViaUi(page, c.logins.moderator);
@@ -449,11 +451,7 @@ test.describe.serial('Человеческий тест', () => {
     const remainderId = String(invoicesAfterMark.find((inv) => inv.original_invoice_id)?.id);
     expect(await getPaymentMarksOf(remainderId)).toHaveLength(0);
 
-    await payInvoice(
-      page,
-      remainderRow,
-      String(Number(AMOUNT_EDITED) - Number(MODERATOR_PAYMENT)),
-    );
+    await payInvoice(page, remainderRow, String(Number(AMOUNT_EDITED) - Number(MODERATOR_PAYMENT)));
     const paidRemainder = (await getInvoicesByCounterparty(c.counterparty, c.orgId)).find(
       (inv) => inv.id === remainderId,
     );
@@ -481,7 +479,9 @@ test.describe.serial('Человеческий тест', () => {
     );
   });
 
-  test('12. администратор находит счёт в архиве, смотрит историю и восстанавливает', async ({ page }) => {
+  test('12. администратор находит счёт в архиве, смотрит историю и восстанавливает', async ({
+    page,
+  }) => {
     test.setTimeout(120_000);
     const c = ctx();
     await loginViaUi(page, c.logins.admin);
@@ -513,7 +513,9 @@ test.describe.serial('Человеческий тест', () => {
     expect(restored?.paid).toBeFalsy();
   });
 
-  test('13. администратор проверяет уведомления, переименовывает и меняет инициатора', async ({ page }) => {
+  test('13. администратор проверяет уведомления, переименовывает и меняет инициатора', async ({
+    page,
+  }) => {
     test.setTimeout(120_000);
     const c = ctx();
     await loginViaUi(page, c.logins.admin);
@@ -582,11 +584,7 @@ test.describe.serial('Человеческий тест', () => {
       await waitForRegistry(page, String(invoice.counterparty));
       await deleteInvoiceViaMenu(
         page,
-        invoiceRowByAmount(
-          page,
-          String(invoice.counterparty),
-          humanAmountPattern(invoice.amount),
-        ),
+        invoiceRowByAmount(page, String(invoice.counterparty), humanAmountPattern(invoice.amount)),
       );
     }
     await expect.poll(async () => (await getInvoicesByOrg(c.orgId)).length).toBe(0);
@@ -603,6 +601,5 @@ test.describe.serial('Человеческий тест', () => {
     await expect.poll(async () => (await getAccountNumbersByOrg(c.orgId)).length).toBe(0);
     expect(await purgeArchivedInvoices(c.orgId)).toBeGreaterThan(0);
     await closeOrgModal(page, orgModal);
-
   });
 });
