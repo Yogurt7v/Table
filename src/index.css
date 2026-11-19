@@ -141,16 +141,23 @@ body {
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  opacity: 0;
-  transform: translateY(-6px) scale(0.97);
-  transition:
-    opacity 220ms cubic-bezier(0.4, 0, 0.2, 1),
-    transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .date-pinned-overlay--visible {
   opacity: 1;
   transform: none;
+  animation: date-pinned-overlay-in 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes date-pinned-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .date-pinned-overlay__pill {

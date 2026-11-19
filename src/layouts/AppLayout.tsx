@@ -276,20 +276,19 @@ function AppLayoutContent() {
           </Group>
         </Box>
 
-        {/* Desktop pinned date overlay */}
-        <Box
-          visibleFrom="sm"
-          className={
-            pinned
-              ? `date-pinned-overlay date-pinned-overlay--visible${searchText ? ' date-pinned-overlay--shifted' : ''}`
-              : 'date-pinned-overlay'
-          }
-          style={{ pointerEvents: 'none' }}
-        >
-          <div className="date-pinned-overlay__pill">
-            <MainDatePicker variant="header" />
-          </div>
-        </Box>
+        {/* Desktop pinned date overlay.
+            Скрытый оверлей не рендерим: `opacity: 0` всё равно перехватывал бы
+            указатель и фокус клавиатуры, перекрывая реальные контролы шапки. */}
+        {pinned && (
+          <Box
+            visibleFrom="sm"
+            className={`date-pinned-overlay date-pinned-overlay--visible${searchText ? ' date-pinned-overlay--shifted' : ''}`}
+          >
+            <div className="date-pinned-overlay__pill">
+              <MainDatePicker variant="header" />
+            </div>
+          </Box>
+        )}
       </AppShell.Header>
       <AppShell.Main>
         <Outlet />

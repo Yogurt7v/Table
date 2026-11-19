@@ -7,6 +7,7 @@ import { SearchProvider } from '@/shared/context/SearchContext';
 import { adminUser, org1, org2, orgUserAdmin } from '@/mocks/seed';
 import { AppLayout } from './AppLayout';
 import type { IOrganizationUser } from '@/shared/types';
+import type { ReactNode } from 'react';
 
 /**
  * `AppLayout` — единственное место, где смонтированы сразу ДВА `NotificationsBell`:
@@ -29,6 +30,8 @@ const mockOrg = vi.hoisted(() => ({
 const mockOrgUsers = vi.hoisted(() => ({ data: [] as IOrganizationUser[] | undefined }));
 
 const mockNavigate = vi.hoisted(() => vi.fn());
+
+const mockDatePinned = vi.hoisted(() => ({ pinned: false }));
 
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
@@ -73,6 +76,11 @@ vi.mock('@/shared/components/MainDatePicker', () => ({
   MainDatePicker: () => <div data-testid="main-date-picker" />,
 }));
 
+vi.mock('@/shared/context/DatePinnedContext', () => ({
+  DatePinnedProvider: ({ children }: { children: ReactNode }) => children,
+  useDatePinned: () => ({ pinned: mockDatePinned.pinned, registerAnchor: vi.fn() }),
+}));
+
 function membership(role: IOrganizationUser['role']): IOrganizationUser {
   return { ...orgUserAdmin, role, user_id: adminUser.id, organization_id: org1.id };
 }
@@ -85,6 +93,7 @@ beforeEach(() => {
   mockOrg.currentOrgId = org1.id;
   mockOrgUsers.data = [membership('admin')];
   mockNavigate.mockClear();
+  mockDatePinned.pinned = false;
   mockOrg.setCurrentOrgId.mockClear();
   mockAuth.logout.mockClear();
   scrollToSpy.mockClear();
@@ -319,6 +328,26 @@ describe('AppLayout', () => {
       renderLayout('/admin');
 
       expect(screen.getByText('Контент админки')).toBeInTheDocument();
+    });
+  });
+
+  describe('Пикер даты в шапке', () => {
+    it('не рендерит десктопный оверлей, пока дата не прилипла', () => {
+      const { container } = renderLayout();
+
+      expect(container.querySelector('.date-pinned-overlay')).toBeNull();
+      expect(screen.getAllByTestId('main-date-picker')).toHaveLength(1);
+    });
+
+    it('показывает видимый оверлей, когда дата прилипла', () => {
+      mockDatePinned.pinned = true;
+
+      const { container } = renderLayout();
+      const overlay = container.querySelector('.date-pinned-overlay');
+
+      expect(overlay).not.toBeNull();
+      expect(overlay).toHaveClass('date-pinned-overlay--visible');
+      expect(screen.getAllByTestId('main-date-picker')).toHaveLength(2);
     });
   });
 });
