@@ -1,29 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Table, Text, Box, Button, Group } from '@mantine/core';
-import { IconInbox, IconPlus } from '@tabler/icons-react';
-import { DndContext } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
-import { groupInvoicesByCounterparty, getInvoiceNumber } from '@/shared/utils/group-invoices';
+import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import type { DraftInvoiceForm, InvoiceEditableField } from './invoice-field-access';
-import {
-  SortableGroupBody,
-  StaticGroupBody,
-} from './components/grouped-invoice-table/GroupedInvoiceTableGroupBodies';
-import { GroupedInvoiceTableDraftRow } from './components/grouped-invoice-table/GroupedInvoiceTableDraftRow';
+import { GroupedInvoiceTableDesktop } from './components/grouped-invoice-table/GroupedInvoiceTableDesktop';
+import { GroupedInvoiceTableEmptyState } from './components/grouped-invoice-table/GroupedInvoiceTableEmptyState';
 import { GroupedInvoiceTableModals } from './components/grouped-invoice-table/GroupedInvoiceTableModals';
 import { useGroupedInvoiceTableColumnSizing } from './components/grouped-invoice-table/useGroupedInvoiceTableColumnSizing';
 import { useGroupedInvoiceTableDragDrop } from './components/grouped-invoice-table/useGroupedInvoiceTableDragDrop';
 import { useGroupedInvoiceTableColumnRenderers } from './components/grouped-invoice-table/useGroupedInvoiceTableColumnRenderers';
 import { useGroupedInvoiceTableDraft } from './components/grouped-invoice-table/useGroupedInvoiceTableDraft';
-import { buildInvoiceRows } from './components/grouped-invoice-table/grouped-invoice-table-rows';
 import { InvoiceMobileCardView } from './components/InvoiceMobileCardView';
-
-const NUM_COLUMN_ID = 'num' as const;
-const NUM_COLUMN_DEFAULT_WIDTH = 68;
 
 /** Пропсы таблицы счетов с группировкой по контрагентам. */
 interface GroupedInvoiceTableProps {
@@ -75,9 +63,13 @@ interface GroupedInvoiceTableProps {
 
 /**
  * Таблица счетов, сгруппированных по контрагентам.
- * Рендерит мобильные карточки и десктопную таблицу с перетаскиванием групп,
- * черновиком нового счёта, изменением ширины колонок и модалками оплаты/отметок.
- * Отображение колонок и доступные действия определяются правами пользователя.
+ *
+ * Оркестратор: держит состояние (модалки, черновик), группирует счета и
+ * распределяет колонки по правам. Рендер — мобильные карточки
+ * (`InvoiceMobileCardView`), десктопная таблица (`GroupedInvoiceTableDesktop`),
+ * пустое состояние (`GroupedInvoiceTableEmptyState`) и модалки
+ * (`GroupedInvoiceTableModals`). Отображение колонок и доступные действия
+ * определяются правами пользователя.
  */
 export function GroupedInvoiceTable({
   orgId,
@@ -123,6 +115,7 @@ export function GroupedInvoiceTable({
     enabled: isDraftOpen && !!draftForm,
   });
 
+  // Отметка к оплате по счёту: одна на счёт, ключ — invoice_id.
   const marksByInvoice = useMemo(() => {
     const map: Record<string, IPaymentMark> = {};
     if (paymentMarks) {
@@ -162,6 +155,8 @@ export function GroupedInvoiceTable({
     onDraftCancel,
   });
 
+  // Колонки по правам: отметки и дата оплаты — по своим флагам, «действия» —
+  // если есть хоть одно право на изменение.
   const filteredColumns = useMemo(
     () =>
       visibleColumns.filter((colId) => {
@@ -182,6 +177,8 @@ export function GroupedInvoiceTable({
 
   const { columnSizing, handleResizeStart } = useGroupedInvoiceTableColumnSizing({ orgId });
 
+  // Сумма черновика — строковое поле ввода; синхронизируем с формой при её
+  // появлении, чтобы инпут не показывал старое значение.
   useEffect(() => {
     setAmountDisplay(String(draftForm?.amount ?? 0));
     setAmountFocused(false);
@@ -189,6 +186,7 @@ export function GroupedInvoiceTable({
 
   const { sensors, handleDragEnd } = useGroupedInvoiceTableDragDrop({ groups, onReorderGroups });
 
+  /** Оплата строки-копии (`id` с суффиксом `__r`) уходит родителю. */
   function handlePaySubmit(invoice: IInvoice, amount: number) {
     if (invoice.id.endsWith('__r')) {
       const parentId = invoice.id.slice(0, -3);
@@ -230,25 +228,17 @@ export function GroupedInvoiceTable({
     setPartialModal,
   });
 
+  // Пустая дата без черновика — короткое состояние вместо всей таблицы.
   if (groups.length === 0 && !isDraftOpen) {
     return (
-      <Box ta="center" py="xl">
-        <IconInbox size={36} stroke={1.5} style={{ color: 'var(--mantine-color-gray-5)' }} />
-        <Text c="dimmed" mt="xs">
-          Нет счетов на эту дату
-        </Text>
-        {permissions.canCreate && onAddClick && (
-          <Button variant="light" size="compact-sm" mt="sm" onClick={onAddClick}>
-            Добавить счёт
-          </Button>
-        )}
-      </Box>
+      <GroupedInvoiceTableEmptyState canCreate={permissions.canCreate} onAddClick={onAddClick} />
     );
   }
 
+  // Мобильный вид, десктопная таблица и модалки: карточки видны всегда,
+  // таблица — только с sm, модалки — поверх обоих.
   return (
     <>
-      {/* Мобильное представление: карточки счетов вместо таблицы */}
       <InvoiceMobileCardView
         invoices={invoices}
         allInvoices={allInvoices}
@@ -272,189 +262,27 @@ export function GroupedInvoiceTable({
         onDelete={onDelete}
       />
 
-      {/* Десктопная таблица: группы контрагентов, черновик и перетаскивание */}
-      <Box visibleFrom="sm">
-        {permissions.canCreate && onAddClick && (
-          <Group justify="flex-end" mb="sm">
-            <Button
-              leftSection={<IconPlus size={16} />}
-              disabled={isDraftOpen || hasDraftElsewhere}
-              onClick={onAddClick}
-            >
-              Добавить счёт
-            </Button>
-          </Group>
-        )}
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <Table
-            highlightOnHover
-            className="invoices-table"
-            style={{ width: '100%', maxWidth: '100%', tableLayout: 'fixed' }}
-          >
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th
-                  style={{
-                    width: columnSizing[NUM_COLUMN_ID] ?? NUM_COLUMN_DEFAULT_WIDTH,
-                    position: 'sticky',
-                    top: 104,
-                    zIndex: 1,
-                    backgroundColor: 'var(--mantine-color-body)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  №
-                  <div
-                    onMouseDown={(e) =>
-                      handleResizeStart(
-                        NUM_COLUMN_ID,
-                        e,
-                        columnSizing[NUM_COLUMN_ID] ?? NUM_COLUMN_DEFAULT_WIDTH,
-                      )
-                    }
-                    className="col-resize-handle"
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 10,
-                      cursor: 'col-resize',
-                      userSelect: 'none',
-                      borderRight: '1px solid var(--mantine-color-gray-3)',
-                    }}
-                  />
-                </Table.Th>
-                {filteredColumns.map((colId) => {
-                  const col = columnRenderers[colId];
-                  const width = columnSizing[colId] ?? col.width;
-                  return (
-                    <Table.Th
-                      key={colId}
-                      style={{
-                        width,
-                        position: 'sticky',
-                        top: 104,
-                        zIndex: 1,
-                        backgroundColor: 'var(--mantine-color-body)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <div style={{ overflow: 'hidden', maxWidth: '100%' }}>{col.header}</div>
-                      <div
-                        onMouseDown={(e) =>
-                          handleResizeStart(colId, e, columnSizing[colId] ?? col.width)
-                        }
-                        className="col-resize-handle"
-                        style={{
-                          position: 'absolute',
-                          right: 0,
-                          top: 0,
-                          bottom: 0,
-                          width: 10,
-                          cursor: 'col-resize',
-                          userSelect: 'none',
-                          borderRight: '1px solid var(--mantine-color-gray-3)',
-                        }}
-                      />
-                    </Table.Th>
-                  );
-                })}
-              </Table.Tr>
-            </Table.Thead>
-            {canDrag ? (
-              <SortableContext
-                items={groups.map((g) => g.counterparty)}
-                strategy={verticalListSortingStrategy}
-              >
-                {groups.map((group) => {
-                  const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
-                  return (
-                    <SortableGroupBody key={group.counterparty} id={group.counterparty}>
-                      {({ listeners, isOver }) =>
-                        group.invoices.flatMap((invoice, idx) => {
-                          const markLookupId = invoice.id.endsWith('__r')
-                            ? invoice.id.slice(0, -3)
-                            : invoice.id;
-                          return buildInvoiceRows({
-                            invoice,
-                            invoiceIndex: idx,
-                            groupInvoices: group.invoices,
-                            groupCounterparty: group.counterparty,
-                            counterpartyRowIndex,
-                            invoiceNumber: getInvoiceNumber(groups, invoice.id),
-                            filteredColumns,
-                            columnRenderers,
-                            columnSizing,
-                            mark: marksByInvoice[markLookupId],
-                            isHighlighted: highlightedIds.includes(invoice.id),
-                            draggable: true,
-                            listeners: listeners as unknown as Record<string, unknown>,
-                            isOver,
-                            setClearConfirmInvoiceId: (id) => setClearConfirmInvoiceId(id),
-                          });
-                        })
-                      }
-                    </SortableGroupBody>
-                  );
-                })}
-                {isDraftOpen && draftForm && (
-                  <GroupedInvoiceTableDraftRow
-                    draftRowRef={draftRowRef}
-                    filteredColumns={filteredColumns}
-                    columnRenderers={columnRenderers}
-                    columnSizing={columnSizing}
-                    onSave={handleDraftSaveClick}
-                    onCancel={requestDraftCancel}
-                  />
-                )}
-              </SortableContext>
-            ) : (
-              <>
-                {groups.map((group) => {
-                  const counterpartyRowIndex = Math.ceil(group.invoices.length / 2);
-                  return (
-                    <StaticGroupBody key={group.counterparty}>
-                      {() =>
-                        group.invoices.flatMap((invoice, idx) => {
-                          const markLookupId = invoice.id.endsWith('__r')
-                            ? invoice.id.slice(0, -3)
-                            : invoice.id;
-                          return buildInvoiceRows({
-                            invoice,
-                            invoiceIndex: idx,
-                            groupInvoices: group.invoices,
-                            groupCounterparty: group.counterparty,
-                            counterpartyRowIndex,
-                            invoiceNumber: getInvoiceNumber(groups, invoice.id),
-                            filteredColumns,
-                            columnRenderers,
-                            columnSizing,
-                            mark: marksByInvoice[markLookupId],
-                            isHighlighted: highlightedIds.includes(invoice.id),
-                            draggable: false,
-                            setClearConfirmInvoiceId: (id) => setClearConfirmInvoiceId(id),
-                          });
-                        })
-                      }
-                    </StaticGroupBody>
-                  );
-                })}
-                {isDraftOpen && draftForm && (
-                  <GroupedInvoiceTableDraftRow
-                    draftRowRef={draftRowRef}
-                    filteredColumns={filteredColumns}
-                    columnRenderers={columnRenderers}
-                    columnSizing={columnSizing}
-                    onSave={handleDraftSaveClick}
-                    onCancel={requestDraftCancel}
-                  />
-                )}
-              </>
-            )}
-          </Table>
-        </DndContext>
-      </Box>
+      <GroupedInvoiceTableDesktop
+        groups={groups}
+        canDrag={canDrag}
+        canCreate={permissions.canCreate}
+        hasDraftElsewhere={hasDraftElsewhere}
+        isDraftOpen={isDraftOpen}
+        draftForm={draftForm}
+        draftRowRef={draftRowRef}
+        filteredColumns={filteredColumns}
+        columnRenderers={columnRenderers}
+        columnSizing={columnSizing}
+        handleResizeStart={handleResizeStart}
+        sensors={sensors}
+        handleDragEnd={handleDragEnd}
+        marksByInvoice={marksByInvoice}
+        highlightedIds={highlightedIds}
+        onAddClick={onAddClick}
+        onDraftSave={handleDraftSaveClick}
+        onDraftCancel={requestDraftCancel}
+        setClearConfirmInvoiceId={setClearConfirmInvoiceId}
+      />
 
       {/* Модальные окна: оплата, частичная отметка и подтверждения */}
       <GroupedInvoiceTableModals
