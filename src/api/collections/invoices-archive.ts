@@ -185,8 +185,8 @@ export function getDeletedInvoiceFileUrl(record: IDeletedInvoiceFile) {
 }
 
 /**
- * Восстанавливает счёт из архива: создаёт новый счёт, переносит историю и файлы,
- * записывает событие восстановления и удаляет архивные записи.
+ * Восстанавливает счёт из архива: создаёт новый счёт, переносит оплату (сумму и разбивку),
+ * историю и файлы, записывает событие восстановления и удаляет архивные записи.
  */
 export async function restoreDeletedInvoice(deletedInvoiceId: string): Promise<IInvoice> {
   const deleted = await pb.collection('deleted_invoices').getOne<IDeletedInvoice>(deletedInvoiceId);
@@ -217,6 +217,11 @@ export async function restoreDeletedInvoice(deletedInvoiceId: string): Promise<I
       amount: deleted.amount,
       paid: deleted.paid,
       paid_date: deleted.paid_date,
+      // Сумму и разбивку оплат переносим обязательно: без них PocketBase
+      // подставит дефолты 0/[] — оплаченный счёт вернётся как «оплачен 0,00 ₽»,
+      // на следующий день выпадет из реестра и не даст снять оплату.
+      paid_amount: deleted.paid_amount,
+      payment_amounts: deleted.payment_amounts,
       comment: stripDeletionReason(deleted.comment),
       original_invoice_id: deleted.original_invoice_id || '',
       source_paid_amount: deleted.source_paid_amount,

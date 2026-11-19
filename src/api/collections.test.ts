@@ -247,6 +247,31 @@ describe('restoreDeletedInvoice', () => {
 
     expect(h.stub.deletes).toContain('deleted_invoices/del1');
   });
+
+  // Регрессия: restore терял сумму и разбивку оплат, и счёт возвращался
+  // оплаченным на 0,00 ₽ — без кнопки снятия оплаты и вне реестра со следующего дня.
+  it('переносит сумму и разбивку оплат из архива', async () => {
+    putOne(
+      'deleted_invoices',
+      'del1',
+      deletedFixture({
+        amount: 5000,
+        paid: true,
+        paid_date: '2026-09-11',
+        paid_amount: 500,
+        payment_amounts: [500],
+      }),
+    );
+
+    await restoreDeletedInvoice('del1');
+
+    const body = h.stub.creates.get('invoices')?.[0];
+    expect(body?.['amount']).toBe(5000);
+    expect(body?.['paid']).toBe(true);
+    expect(body?.['paid_date']).toBe('2026-09-11');
+    expect(body?.['paid_amount']).toBe(500);
+    expect(body?.['payment_amounts']).toEqual([500]);
+  });
 });
 
 describe('deleteInvoice → restoreDeletedInvoice', () => {
