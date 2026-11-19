@@ -12,12 +12,19 @@ import {
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { MailType } from '@/shared/types';
-import type { MailLetter } from './mail-thread';
 import { MAIL_TREE_INDENT, mailNodeDropId } from './mail-thread-builder';
 import type { ThreadLineNode, ThreadDirection, ThreadOverState } from './mail-thread-builder';
 import { formatMailDate, toDateKey } from './mail-date';
 import { mailChainDirectionLabel } from './mail-thread-labels';
 import { MAIL_EMPTY_CELL, MAIL_REGISTER_BADGE_LABELS, MAIL_REGISTER_COLORS } from './mail-labels';
+import {
+  GUTTER_WIDTH,
+  HANDLE_BOX,
+  MISSING_LETTER_LABEL,
+  SPINE_WIDTH,
+} from './components/mail-thread-node/mail-thread-node-constants';
+import { letterLabel } from './components/mail-thread-node/mail-thread-node-utils';
+import { ThreadSpine } from './components/mail-thread-node/ThreadSpine';
 
 /**
  * Письмо в линии переписки: дата и номер слева от линии, сама линия с засечкой
@@ -42,19 +49,6 @@ const DIRECTION_ICONS: Record<ThreadDirection, ReactNode> = {
  */
 const CHAIN_ROOT_ICON: ReactNode = <IconArrowBarToDown size={13} />;
 
-const MISSING_LETTER_LABEL = 'Письмо недоступно — связь ссылается на удалённое письмо';
-
-/** Ширина колонки подписей и самой линии. Числа, а не `rem`: колонки узкие и постоянные. */
-const GUTTER_WIDTH = 96;
-const SPINE_WIDTH = 26;
-const TICK_SIZE = 11;
-const HANDLE_BOX = 32;
-
-const SPINE_IDLE = 'var(--mantine-color-gray-4)';
-const SPINE_HOVER = 'var(--mantine-color-blue-5)';
-const SPINE_DROP = 'var(--mantine-color-blue-6)';
-const SPINE_REJECT = 'var(--mantine-color-red-6)';
-
 interface MailThreadNodeProps {
   node: ThreadLineNode;
   direction: ThreadDirection;
@@ -72,9 +66,8 @@ interface MailThreadNodeProps {
 }
 
 /**
- * Строка линии. Три колонки: подписи слева, линия с засечкой, письмо справа с
- * отступом `MAIL_TREE_INDENT * depth` — тем же шагом, что был у дерева, поэтому
- * обе формы читаются как одна система.
+ * Строка линии переписки. Три колонки: подписи слева, линия с засечкой, письмо справа
+ * с отступом `MAIL_TREE_INDENT * depth` — тем же шагом, что был у дерева.
  */
 export function MailThreadNode({
   node,
@@ -116,9 +109,11 @@ export function MailThreadNode({
    */
   const startsChain = direction === 'up' && node.parentKey === null;
 
+  // Рендерит строку линии: колонку подписей (дата/номер), вертикальную линию и карточку письма.
   return (
     <Box ref={setDropRef} data-mail-node={node.key} style={{ minWidth: 0 }}>
       <Box style={{ display: 'grid', gridTemplateColumns: columns, alignItems: 'stretch' }}>
+        {/* Колонка подписей слева: дата и номер (скрывается на узких экранах) */}
         {!stacked && (
           <Box py={8} pr={8} style={{ textAlign: 'right', minWidth: 0 }}>
             <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
@@ -135,6 +130,7 @@ export function MailThreadNode({
           </Box>
         )}
 
+        {/* Вертикальная линия с засечкой и ответвлением по глубине */}
         <ThreadSpine
           type={node.type}
           depth={node.depth}
@@ -142,6 +138,7 @@ export function MailThreadNode({
           overState={overState}
         />
 
+        {/* Карточка письма с отступом по глубине */}
         <Box py={4} pl={node.depth * MAIL_TREE_INDENT} style={{ minWidth: 0 }}>
           <Paper
             ref={setDragRef}
@@ -173,6 +170,7 @@ export function MailThreadNode({
             }}
           >
             <Group gap={8} wrap="nowrap" align="flex-start">
+              {/* Ручка перетаскивания или заглушка для выравнивания */}
               {canDrag ? (
                 <ActionIcon
                   {...attributes}
@@ -188,6 +186,7 @@ export function MailThreadNode({
                 <Box w={HANDLE_BOX} />
               )}
 
+              {/* Содержимое письма: шапка, метки, контрагент и тема */}
               <Box style={{ flex: 1, minWidth: 0 }}>
                 <Group gap={6} wrap="wrap" style={{ rowGap: 2 }}>
                   <Group gap={4} wrap="nowrap">
@@ -209,6 +208,7 @@ export function MailThreadNode({
                       кольцо
                     </Badge>
                   )}
+                  {/* Дата и номер в шапке карточки на узких экранах */}
                   {stacked && (
                     <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
                       {letter
@@ -234,6 +234,7 @@ export function MailThreadNode({
                 )}
               </Box>
 
+              {/* Кнопка перехода к письму в реестре */}
               {letter && onGoToRegister && (
                 <ActionIcon
                   variant="subtle"
@@ -257,142 +258,5 @@ export function MailThreadNode({
   );
 }
 
-/**
- * Ячейка линии: вертикальная черта, ответвление к письму и засечка по центру
- * строки. Все три детали — настоящие элементы, а не псевдоэлементы в `style`:
- * разметка строится без таблицы измерений, поэтому черта не отрывается от письма
- * ни при какой высоте строки, а засечка всегда попадает в середину. Длина
- * ответвления равна шагу вложенности — ровно тот отступ, что был у дерева.
- */
-function ThreadSpine({
-  type,
-  depth,
-  isAnchor,
-  overState,
-}: {
-  type: 'incoming' | 'outgoing';
-  depth: number;
-  isAnchor: boolean;
-  overState: ThreadOverState;
-}) {
-  const lineColor =
-    overState === 'ok'
-      ? SPINE_DROP
-      : overState === 'bad'
-        ? SPINE_REJECT
-        : isAnchor
-          ? SPINE_HOVER
-          : SPINE_IDLE;
-
-  return (
-    <Box style={{ position: 'relative', width: SPINE_WIDTH, flexShrink: 0 }}>
-      <Box
-        style={{
-          position: 'absolute',
-          left: SPINE_WIDTH / 2 - 1,
-          top: 0,
-          bottom: 0,
-          width: 2,
-          backgroundColor: lineColor,
-        }}
-      />
-      {depth > 0 && (
-        <Box
-          style={{
-            position: 'absolute',
-            left: SPINE_WIDTH / 2,
-            top: '50%',
-            width: SPINE_WIDTH / 2 + depth * MAIL_TREE_INDENT,
-            height: 2,
-            backgroundColor: lineColor,
-          }}
-        />
-      )}
-      <Box
-        style={{
-          position: 'absolute',
-          left: SPINE_WIDTH / 2 - TICK_SIZE / 2,
-          top: '50%',
-          marginTop: -TICK_SIZE / 2,
-          width: TICK_SIZE,
-          height: TICK_SIZE,
-          borderRadius: '50%',
-          boxSizing: 'border-box',
-          backgroundColor: isAnchor
-            ? lineColor
-            : `var(--mantine-color-${MAIL_REGISTER_COLORS[type]}-6)`,
-          border: `2px solid ${isAnchor ? 'var(--mantine-color-blue-0)' : 'var(--mantine-body)'}`,
-        }}
-      />
-    </Box>
-  );
-}
-
-interface MailThreadGapProps {
-  /** Идентификатор зоны: `gap:head`, `gap:tail` или `gap:before:<ключ>`. */
-  zoneId: string;
-  /** Подпись цели, видимая, пока зона под курсором. */
-  hint: string;
-  droppable: boolean;
-  overState: ThreadOverState;
-  /** Узкий экран: колонки подписей нет, поэтому линия сдвигается к краю. */
-  stacked: boolean;
-}
-
-/**
- * Промежуток между письмами — вторая цель сброса рядом с самим письмом.
- * Полоса всегда на своём месте, просто без рамки: иначе зоны не существовало бы
- * между плотно стоящими строками, а именно там её и ищут. Линия сквозь промежуток
- * обязательна — без неё ось распадалась бы на отрезки и переставала читаться
- * как одна ось времени.
- */
-export function MailThreadGap({ zoneId, hint, droppable, overState, stacked }: MailThreadGapProps) {
-  const { setNodeRef } = useDroppable({ id: zoneId, disabled: !droppable });
-  const spineLeft = (stacked ? 0 : GUTTER_WIDTH) + SPINE_WIDTH / 2 - 1;
-
-  return (
-    <Box ref={setNodeRef} data-mail-gap={zoneId} style={{ position: 'relative', height: 16 }}>
-      <Box
-        style={{
-          position: 'absolute',
-          left: spineLeft,
-          top: 0,
-          bottom: 0,
-          width: 2,
-          backgroundColor: SPINE_IDLE,
-        }}
-      />
-      <Box
-        style={{
-          position: 'absolute',
-          inset: '3px 0',
-          borderRadius: 4,
-          border: '1px dashed',
-          borderColor:
-            overState === 'ok'
-              ? 'var(--mantine-color-blue-5)'
-              : overState === 'bad'
-                ? 'var(--mantine-color-red-5)'
-                : 'transparent',
-          backgroundColor: overState === 'none' ? 'transparent' : 'var(--mantine-color-blue-0)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: overState === 'bad' ? 'not-allowed' : undefined,
-        }}
-      >
-        {overState !== 'none' && (
-          <Text size="xs" c="dimmed" style={{ padding: '0 6px' }}>
-            {hint}
-          </Text>
-        )}
-      </Box>
-    </Box>
-  );
-}
-
-/** Подпись письма для `aria-label` ручки: пустое письмо назвать нечем. */
-function letterLabel(letter: MailLetter | undefined): string {
-  if (!letter) return 'письмо без подписей';
-  return letter.number || letter.subject || 'письмо без номера';
-}
+// Реэкспорт для потребителей, импортирующих компоненты с прежнего пути модуля.
+export { MailThreadGap } from './components/mail-thread-node/MailThreadGap';
