@@ -31,7 +31,7 @@ export type {
 } from '@/features/invoices/model/types';
 
 /** Уведомления. */
-export type { INotification } from '@/features/notifications/types';
+export type { INotification } from '@/features/notifications/model/types';
 
 /** Документы и связанные сущности. */
 export type {
