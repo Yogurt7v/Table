@@ -25,7 +25,7 @@ import { describe, it, expect } from 'vitest';
  * тест следил за миграцией, а не за продублированным литералом.
  */
 
-const MIGRATIONS_DIR = resolve(import.meta.dirname, '../../pb_migrations');
+const MIGRATIONS_DIR = resolve(import.meta.dirname, '../../../../pb_migrations');
 const MIGRATION_FILE = '1815000011_widen_mail_responsible.js';
 const MIGRATION_PATH = resolve(MIGRATIONS_DIR, MIGRATION_FILE);
 

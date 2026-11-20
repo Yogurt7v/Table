@@ -1,7 +1,7 @@
 /** Чтение живых реестров писем (входящие/исходящие), с пагинацией и без. */
 
 import type { ListResult } from 'pocketbase';
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type { IIncomingMail, IOutgoingMail, MailListParams } from '@/shared/types';
 import {
   LIVE_MAIL_SORT,

@@ -1,6 +1,6 @@
 /** Восстановление писем из архива под исходными идентификаторами. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type {
   IDeletedIncomingMail,
   IDeletedOutgoingMail,

@@ -1,7 +1,7 @@
 /** Удаление писем в архив и чтение архивных реестров. */
 
 import type { ListResult } from 'pocketbase';
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type {
   IDeletedIncomingMail,
   IDeletedMailHistory,

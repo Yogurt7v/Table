@@ -4,7 +4,7 @@ import {
   deleteOutgoingMail,
   restoreDeletedIncomingMail,
   restoreDeletedOutgoingMail,
-} from './mail';
+} from './index';
 
 /**
  * Причина удаления живёт в поле `comment` архивной записи — своего столбца у неё
@@ -24,7 +24,7 @@ const { state } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('./client', () => ({
+vi.mock('@/api/client', () => ({
   pb: {
     authStore: { model: { id: 'user01hxyz', name: 'Иван', login: 'ivan' } },
     collection: (name: string) => ({

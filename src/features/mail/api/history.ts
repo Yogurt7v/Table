@@ -1,6 +1,6 @@
 /** История действий с письмами: запись и чтение записей mail_history. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type { IDeletedMailHistory, IMailHistory, MailHistoryType, MailType } from '@/shared/types';
 import { DELETED_MAIL_HISTORY_COLLECTION, MAIL_HISTORY_COLLECTION } from './constants.ts';
 import { currentActorId, currentActorName, qTag } from './shared.ts';

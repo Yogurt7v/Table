@@ -1,6 +1,6 @@
 /** Связи между письмами (mail_relations) и записи в историю о связях. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type { IMailRelation, MailRelationSide, MailType } from '@/shared/types';
 import { MAIL_RELATIONS_COLLECTION } from './constants.ts';
 import { createMailHistory } from './history.ts';

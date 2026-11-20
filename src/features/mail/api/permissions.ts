@@ -1,6 +1,6 @@
 /** Управление правами пользователя организации на действия с почтой. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type { IOrganizationUser, MailPermissionFlags } from '@/shared/types';
 import { ORGANIZATION_USERS_COLLECTION } from './constants.ts';
 

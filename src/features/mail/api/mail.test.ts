@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { RecordModel } from 'pocketbase';
-import { getMailFileUrl } from './mail';
+import { getMailFileUrl } from './index';
 import type { IMailFile } from '@/shared/types';
 
 const record = (file: string[]): IMailFile & RecordModel => ({

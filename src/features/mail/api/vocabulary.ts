@@ -1,6 +1,6 @@
 /** Словарь контрагентов организации для автодополнения в формах почты. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type { IIncomingMail, IInvoice, IOutgoingMail } from '@/shared/types';
 import { foldSearchText } from '@/shared/utils/search-text';
 import { MAIL_INCOMING_COLLECTION, MAIL_OUTGOING_COLLECTION } from './constants.ts';

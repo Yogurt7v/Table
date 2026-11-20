@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeCounterpartyVocabulary } from './mail';
+import { mergeCounterpartyVocabulary } from './index';
 
 /**
  * Проверяется чистая функция слияния, без мока SDK: словарь контрагентов —

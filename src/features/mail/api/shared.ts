@@ -1,6 +1,6 @@
 /** Внутренние помощники API почты: экранирование фильтров, актор и поля связей. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import { getLastKnownUser } from '@/shared/auth/last-known-user';
 import type { IMailRelation, MailRelationSide, MailType } from '@/shared/types';
 

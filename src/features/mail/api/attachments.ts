@@ -1,6 +1,6 @@
 /** Вложения писем: чтение, загрузка, удаление и построение URL. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type { IMailFile, MailType } from '@/shared/types';
 import { MAIL_FILES_COLLECTION } from './constants.ts';
 import { currentActorId, currentActorName, qTag } from './shared.ts';

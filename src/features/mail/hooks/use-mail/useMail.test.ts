@@ -41,8 +41,8 @@ import {
   useUpdateIncomingMail,
   useUpdateOutgoingMail,
   useUploadMailFiles,
-} from './useMail';
-import type { MailListQuery } from './useMail';
+} from './index';
+import type { MailListQuery } from './index';
 
 /**
  * Регрессионная сетка для хуков письма.
@@ -50,8 +50,8 @@ import type { MailListQuery } from './useMail';
  * Шов — модульный мок `@/api/mail`. Он выбран целиком: контракт этого файла
  * состоит из трёх вещей, которых нет на HTTP-уровне, — ИМЯ ключа запроса,
  * НАБОР инвалидируемых ключей после мутации и точная проброска аргументов.
- * MSW проверял бы здесь `src/api/mail.ts`, а не `useMail.ts`: фильтры, сортировки
- * и формы запросов уже закрыты на своём уровне (`src/api/mail.filter.test.ts`),
+ * MSW проверял бы здесь `src/features/mail/api/index.ts`, а не `useMail.ts`: фильтры,
+ * сортировки и формы запросов уже закрыты на своём уровне (`src/features/mail/api/mail.filter.test.ts`),
  * а мок, наоборот, даёт ответ на вопрос «какая именно функция вызвана с каким
  * аргументом», на который HTTP-слой ответить не может в принципе.
  *

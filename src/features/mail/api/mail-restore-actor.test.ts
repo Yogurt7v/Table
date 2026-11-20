@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setLastKnownUser } from '@/shared/auth/last-known-user';
-import { pb } from './client.ts';
-import { restoreDeletedIncomingMail, restoreDeletedOutgoingMail } from './mail';
+import { pb } from '@/api/client';
+import { restoreDeletedIncomingMail, restoreDeletedOutgoingMail } from './index';
 
 /**
  * Регрессия: клиент НЕ назначает автора восстанавливаемого письма — он шлёт
@@ -41,7 +41,7 @@ const h = vi.hoisted(() => ({
   creates: new Map<string, Payload[]>(),
 }));
 
-vi.mock('./client.ts', () => {
+vi.mock('@/api/client', () => {
   const collection = (name: string) => ({
     getOne: (id: string) => {
       const found = h.rows.get(`${name}/${id}`);

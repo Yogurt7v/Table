@@ -14,7 +14,7 @@ import { useOrgCounterparties } from './useOrgCounterparties';
  * аргумент `enabled` и то, что до ответа хук отдаёт не `undefined`, а
  * постоянную ссылку на пустой массив. Словарь формируется тремя запросами на
  * сервере и сводится в `getOrgCounterpartyVocabulary`; проверять его морфологию
- * здесь незачем — это уже сделано в `src/api/mail.vocabulary.test.ts`.
+ * здесь незачем — это уже сделано в `src/features/mail/api/mail.vocabulary.test.ts`.
  *
  * Про постоянную ссылку стоит сказать отдельно: `NO_COUNTERPARTIES` в модуле
  * один на всех, и `Autocomplete` из-за неё не пересобирает выпадающий список

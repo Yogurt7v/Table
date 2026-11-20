@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ListResult, RecordListOptions, RecordModel } from 'pocketbase';
-import { pb } from './client';
-import { getIncomingMails, getOutgoingMails } from './mail';
+import { pb } from '@/api/client';
+import { getIncomingMails, getOutgoingMails } from './index';
 import type { MailListParams } from '@/shared/types';
 
 const ORG = 'yvyg08lk9b61me0';

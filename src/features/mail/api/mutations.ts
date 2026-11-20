@@ -1,6 +1,6 @@
 /** Создание и обновление писем (входящие/исходящие) с записью истории. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type { DeliveryMethod, IIncomingMail, IOutgoingMail } from '@/shared/types';
 import { MAIL_INCOMING_COLLECTION, MAIL_OUTGOING_COLLECTION } from './constants.ts';
 import { createMailHistory } from './history.ts';

@@ -1,7 +1,7 @@
 /** Построение фильтров PocketBase и клиентская дофильтрация для реестров почты. */
 
 import type { ListResult } from 'pocketbase';
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type { IMailFile, IMailRelation, MailListParams, MailType } from '@/shared/types';
 import { MAIL_FILES_COLLECTION, MAIL_RELATIONS_COLLECTION } from './constants.ts';
 import { anyOfEquals, qTag, relationEndpoints } from './shared.ts';
