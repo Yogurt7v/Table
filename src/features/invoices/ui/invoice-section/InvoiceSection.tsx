@@ -1,5 +1,8 @@
 import { Affix, Center, Loader, Paper, Skeleton, Stack, Text } from '@mantine/core';
+import dayjs from 'dayjs';
 import { CollapsedObjectsProvider } from '@/shared/context/CollapsedObjectsContext';
+import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
+import { useSearch } from '@/shared/context/SearchContext';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { InvoiceColumnSettingsModal } from '@/features/invoices/ui/invoice-column-settings-modal/InvoiceColumnSettingsModal';
@@ -8,6 +11,8 @@ import { SearchResultsView } from '@/features/invoices/ui/search-results-view/Se
 import { InvoiceSectionObjectsList } from '@/features/invoices/ui/invoice-section/InvoiceSectionObjectsList';
 import { AutoExpandOnHighlight } from '@/features/invoices/ui/invoice-section/InvoiceSectionHighlight';
 import { useInvoiceSection } from '@/features/invoices/ui/invoice-section/useInvoiceSection';
+import { resolveInvoiceNavigationDay } from '@/features/invoices/utils/invoice-navigation-day';
+import type { IInvoice } from '@/shared/types';
 
 interface InvoiceSectionProps {
   orgId: string;
@@ -29,6 +34,16 @@ export function InvoiceSection({
   bankTotal,
 }: InvoiceSectionProps) {
   const page = useInvoiceSection({ orgId, date, searchAll, bankTotal });
+  const { setSearchAll } = useSearch();
+  const { requestHighlight } = useInvoiceNavigation();
+
+  // Переход из результатов поиска к счёту: выходим из режима поиска и просим
+  // подсветку на дне оплаты (если он доступен) либо на дате счёта.
+  const handleOpenInvoice = (invoice: IInvoice) => {
+    setSearchAll(false);
+    const day = resolveInvoiceNavigationDay(invoice, page.permissions.canViewPaidDate);
+    requestHighlight(invoice.id, dayjs(day).toDate());
+  };
 
   if (!orgId) return null;
 
@@ -59,7 +74,9 @@ export function InvoiceSection({
         searchText={page.debouncedSearchText}
         searchResults={page.searchResults}
         date={date}
+        canViewPaidDate={page.permissions.canViewPaidDate}
         onBackToDate={onBackToDate}
+        onOpenInvoice={handleOpenInvoice}
       />
     );
   }

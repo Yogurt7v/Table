@@ -245,7 +245,7 @@ export function getAllInvoices(orgId: string) {
   return pb.collection('invoices').getFullList<IInvoice>({
     filter: `organization_id = "${orgId}"`,
     fields:
-      'id,date,counterparty,purpose,amount,paid,payment_amounts,contract_no,invoice_no,comment',
+      'id,date,counterparty,purpose,amount,paid,paid_date,payment_amounts,contract_no,invoice_no,comment',
     sort: '-date',
   });
 }
