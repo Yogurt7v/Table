@@ -1,7 +1,7 @@
 /** Доступ к файлам документа и сведения об исходном счёте. */
 
-import { pb } from '../client.ts';
-import { getInvoiceFiles } from '../collections.ts';
+import { pb } from '@/api/client';
+import { getInvoiceFiles } from '@/api/collections';
 import type {
   DocumentSourceInfo,
   IDocument,

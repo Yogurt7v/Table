@@ -1,6 +1,6 @@
 /** Запись истории изменений документа. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type { DocumentHistoryType, IDocumentHistory } from '@/shared/types';
 import { DOCUMENT_HISTORY_COLLECTION } from './constants.ts';
 import { normalizeDocumentHistory } from './normalize.ts';

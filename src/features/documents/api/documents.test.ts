@@ -15,7 +15,7 @@ import {
   updateDocumentStatus,
   updateDocumentWithHistory,
   uploadDocumentFile,
-} from './documents';
+} from './index';
 
 type Payload = Record<string, unknown>;
 

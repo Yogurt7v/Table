@@ -1,6 +1,6 @@
 /** Внутренние помощники API документов: экранирование фильтров и текущий актор. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import { getLastKnownUser } from '@/shared/auth/last-known-user';
 
 /** Экранирует значение для строкового операнда фильтра PocketBase. */

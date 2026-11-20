@@ -1,6 +1,6 @@
 /** Чтение документов, файлов, комментариев, истории и вспомогательные выборки. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type {
   IDocument,
   IDocumentComment,

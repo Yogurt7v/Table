@@ -1,6 +1,6 @@
 /** Создание, обновление, статусы, файлы, комментарии и архивирование документов. */
 
-import { pb } from '../client.ts';
+import { pb } from '@/api/client';
 import type {
   DocumentHistoryType,
   IDocument,
