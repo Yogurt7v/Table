@@ -1,5 +1,5 @@
-import { InvoiceActionsCell } from '@/features/invoices/components/InvoiceActionsCell';
-import { PaymentMarkCell } from '@/features/invoices/components/PaymentMarkCell';
+import { InvoiceActionsCell } from '@/features/invoices/ui/invoice-actions-cell/InvoiceActionsCell';
+import { PaymentMarkCell } from '@/features/invoices/ui/payment-mark-cell/PaymentMarkCell';
 import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
 import type { GroupedInvoiceTableColumnRenderersParams, InvoiceColumnRenderer } from './types';
 

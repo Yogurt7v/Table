@@ -1,6 +1,6 @@
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import { PayModal } from '@/features/invoices/components/PayModal';
-import { PartialPaymentModal } from '@/features/invoices/components/PartialPaymentModal';
+import { PayModal } from '@/features/invoices/ui/pay-modal/PayModal';
+import { PartialPaymentModal } from '@/features/invoices/ui/partial-payment-modal/PartialPaymentModal';
 import type { IInvoice } from '@/shared/types';
 
 /** Данные для модалки частичной оплаты/отметки. */

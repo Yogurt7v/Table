@@ -1,11 +1,11 @@
 import { Stack } from '@mantine/core';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
-import { InvoiceMobileCardDraft } from './invoice-mobile-card-view/InvoiceMobileCardDraft';
-import { InvoiceMobileCardGroup } from './invoice-mobile-card-view/InvoiceMobileCardGroup';
-import { useInvoiceMobileCardDraft } from './invoice-mobile-card-view/useInvoiceMobileCardDraft';
-import type { InvoiceMobileCardViewProps } from './invoice-mobile-card-view/invoice-mobile-card-view-types';
+import { InvoiceMobileCardDraft } from './InvoiceMobileCardDraft';
+import { InvoiceMobileCardGroup } from './InvoiceMobileCardGroup';
+import { useInvoiceMobileCardDraft } from './useInvoiceMobileCardDraft';
+import type { InvoiceMobileCardViewProps } from './invoice-mobile-card-view-types';
 
-export type { InvoiceMobileCardViewProps } from './invoice-mobile-card-view/invoice-mobile-card-view-types';
+export type { InvoiceMobileCardViewProps } from './invoice-mobile-card-view-types';
 
 /**
  * Мобильное представление счетов: группы по контрагентам с карточками счетов

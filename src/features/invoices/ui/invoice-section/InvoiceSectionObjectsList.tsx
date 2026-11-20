@@ -4,7 +4,7 @@ import type { IAccountingObject } from '@/shared/types';
 import { useDocumentPermissions } from '@/features/documents/hooks/useDocumentPermissions';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { useOrg } from '@/shared/context/OrgContext';
-import { InvoiceObjectBlock } from '../InvoiceObjectBlock';
+import { InvoiceObjectBlock } from '../invoice-object-block/InvoiceObjectBlock';
 import { CollapseObjectsButton } from './objects-list/CollapseObjectsButton';
 import { HiddenObjectsSection } from './objects-list/HiddenObjectsSection';
 import { InvoiceSectionObjectsHeader } from './objects-list/InvoiceSectionObjectsHeader';

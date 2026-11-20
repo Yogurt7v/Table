@@ -3,15 +3,15 @@ import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/sh
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
-import type { DraftInvoiceForm, InvoiceEditableField } from './model/invoice-field-access';
-import { GroupedInvoiceTableDesktop } from './components/grouped-invoice-table/GroupedInvoiceTableDesktop';
-import { GroupedInvoiceTableEmptyState } from './components/grouped-invoice-table/GroupedInvoiceTableEmptyState';
-import { GroupedInvoiceTableModals } from './components/grouped-invoice-table/GroupedInvoiceTableModals';
-import { useGroupedInvoiceTableColumnSizing } from './components/grouped-invoice-table/useGroupedInvoiceTableColumnSizing';
-import { useGroupedInvoiceTableDragDrop } from './components/grouped-invoice-table/useGroupedInvoiceTableDragDrop';
-import { useGroupedInvoiceTableColumnRenderers } from './components/grouped-invoice-table/useGroupedInvoiceTableColumnRenderers';
-import { useGroupedInvoiceTableDraft } from './components/grouped-invoice-table/useGroupedInvoiceTableDraft';
-import { InvoiceMobileCardView } from './components/InvoiceMobileCardView';
+import type { DraftInvoiceForm, InvoiceEditableField } from '../../model/invoice-field-access';
+import { GroupedInvoiceTableDesktop } from './GroupedInvoiceTableDesktop';
+import { GroupedInvoiceTableEmptyState } from './GroupedInvoiceTableEmptyState';
+import { GroupedInvoiceTableModals } from './GroupedInvoiceTableModals';
+import { useGroupedInvoiceTableColumnSizing } from './useGroupedInvoiceTableColumnSizing';
+import { useGroupedInvoiceTableDragDrop } from './useGroupedInvoiceTableDragDrop';
+import { useGroupedInvoiceTableColumnRenderers } from './useGroupedInvoiceTableColumnRenderers';
+import { useGroupedInvoiceTableDraft } from './useGroupedInvoiceTableDraft';
+import { InvoiceMobileCardView } from '../invoice-mobile-card-view/InvoiceMobileCardView';
 
 /** Пропсы таблицы счетов с группировкой по контрагентам. */
 interface GroupedInvoiceTableProps {

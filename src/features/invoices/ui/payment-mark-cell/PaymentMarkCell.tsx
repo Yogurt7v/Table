@@ -2,7 +2,7 @@ import { Group, Box, Text, Tooltip, ActionIcon, Checkbox, Button } from '@mantin
 import { IconX, IconCheck } from '@tabler/icons-react';
 import type { IInvoice, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import { paymentMarkLabel, APPROVAL_MARK_STATUS } from '../model/payment-mark-status';
+import { paymentMarkLabel, APPROVAL_MARK_STATUS } from '../../model/payment-mark-status';
 
 interface PaymentMarkCellProps {
   invoice: IInvoice;

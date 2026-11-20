@@ -22,7 +22,7 @@ import {
 } from '@tabler/icons-react';
 import { useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
 import { useDatePinned } from '@/shared/context/DatePinnedContext';
-import { InvoiceTable } from '@/features/invoices/InvoiceTable';
+import { InvoiceTable } from '@/features/invoices/ui/invoice-table/InvoiceTable';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { matchesInvoiceFilter } from '@/features/invoices/utils/invoice-filter';

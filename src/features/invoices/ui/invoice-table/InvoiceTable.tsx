@@ -15,16 +15,16 @@ import { useUpdateInvoice } from '@/features/invoices/hooks/useUpdateInvoice';
 import { useDeleteInvoice } from '@/features/invoices/hooks/useDeleteInvoice';
 import { useMoveInvoice } from '@/features/invoices/hooks/useMoveInvoice';
 import { useReorderCounterparties } from '@/shared/hooks/useReorderCounterparties';
-import { useInvoiceDraft } from '@/features/invoices/components/invoice-table/useInvoiceDraft.tsx';
-import { useInvoicePaymentActions } from '@/features/invoices/components/invoice-table/useInvoicePaymentActions';
-import { InvoiceTableDeleteConfirm } from '@/features/invoices/components/invoice-table/InvoiceTableDeleteConfirm';
-import { InvoiceTableDuplicateConfirm } from '@/features/invoices/components/invoice-table/InvoiceTableDuplicateConfirm';
-import { InvoiceTableClearMarkConfirm } from '@/features/invoices/components/invoice-table/InvoiceTableClearMarkConfirm';
-import { GroupedInvoiceTable } from './GroupedInvoiceTable';
-import { InvoiceHistoryModal } from './InvoiceHistoryModal';
-import { InvoiceMoveModal } from './InvoiceMoveModal';
-import { InvoiceEditModal } from './InvoiceEditModal';
-import { InvoiceFilesModal } from './InvoiceFilesModal';
+import { useInvoiceDraft } from '@/features/invoices/ui/invoice-table/useInvoiceDraft.tsx';
+import { useInvoicePaymentActions } from '@/features/invoices/ui/invoice-table/useInvoicePaymentActions';
+import { InvoiceTableDeleteConfirm } from '@/features/invoices/ui/invoice-table/InvoiceTableDeleteConfirm';
+import { InvoiceTableDuplicateConfirm } from '@/features/invoices/ui/invoice-table/InvoiceTableDuplicateConfirm';
+import { InvoiceTableClearMarkConfirm } from '@/features/invoices/ui/invoice-table/InvoiceTableClearMarkConfirm';
+import { GroupedInvoiceTable } from '../grouped-invoice-table/GroupedInvoiceTable';
+import { InvoiceHistoryModal } from '../invoice-history-modal/InvoiceHistoryModal';
+import { InvoiceMoveModal } from '../invoice-move-modal/InvoiceMoveModal';
+import { InvoiceEditModal } from '../invoice-edit-modal/InvoiceEditModal';
+import { InvoiceFilesModal } from '../invoice-files-modal/InvoiceFilesModal';
 import { buildInvoiceDelta } from '@/features/invoices/utils/build-invoice-delta';
 
 interface InvoiceTableProps {

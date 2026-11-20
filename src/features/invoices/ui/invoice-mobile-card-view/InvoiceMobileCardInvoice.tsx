@@ -6,7 +6,7 @@ import { formatAmountRub } from '@/shared/utils/format-currency';
 import { shortenFileName } from '@/shared/utils/shorten-file-name';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { getInvoiceFileUrl } from '@/api/collections';
-import { PaymentMarkCell } from '@/features/invoices/components/PaymentMarkCell';
+import { PaymentMarkCell } from '@/features/invoices/ui/payment-mark-cell/PaymentMarkCell';
 import { markRowColor } from '@/features/invoices/model/payment-mark-row-style';
 import type { InvoiceMobileCardPermissions } from './invoice-mobile-card-view-types';
 

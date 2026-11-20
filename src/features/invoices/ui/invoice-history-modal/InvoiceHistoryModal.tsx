@@ -1,7 +1,7 @@
 import { Loader, Modal, Text } from '@mantine/core';
-import { InvoiceHistoryTimeline } from './components/invoice-history-modal/InvoiceHistoryTimeline';
-import { useInvoiceHistory } from './components/invoice-history-modal/useInvoiceHistory';
-import type { InvoiceHistoryModalProps } from './components/invoice-history-modal/invoice-history-modal-types';
+import { InvoiceHistoryTimeline } from './InvoiceHistoryTimeline';
+import { useInvoiceHistory } from './useInvoiceHistory';
+import type { InvoiceHistoryModalProps } from './invoice-history-modal-types';
 
 /**
  * Модалка истории счёта.
