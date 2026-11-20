@@ -1,14 +1,14 @@
 import { Paper, Stack, Text } from '@mantine/core';
 import type { DocumentColumnId, IDocument, IDocumentComment, IDocumentFile } from '@/shared/types';
-import { DOCUMENT_COLUMNS, type DocumentColumnSizing } from './model/document-columns';
-import { DocumentsTableGroup } from './components/documents-table/DocumentsTableGroup';
+import { DOCUMENT_COLUMNS, type DocumentColumnSizing } from '../../model/document-columns';
+import { DocumentsTableGroup } from './DocumentsTableGroup';
 import type {
   DocumentGroup,
   DocumentsTableData,
   DocumentsTableHandlers,
-} from './components/documents-table/documents-table-types';
+} from './documents-table-types';
 
-export type { DocumentGroup } from './components/documents-table/documents-table-types';
+export type { DocumentGroup } from './documents-table-types';
 
 interface DocumentsTableProps {
   groups: DocumentGroup[];

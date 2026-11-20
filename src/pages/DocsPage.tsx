@@ -13,10 +13,10 @@ import {
 import { IconDatabaseOff, IconSettings } from '@tabler/icons-react';
 
 import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
-import { DocumentColumnSettingsModal } from '@/features/documents/DocumentColumnSettingsModal';
-import { DocumentCardModal } from '@/features/documents/DocumentCardModal';
-import { DocumentsTable } from '@/features/documents/DocumentsTable';
-import { ManualDocumentModal } from '@/features/documents/ManualDocumentModal';
+import { DocumentColumnSettingsModal } from '@/features/documents/ui/document-column-settings-modal/DocumentColumnSettingsModal';
+import { DocumentCardModal } from '@/features/documents/ui/document-card-modal/DocumentCardModal';
+import { DocumentsTable } from '@/features/documents/ui/documents-table/DocumentsTable';
+import { ManualDocumentModal } from '@/features/documents/ui/manual-document-modal/ManualDocumentModal';
 import {
   saveDocumentColumnSizing,
   saveDocumentColumns,

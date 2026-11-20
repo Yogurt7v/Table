@@ -14,7 +14,7 @@ import {
   getDocumentColumnWidth,
   type DocumentColumnDefinition,
 } from '@/features/documents/model/document-columns';
-import { DocumentMobileCards } from '@/features/documents/DocumentMobileCards';
+import { DocumentMobileCards } from '@/features/documents/ui/document-mobile-cards/DocumentMobileCards';
 import { DocumentsTableResizableHeader } from './DocumentsTableResizableHeader';
 import { DocumentsTableRow } from './DocumentsTableRow';
 import type {

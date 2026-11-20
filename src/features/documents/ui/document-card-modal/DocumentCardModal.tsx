@@ -12,15 +12,15 @@ import {
 } from '@mantine/core';
 import { IconFile, IconHistory, IconMessage, IconPaperclip } from '@tabler/icons-react';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import { DocumentCardModalActions } from './components/document-card-modal/DocumentCardModalActions';
-import { DocumentCardModalComments } from './components/document-card-modal/DocumentCardModalComments';
-import { DocumentCardModalFiles } from './components/document-card-modal/DocumentCardModalFiles';
-import { DocumentCardModalHistory } from './components/document-card-modal/DocumentCardModalHistory';
-import { DocumentCardModalRequisites } from './components/document-card-modal/DocumentCardModalRequisites';
-import { DocumentCardModalSource } from './components/document-card-modal/DocumentCardModalSource';
-import { DocumentCardModalStatus } from './components/document-card-modal/DocumentCardModalStatus';
-import { useDocumentCardModal } from './components/document-card-modal/useDocumentCardModal';
-import type { DocumentCardModalProps } from './components/document-card-modal/document-card-modal-types';
+import { DocumentCardModalActions } from './DocumentCardModalActions';
+import { DocumentCardModalComments } from './DocumentCardModalComments';
+import { DocumentCardModalFiles } from './DocumentCardModalFiles';
+import { DocumentCardModalHistory } from './DocumentCardModalHistory';
+import { DocumentCardModalRequisites } from './DocumentCardModalRequisites';
+import { DocumentCardModalSource } from './DocumentCardModalSource';
+import { DocumentCardModalStatus } from './DocumentCardModalStatus';
+import { useDocumentCardModal } from './useDocumentCardModal';
+import type { DocumentCardModalProps } from './document-card-modal-types';
 
 /**
  * Карточ документа: вкладки «Документ», «Файлы», «Комментарии», «История»
