@@ -71,7 +71,7 @@ vi.mock('@/shared/hooks/useMailPermissions', () => ({
   useMailPermissions: () => ALL_PERMISSIONS,
 }));
 
-vi.mock('@/shared/hooks/useAccessibleObjects', () => ({
+vi.mock('@/features/accounts/hooks/useAccessibleObjects', () => ({
   useAccessibleObjects: () => [{ id: 'obj01hxyz', name: 'Основной счёт' }],
 }));
 

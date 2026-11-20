@@ -17,7 +17,7 @@ vi.mock('@/features/documents/hooks/useDocuments', () => ({
   useRestoreDocument,
 }));
 
-vi.mock('@/shared/hooks/useAccountingObjects', () => ({
+vi.mock('@/features/accounts/hooks/useAccountingObjects', () => ({
   useAccountingObjects,
 }));
 

@@ -27,7 +27,7 @@ vi.mock('@/shared/hooks/useMailPermissions', () => ({
   useMailPermissions: mocks.useMailPermissions,
 }));
 
-vi.mock('@/shared/hooks/useAccountingObjects', () => ({
+vi.mock('@/features/accounts/hooks/useAccountingObjects', () => ({
   useAccountingObjects: () => ({ data: [{ id: 'obj1', name: 'Основной счёт' }] }),
 }));
 

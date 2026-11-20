@@ -12,7 +12,7 @@ import {
   Divider,
 } from '@mantine/core';
 import { IconPencil, IconCheck, IconX } from '@tabler/icons-react';
-import { useUpdateBalance } from '@/shared/hooks/useBankAccounts';
+import { useUpdateBalance } from '@/features/accounts/hooks/useBankAccounts';
 import type { IAccountWithBalance } from '@/shared/types';
 import {
   toFixed2,

@@ -7,7 +7,7 @@ import {
   type MailType,
 } from '@/shared/types';
 import { MAIL_PAGE_SIZE } from '@/api/mail';
-import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
+import { useAccessibleObjects } from '@/features/accounts/hooks/useAccessibleObjects';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';

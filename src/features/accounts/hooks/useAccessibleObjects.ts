@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useCurrentOrgUser } from '@/shared/hooks/useCurrentOrgUser';
-import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
+import { useAccountingObjects } from './useAccountingObjects';
 
 export function useAccessibleObjects(orgId: string) {
   const assignment = useCurrentOrgUser(orgId);

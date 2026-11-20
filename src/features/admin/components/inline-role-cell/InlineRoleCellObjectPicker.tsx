@@ -11,7 +11,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
-import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
+import { useAccountingObjects } from '@/features/accounts/hooks/useAccountingObjects';
 
 interface InlineRoleCellObjectPickerProps {
   orgId: string;

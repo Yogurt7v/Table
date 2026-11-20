@@ -23,7 +23,7 @@ import {
   useRestoreDeletedOutgoingMail,
 } from '@/shared/hooks/useMail';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
-import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
+import { useAccountingObjects } from '@/features/accounts/hooks/useAccountingObjects';
 import { ARCHIVE_PAGE_SIZE } from '@/api/collections';
 import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
 import type {

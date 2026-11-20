@@ -25,7 +25,9 @@ vi.mock('@/shared/context/DatePinnedContext', () => ({
   DatePinnedProvider: ({ children }: { children: React.ReactNode }) => children,
   useDatePinned: mockUseDatePinned,
 }));
-vi.mock('@/shared/hooks/useBankAccounts', () => ({ useBankAccounts: mockUseBankAccounts }));
+vi.mock('@/features/accounts/hooks/useBankAccounts', () => ({
+  useBankAccounts: mockUseBankAccounts,
+}));
 vi.mock('@/shared/hooks/useCurrentUserRole', () => ({
   useCurrentUserRole: mockUseCurrentUserRole,
 }));

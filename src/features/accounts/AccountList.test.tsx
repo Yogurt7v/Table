@@ -60,7 +60,7 @@ vi.mock('@/shared/hooks/useOrganizationUsers', () => ({
   useOrganizationUsers: mockHooks.useOrganizationUsers,
 }));
 
-vi.mock('@/shared/hooks/useBankAccounts', () => ({
+vi.mock('@/features/accounts/hooks/useBankAccounts', () => ({
   useUpdateBalance: mockHooks.useUpdateBalance,
 }));
 

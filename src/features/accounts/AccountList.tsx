@@ -15,7 +15,7 @@ import sumBy from 'lodash/sumBy';
 // import dayjs from 'dayjs';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useCurrentOrgUser } from '@/shared/hooks/useCurrentOrgUser';
-import { useUpdateBalance } from '@/shared/hooks/useBankAccounts';
+import { useUpdateBalance } from '@/features/accounts/hooks/useBankAccounts';
 import type { IAccountWithBalance } from '@/shared/types';
 import {
   toFixed2,
