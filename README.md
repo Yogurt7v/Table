@@ -53,28 +53,34 @@ pnpm dev:all   # фронт + PocketBase (concurrently)
 
 ```
 src/
-├── api/              # клиент PocketBase + функции запросов (в т.ч. mail.ts — API переписки)
-├── features/
-│   ├── accounts/     # расчётные счета, остатки
+├── api/              # клиент PocketBase, barrel коллекций и совместимые реэкспорты
+├── features/         # домены в единой раскладке: api/ · hooks/ · model/ · ui/ (+utils/)
+│   ├── accounts/     # расчётные счета, остатки по дням, объекты учёта
 │   ├── admin/        # организации, пользователи, роли, архивы, почтовые права
-│   ├── invoices/     # счета, таблицы, модалки, печать, экспорт в Excel
-│   │   ├── components/  # переиспользуемые UI-компоненты
-│   │   └── utils/       # утилиты (expand-invoice-rows, build-invoice-delta)
+│   ├── documents/    # документы: таблица, карточка, ручное создание
+│   ├── invoices/     # счета: таблицы, модалки, печать, экспорт, архив
 │   ├── mail/         # переписка: реестр, цепочки, файлы, история, архив, печать
 │   └── notifications/   # уведомления
 ├── layouts/          # AppLayout
-├── pages/            # LoginPage, MainPage, MailPage, AdminPage
+├── pages/            # LoginPage, MainPage, MailPage, AdminPage, DocsPage
 └── shared/
+    ├── auth/         # сессионная логика (last-known-user и т.п.)
     ├── components/   # ConfirmModal, ErrorBoundary, RequireAuth, MainDatePicker
     ├── context/      # AuthContext, OrgContext, SearchContext, DatePinnedContext
-    ├── hooks/        # ~30 хуков для запросов к PocketBase
-    ├── types/        # TypeScript-интерфейсы
+    ├── hooks/        # общесистемные хуки: сессия, роли, настройки, guard'ы
+    ├── types/        # TypeScript-интерфейсы (реэкспорт доменных типов)
     └── utils/        # format-currency, group-invoices, org-colors, deletion-reason
 
 e2e/                  # Playwright: фикстуры, данные, 13 spec-файлов
 pb_hooks/             # серверные хуки PocketBase (JavaScript)
 pb_migrations/        # JS-миграции схемы PocketBase (91 файл)
 ```
+
+**Раскладка домена:** `api/` — запросы PocketBase, `hooks/` — React Query-хуки,
+`model/` — чистые типы и логика без React, `ui/` — компоненты и их хуки,
+`utils/` — вспомогательные функции домена. Пути `@/api/collections/*` и старые
+корневые пути компонентов оставлены совместимыми реэкспортами, чтобы импорты
+вне домена и моки в тестах не зависели от внутренней раскладки.
 
 **Серверные хуки (`pb_hooks/`):**
 
@@ -229,7 +235,7 @@ pb_migrations/        # JS-миграции схемы PocketBase (91 файл)
 
 **Юнит-тесты** — Vitest + jsdom:
 
-- 103 файла, ~1300 тестов; файлы рядом с кодом: `*.test.ts`, `*.test.tsx`
+- 119 файлов, ~1480 тестов; файлы рядом с кодом: `*.test.ts`, `*.test.tsx`
 - Setup-файл `src/test-setup.ts` импортирует `@testing-library/jest-dom` и мокает `window.matchMedia`
 - Запуск: `pnpm test` или `pnpm test:watch`
 
