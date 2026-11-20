@@ -6,8 +6,8 @@ import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
-import { getVisibleColumnsForRole } from '@/features/invoices/invoice-column-visibility';
-import { paymentMarkLabel } from '@/features/invoices/payment-mark-status';
+import { getVisibleColumnsForRole } from '@/features/invoices/model/invoice-column-visibility';
+import { paymentMarkLabel } from '@/features/invoices/model/payment-mark-status';
 import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
 import type {
   IInvoice,
@@ -16,7 +16,7 @@ import type {
   InvoiceColumnId,
   IUser,
 } from '@/shared/types';
-import type { OrgRole } from '@/features/invoices/invoice-field-access';
+import type { OrgRole } from '@/features/invoices/model/invoice-field-access';
 import dayjs from 'dayjs';
 
 interface PrintableInvoicesProps {

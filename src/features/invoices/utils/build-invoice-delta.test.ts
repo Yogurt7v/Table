@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildInvoiceDelta } from './build-invoice-delta';
-import type { DraftInvoiceForm } from '../invoice-field-access';
+import type { DraftInvoiceForm } from '../model/invoice-field-access';
 import type { IInvoice } from '@/shared/types';
 
 const mockInvoice: IInvoice = {

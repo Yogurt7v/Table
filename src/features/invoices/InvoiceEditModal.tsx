@@ -13,8 +13,8 @@ import { useState, useEffect, useMemo } from 'react';
 import type { IInvoice } from '@/shared/types';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { useBeforeUnloadGuard } from '@/shared/hooks/useBeforeUnloadGuard';
-import type { DraftFieldErrors, DraftInvoiceForm } from './invoice-field-access';
-import { createEmptyDraft, validateDraftFields } from './invoice-field-access';
+import type { DraftFieldErrors, DraftInvoiceForm } from './model/invoice-field-access';
+import { createEmptyDraft, validateDraftFields } from './model/invoice-field-access';
 
 interface InvoiceEditModalProps {
   opened: boolean;

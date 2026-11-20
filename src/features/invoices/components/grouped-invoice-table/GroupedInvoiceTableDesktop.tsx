@@ -7,8 +7,8 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 
 import type { IPaymentMark, InvoiceColumnId } from '@/shared/types';
 import { getInvoiceNumber, type InvoiceGroup } from '@/shared/utils/group-invoices';
-import type { DraftInvoiceForm } from '@/features/invoices/invoice-field-access';
-import type { ColumnSizingState } from '@/features/invoices/invoice-table-column-sizing';
+import type { DraftInvoiceForm } from '@/features/invoices/model/invoice-field-access';
+import type { ColumnSizingState } from '@/features/invoices/model/invoice-table-column-sizing';
 import { SortableGroupBody, StaticGroupBody } from './GroupedInvoiceTableGroupBodies';
 import { GroupedInvoiceTableDraftRow } from './GroupedInvoiceTableDraftRow';
 import { buildInvoiceRows } from './grouped-invoice-table-rows';

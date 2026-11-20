@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { accObj1, accObj2, adminUser } from '@/mocks/seed';
 import { PrintableInvoices } from './PrintableInvoices';
-import type { OrgRole } from './invoice-field-access';
+import type { OrgRole } from './model/invoice-field-access';
 import type {
   IAccountingObject,
   IInvoice,

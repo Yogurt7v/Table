@@ -5,7 +5,7 @@ import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DocumentCardModal } from './DocumentCardModal';
 import type { IDocument, IAccountingObject, IUser } from '@/shared/types';
-import type { OrgRole } from '@/features/invoices/invoice-field-access';
+import type { OrgRole } from '@/features/invoices/model/invoice-field-access';
 
 const document: IDocument = {
   id: 'doc1',

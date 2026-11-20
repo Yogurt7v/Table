@@ -3,7 +3,7 @@ import {
   loadColumnSizing,
   saveColumnSizing,
   type ColumnSizingState,
-} from '@/features/invoices/invoice-table-column-sizing';
+} from '@/features/invoices/model/invoice-table-column-sizing';
 
 /** Параметры хука для управления шириной колонок. */
 export interface UseGroupedInvoiceTableColumnSizingParams {

@@ -16,7 +16,10 @@ import {
 } from '@mantine/core';
 import { IconPaperclip } from '@tabler/icons-react';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import type { DraftFieldErrors, DraftInvoiceForm } from '@/features/invoices/invoice-field-access';
+import type {
+  DraftFieldErrors,
+  DraftInvoiceForm,
+} from '@/features/invoices/model/invoice-field-access';
 
 interface InvoiceMobileCardDraftProps {
   draftForm: DraftInvoiceForm;

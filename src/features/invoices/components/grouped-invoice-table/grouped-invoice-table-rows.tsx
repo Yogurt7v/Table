@@ -4,7 +4,7 @@ import { IconGripVertical, IconX } from '@tabler/icons-react';
 
 import type { IInvoice, InvoiceColumnId, IPaymentMark } from '@/shared/types';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import { markRowColor } from '@/features/invoices/payment-mark-row-style';
+import { markRowColor } from '@/features/invoices/model/payment-mark-row-style';
 import type { InvoiceColumnRenderer } from './column-renderers/types';
 
 const GROUP_BORDER = '3.5px solid var(--org-color, var(--mantine-primary-color-filled))';
@@ -98,7 +98,7 @@ export function buildInvoiceRows({
     ...(isLastRow ? { borderBottom: GROUP_BORDER } : {}),
     ...(typeof baseBackground === 'string'
       ? { backgroundColor: baseBackground }
-      : baseBackground ?? {}),
+      : (baseBackground ?? {})),
     ...activeHighlightStyle,
     ...(draggable && isOver && isGroupFirst
       ? { borderTop: '3px solid var(--mantine-color-blue-6)' }

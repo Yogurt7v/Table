@@ -1,6 +1,9 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
-import type { DraftFieldErrors, DraftInvoiceForm } from '@/features/invoices/invoice-field-access';
+import type {
+  DraftFieldErrors,
+  DraftInvoiceForm,
+} from '@/features/invoices/model/invoice-field-access';
 
 /** Конфигурация рендера одной колонки таблицы сгруппированных счетов. */
 export interface InvoiceColumnRenderer {

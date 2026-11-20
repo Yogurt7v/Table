@@ -18,10 +18,10 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { DEFAULT_VISIBLE_COLUMNS } from './invoice-columns';
-import { getColumnSettingsItems } from './invoice-column-visibility';
+import { DEFAULT_VISIBLE_COLUMNS } from './model/invoice-columns';
+import { getColumnSettingsItems } from './model/invoice-column-visibility';
 import type { InvoiceColumnId } from '@/shared/types';
-import type { OrgRole } from './invoice-field-access';
+import type { OrgRole } from './model/invoice-field-access';
 
 interface InvoiceColumnSettingsModalProps {
   opened: boolean;

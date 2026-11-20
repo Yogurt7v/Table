@@ -4,7 +4,7 @@ import {
   getInvoicePermissions,
   type InvoiceEditableField,
   type OrgRole,
-} from '@/features/invoices/invoice-field-access';
+} from '@/features/invoices/model/invoice-field-access';
 
 export function useInvoicePermissions(orgId: string) {
   const assignment = useCurrentOrgUser(orgId);

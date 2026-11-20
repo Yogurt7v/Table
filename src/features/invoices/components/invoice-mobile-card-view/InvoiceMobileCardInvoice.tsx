@@ -7,7 +7,7 @@ import { shortenFileName } from '@/shared/utils/shorten-file-name';
 import { getEffectiveAmount } from '@/shared/utils/invoice-utils';
 import { getInvoiceFileUrl } from '@/api/collections';
 import { PaymentMarkCell } from '@/features/invoices/components/PaymentMarkCell';
-import { markRowColor } from '@/features/invoices/payment-mark-row-style';
+import { markRowColor } from '@/features/invoices/model/payment-mark-row-style';
 import type { InvoiceMobileCardPermissions } from './invoice-mobile-card-view-types';
 
 interface InvoiceMobileCardInvoiceProps {

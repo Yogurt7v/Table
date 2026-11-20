@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import dayjs from 'dayjs';
 import { http, HttpResponse, delay } from 'msw';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { server } from '@/mocks/server';
@@ -34,6 +35,10 @@ const state = vi.hoisted(() => ({
   user: null as IUser | null,
   searchText: '',
   searchAll: false,
+  setSearchText: vi.fn(),
+  setSearchAll: vi.fn(),
+  requestHighlight: vi.fn(),
+  requestHighlightWithCandidates: vi.fn(),
 }));
 
 vi.mock('@/api/client', async () => {
@@ -87,10 +92,10 @@ vi.mock('@/shared/context/SearchContext', async (importOriginal) => {
     ...actual,
     useSearch: () => ({
       searchText: state.searchText,
-      setSearchText: () => {},
+      setSearchText: state.setSearchText,
       debouncedSearchText: state.searchText,
       searchAll: state.searchAll,
-      setSearchAll: () => {},
+      setSearchAll: state.setSearchAll,
     }),
   };
 });
@@ -104,8 +109,8 @@ vi.mock('@/shared/context/InvoiceNavigationContext', async (importOriginal) => {
       setSelectedDate: () => {},
       highlightedInvoiceId: null,
       highlightRequestId: 0,
-      requestHighlight: () => {},
-      requestHighlightWithCandidates: () => {},
+      requestHighlight: state.requestHighlight,
+      requestHighlightWithCandidates: state.requestHighlightWithCandidates,
       highlightDateCandidates: [],
       clearHighlight: () => {},
     }),
@@ -200,6 +205,10 @@ describe('InvoiceSection', () => {
     state.user = adminUser;
     state.searchText = '';
     state.searchAll = false;
+    state.setSearchText.mockClear();
+    state.setSearchAll.mockClear();
+    state.requestHighlight.mockClear();
+    state.requestHighlightWithCandidates.mockClear();
     localStorage.clear();
   });
 
@@ -430,6 +439,26 @@ describe('InvoiceSection', () => {
       expect(await screen.findByText('Частично оплаченные')).toBeInTheDocument();
       expect(screen.queryByText('К оплате')).not.toBeInTheDocument();
       expect(screen.queryByText('На согласовании')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('переход к счёту из поиска', () => {
+    it('по клику на строку выходит из поиска и переключает день на дату оплаты', async () => {
+      const user = userEvent.setup();
+      state.searchAll = true;
+      state.searchText = 'Контрагент';
+      setupHandlers({ invoices: [invoice1, invoice2, invoice3] });
+
+      renderSection();
+      await screen.findByText('Результаты поиска: «Контрагент»');
+
+      await user.click(screen.getByText('Материалы').closest('tr')!);
+
+      expect(state.setSearchAll).toHaveBeenCalledWith(false);
+      expect(state.requestHighlight).toHaveBeenCalledTimes(1);
+      const [invoiceId, day] = state.requestHighlight.mock.calls[0]!;
+      expect(invoiceId).toBe('inv2');
+      expect(dayjs(day).format('YYYY-MM-DD')).toBe('2026-06-02');
     });
   });
 

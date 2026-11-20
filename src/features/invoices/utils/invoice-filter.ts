@@ -1,6 +1,6 @@
 import type { IInvoice, IPaymentMark } from '@/shared/types';
 import { getInvoicePaymentInfo } from '@/features/invoices/utils/expand-invoice-rows';
-import { getPaymentMarkKind } from '@/features/invoices/payment-mark-status';
+import { getPaymentMarkKind } from '@/features/invoices/model/payment-mark-status';
 
 export type InvoiceFilterType = 'paid' | 'unpaid' | 'partial' | 'payment_mark' | 'approval_mark';
 

@@ -8,7 +8,7 @@ import type {
   InvoiceColumnId,
 } from '@/shared/types';
 
-import { type DraftInvoiceForm } from '@/features/invoices/invoice-field-access';
+import { type DraftInvoiceForm } from '@/features/invoices/model/invoice-field-access';
 import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
 import { useUpdateInvoice } from '@/shared/hooks/useUpdateInvoice';

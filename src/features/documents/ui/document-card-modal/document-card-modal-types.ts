@@ -1,5 +1,5 @@
 import type { IAccountingObject, IUser } from '@/shared/types';
-import type { OrgRole } from '@/features/invoices/invoice-field-access';
+import type { OrgRole } from '@/features/invoices/model/invoice-field-access';
 
 /** Пропсы модалки карточки документа. */
 export interface DocumentCardModalProps {

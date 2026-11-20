@@ -16,7 +16,7 @@ import { useCreateManualDocument, useOrgInvoices } from '@/features/documents/ho
 import { dateKeyToLocalDate, localDateToDateKey, todayDateKey } from '@/features/mail/mail-date';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import type { IAccountingObject, IInvoice, IUser } from '@/shared/types';
-import type { OrgRole } from '@/features/invoices/invoice-field-access';
+import type { OrgRole } from '@/features/invoices/model/invoice-field-access';
 
 interface ManualDocumentModalProps {
   opened: boolean;

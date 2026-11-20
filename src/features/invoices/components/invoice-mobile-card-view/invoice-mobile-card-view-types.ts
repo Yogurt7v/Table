@@ -1,5 +1,5 @@
 import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
-import type { DraftInvoiceForm } from '@/features/invoices/invoice-field-access';
+import type { DraftInvoiceForm } from '@/features/invoices/model/invoice-field-access';
 
 /** Права, влияющие на отображение действий и полей мобильной карточки счёта. */
 export interface InvoiceMobileCardPermissions {

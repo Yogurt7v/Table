@@ -32,7 +32,7 @@ import type {
   InvoiceColumnId,
   IUser,
 } from '@/shared/types';
-import { getPaymentMarkKind } from './payment-mark-status';
+import { getPaymentMarkKind } from '../model/payment-mark-status';
 
 // ---------------------------------------------------------------------------
 // Соответствие InvoiceColumnId → заголовок столбца в Excel.

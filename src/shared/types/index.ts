@@ -28,7 +28,7 @@ export type {
   InvoiceColumnId,
   InvoiceHistoryType,
   PaymentMarkStatus,
-} from '@/features/invoices/types';
+} from '@/features/invoices/model/types';
 
 /** Уведомления. */
 export type { INotification } from '@/features/notifications/types';

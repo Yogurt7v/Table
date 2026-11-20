@@ -11,7 +11,7 @@ import {
   PAID_MARK_STATUS,
   APPROVAL_MARK_STATUS,
   PARTIAL_MARK_STATUS,
-} from '@/features/invoices/payment-mark-status';
+} from '@/features/invoices/model/payment-mark-status';
 
 interface UseInvoicePaymentActionsProps {
   orgId: string;

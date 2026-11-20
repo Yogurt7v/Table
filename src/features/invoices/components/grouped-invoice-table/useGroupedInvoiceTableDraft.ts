@@ -11,7 +11,7 @@ import {
   type DraftFieldErrorKey,
   type DraftFieldErrors,
   type DraftInvoiceForm,
-} from '@/features/invoices/invoice-field-access';
+} from '@/features/invoices/model/invoice-field-access';
 
 /** Параметры хука управления черновиком строки счёта. */
 export interface UseGroupedInvoiceTableDraftParams {

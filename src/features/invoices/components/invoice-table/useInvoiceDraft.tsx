@@ -7,7 +7,7 @@ import {
   validateDraftForm,
   createEmptyDraft,
   type DraftInvoiceForm,
-} from '@/features/invoices/invoice-field-access';
+} from '@/features/invoices/model/invoice-field-access';
 import { findDuplicateInvoices } from '@/api/collections';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';

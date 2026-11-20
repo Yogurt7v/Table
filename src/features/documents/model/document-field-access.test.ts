@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { IDocument } from '@/shared/types';
-import type { OrgRole } from '@/features/invoices/invoice-field-access';
+import type { OrgRole } from '@/features/invoices/model/invoice-field-access';
 
 function makeDocument(overrides: Partial<IDocument> = {}): IDocument {
   return {

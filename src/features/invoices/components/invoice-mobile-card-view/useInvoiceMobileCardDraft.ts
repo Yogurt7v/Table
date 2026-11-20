@@ -4,8 +4,8 @@ import type {
   DraftFieldErrorKey,
   DraftFieldErrors,
   DraftInvoiceForm,
-} from '@/features/invoices/invoice-field-access';
-import { isDraftDirty, validateDraftFields } from '@/features/invoices/invoice-field-access';
+} from '@/features/invoices/model/invoice-field-access';
+import { isDraftDirty, validateDraftFields } from '@/features/invoices/model/invoice-field-access';
 
 interface UseInvoiceMobileCardDraftParams {
   isDraftOpen: boolean;

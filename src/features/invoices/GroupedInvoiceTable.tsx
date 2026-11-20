@@ -3,7 +3,7 @@ import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/sh
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
-import type { DraftInvoiceForm, InvoiceEditableField } from './invoice-field-access';
+import type { DraftInvoiceForm, InvoiceEditableField } from './model/invoice-field-access';
 import { GroupedInvoiceTableDesktop } from './components/grouped-invoice-table/GroupedInvoiceTableDesktop';
 import { GroupedInvoiceTableEmptyState } from './components/grouped-invoice-table/GroupedInvoiceTableEmptyState';
 import { GroupedInvoiceTableModals } from './components/grouped-invoice-table/GroupedInvoiceTableModals';

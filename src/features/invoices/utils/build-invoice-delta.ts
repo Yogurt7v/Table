@@ -1,5 +1,5 @@
 import type { IInvoice } from '@/shared/types';
-import type { DraftInvoiceForm } from '../invoice-field-access';
+import type { DraftInvoiceForm } from '../model/invoice-field-access';
 
 export interface InvoiceDelta {
   updates: Record<string, unknown>;
