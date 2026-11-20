@@ -14,7 +14,7 @@ import { useOrganizationUsers } from '@/features/admin/hooks/useOrganizationUser
 import { useUpdateInvoice } from '@/features/invoices/hooks/useUpdateInvoice';
 import { useDeleteInvoice } from '@/features/invoices/hooks/useDeleteInvoice';
 import { useMoveInvoice } from '@/features/invoices/hooks/useMoveInvoice';
-import { useReorderCounterparties } from '@/shared/hooks/useReorderCounterparties';
+import { useReorderCounterparties } from '@/features/invoices/hooks/useReorderCounterparties';
 import { useInvoiceDraft } from '@/features/invoices/ui/invoice-table/useInvoiceDraft.tsx';
 import { useInvoicePaymentActions } from '@/features/invoices/ui/invoice-table/useInvoicePaymentActions';
 import { InvoiceTableDeleteConfirm } from '@/features/invoices/ui/invoice-table/InvoiceTableDeleteConfirm';

@@ -38,7 +38,7 @@ vi.mock('@/features/admin/hooks/useUsers', () => ({
   useUsers: () => ({ data: [] }),
 }));
 
-vi.mock('@/shared/hooks/useCounterpartySearch', () => ({
+vi.mock('@/features/invoices/hooks/useCounterpartySearch', () => ({
   useCounterpartySearch: () => ({ results: [], isLoading: false }),
 }));
 

@@ -2,9 +2,9 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
 import { useUpdateInvoice } from '@/features/invoices/hooks/useUpdateInvoice';
-import { useDeletePaymentMark } from '@/shared/hooks/usePaymentMarks';
-import { useCreatePaymentMark } from '@/shared/hooks/usePaymentMarks';
-import { useApprovePaymentMark } from '@/shared/hooks/usePaymentMarks';
+import { useDeletePaymentMark } from '@/features/invoices/hooks/usePaymentMarks';
+import { useCreatePaymentMark } from '@/features/invoices/hooks/usePaymentMarks';
+import { useApprovePaymentMark } from '@/features/invoices/hooks/usePaymentMarks';
 import { syncInvoiceCopy } from '@/api/collections';
 import type { IInvoice, IPaymentMark } from '@/shared/types';
 import {

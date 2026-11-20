@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { IAccountingObject, IInvoiceFile, InvoiceColumnId } from '@/shared/types';
 import { useInvoices } from '@/features/invoices/hooks/useInvoices';
 import { useSearchInvoices } from '@/features/invoices/hooks/useSearchInvoices';
-import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
+import { usePaymentMarks } from '@/features/invoices/hooks/usePaymentMarks';
 import { useOrgInvoiceFiles } from '@/features/invoices/hooks/useInvoiceFiles';
 import { useUserSetting, useUpsertUserSetting } from '@/shared/hooks/useUserSettings';
 import { useAccessibleObjects } from '@/features/accounts/hooks/useAccessibleObjects';
