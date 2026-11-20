@@ -5,7 +5,7 @@ import { useSearchInvoices } from '@/features/invoices/hooks/useSearchInvoices';
 import { usePaymentMarks } from '@/shared/hooks/usePaymentMarks';
 import { useOrgInvoiceFiles } from '@/features/invoices/hooks/useInvoiceFiles';
 import { useUserSetting, useUpsertUserSetting } from '@/shared/hooks/useUserSettings';
-import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
+import { useAccessibleObjects } from '@/features/accounts/hooks/useAccessibleObjects';
 import { useInvoicePermissions } from '@/features/invoices/hooks/useInvoicePermissions';
 import { useUserMap } from '@/shared/hooks/useUserMap';
 import { useOrg } from '@/shared/context/OrgContext';
