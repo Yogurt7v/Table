@@ -1,8 +1,8 @@
 import { Modal, Stack, TextInput, Select, Button } from '@mantine/core';
 import type { IBankAccount, IAccountingObject } from '@/shared/types';
 import { ORG_COLORS } from '@/shared/utils/org-colors';
-import { BankAccountManager } from './BankAccountManager';
-import { AccountingObjectManager } from './AccountingObjectManager';
+import { BankAccountManager } from '../bank-account-manager/BankAccountManager';
+import { AccountingObjectManager } from '../accounting-object-manager/AccountingObjectManager';
 
 interface EditOrgModalProps {
   opened: boolean;

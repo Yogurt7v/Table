@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActionIcon, Popover } from '@mantine/core';
 import { IconFileText } from '@tabler/icons-react';
-import { OrganizationUserInvoicePermissions } from '@/features/admin/OrganizationUserInvoicePermissions';
+import { OrganizationUserInvoicePermissions } from '@/features/admin/ui/organization-user-permissions/OrganizationUserInvoicePermissions';
 import type { IOrganizationUser } from '@/shared/types';
 
 interface InlineRoleCellInvoicePermissionsPopoverProps {

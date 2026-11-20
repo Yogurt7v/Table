@@ -1,7 +1,7 @@
 import type { IUser } from '@/shared/types';
 import type { UserDeleteConsequences } from '@/features/admin/model/user-delete-consequences';
-import { CreateUserModal } from '@/features/admin/CreateUserModal';
-import { EditUserModal } from '@/features/admin/EditUserModal';
+import { CreateUserModal } from '@/features/admin/ui/user-modals/CreateUserModal';
+import { EditUserModal } from '@/features/admin/ui/user-modals/EditUserModal';
 import { AdminDeleteUserModal } from './AdminDeleteUserModal';
 import type { AdminUserTarget } from './admin-page-types';
 

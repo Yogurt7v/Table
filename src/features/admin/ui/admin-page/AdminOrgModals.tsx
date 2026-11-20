@@ -1,8 +1,8 @@
 import type { IAccountingObject, IBankAccount, IOrganization } from '@/shared/types';
-import type { OrgDeleteStats } from '@/features/admin/DeleteOrgModal';
-import { CreateOrgModal } from '@/features/admin/CreateOrgModal';
-import { EditOrgModal } from '@/features/admin/EditOrgModal';
-import { DeleteOrgModal } from '@/features/admin/DeleteOrgModal';
+import type { OrgDeleteStats } from '@/features/admin/ui/org-modals/DeleteOrgModal';
+import { CreateOrgModal } from '@/features/admin/ui/org-modals/CreateOrgModal';
+import { EditOrgModal } from '@/features/admin/ui/org-modals/EditOrgModal';
+import { DeleteOrgModal } from '@/features/admin/ui/org-modals/DeleteOrgModal';
 import type { AdminCreateOrgData, AdminOrgTarget } from './admin-page-types';
 
 /** Пропсы создания организации. */

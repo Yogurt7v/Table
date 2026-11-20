@@ -18,7 +18,7 @@ import {
   IconSearch,
   IconPencil,
 } from '@tabler/icons-react';
-import { InlineRoleCell } from './InlineRoleCell';
+import { InlineRoleCell } from '../inline-role-cell/InlineRoleCell';
 import type { IUser, IOrganizationUser } from '@/shared/types';
 
 interface UserAdminTableProps {

@@ -104,7 +104,7 @@ vi.mock('@/shared/context/AuthContext', () => ({ useAuth: mockUseAuth }));
 // Обе панели архива утапливаются в заглушки: у них четыре `useMail`-хука и
 // realtime-подписка PocketBase, и к логике `AdminPage` они отношения не имеют.
 // Заглушка прозрачна — она печатает ровно те пропсы, которые страница передала.
-vi.mock('@/features/admin/DeletedInvoicesSection', () => ({
+vi.mock('@/features/admin/ui/deleted-invoices-section/DeletedInvoicesSection', () => ({
   DeletedInvoicesSection: ({
     orgId,
     highlightInvoiceId,
@@ -126,7 +126,7 @@ vi.mock('@/features/admin/DeletedInvoicesSection', () => ({
   ),
 }));
 
-vi.mock('@/features/admin/DeletedMailsSection', () => ({
+vi.mock('@/features/admin/ui/deleted-mails-section/DeletedMailsSection', () => ({
   DeletedMailsSection: ({ orgId }: { orgId: string }) => (
     <div data-testid="deleted-mails-section">
       <span data-testid="mail-archive-org-id">{orgId}</span>

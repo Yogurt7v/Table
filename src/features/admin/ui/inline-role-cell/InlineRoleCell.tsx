@@ -8,8 +8,8 @@ import {
 import { getAccountingObjects } from '@/api/collections';
 import { useOrg } from '@/shared/context/OrgContext';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import { InlineRoleCellAssignmentRow } from './components/inline-role-cell/InlineRoleCellAssignmentRow';
-import { ROLE_OPTIONS } from './components/inline-role-cell/InlineRoleCellRoleSelect';
+import { InlineRoleCellAssignmentRow } from './InlineRoleCellAssignmentRow';
+import { ROLE_OPTIONS } from './InlineRoleCellRoleSelect';
 import type { IOrganizationUser } from '@/shared/types';
 
 type Role = IOrganizationUser['role'];

@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import { ActionIcon, Popover } from '@mantine/core';
-import { IconMail } from '@tabler/icons-react';
-import { OrganizationUserMailPermissions } from '@/features/admin/OrganizationUserMailPermissions';
+import { IconFile } from '@tabler/icons-react';
+import { OrganizationUserDocumentPermissions } from '@/features/admin/ui/organization-user-permissions/OrganizationUserDocumentPermissions';
 import type { IOrganizationUser } from '@/shared/types';
 
-interface InlineRoleCellMailPermissionsPopoverProps {
+interface InlineRoleCellDocumentPermissionsPopoverProps {
   assignment: IOrganizationUser;
   canEdit: boolean;
   orgName: string;
 }
 
-export function InlineRoleCellMailPermissionsPopover({
+export function InlineRoleCellDocumentPermissionsPopover({
   assignment,
   canEdit,
   orgName,
-}: InlineRoleCellMailPermissionsPopoverProps) {
+}: InlineRoleCellDocumentPermissionsPopoverProps) {
   const [opened, setOpened] = useState(false);
 
   return (
@@ -29,17 +29,18 @@ export function InlineRoleCellMailPermissionsPopover({
         <ActionIcon
           size="sm"
           variant="subtle"
-          color={assignment.can_view_mails === true ? 'blue' : 'gray'}
-          aria-label={`Почтовые права: ${orgName}`}
+          color={assignment.can_view_documents === true ? 'blue' : 'gray'}
+          aria-label={`Права на документы: ${orgName}`}
           onClick={() => setOpened((open) => !open)}
         >
-          <IconMail size={24} />
+          <IconFile size={24} />
         </ActionIcon>
       </Popover.Target>
       <Popover.Dropdown>
-        <OrganizationUserMailPermissions
+        <OrganizationUserDocumentPermissions
           assignment={assignment}
           canEdit={canEdit}
+          onClose={() => setOpened(false)}
           onSaved={() => setOpened(false)}
         />
       </Popover.Dropdown>
