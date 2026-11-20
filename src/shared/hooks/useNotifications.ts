@@ -1,8 +1,9 @@
 /**
- * Публичный barrel хуков уведомлений.
- * Реализация разнесена по модулям в `./use-notifications/*`, а этот путь сохраняет
- * совместимость импортов `@/shared/hooks/useNotifications`.
+ * Совместимость импортов `@/shared/hooks/useNotifications`:
+ * реализация живёт в домене `@/features/notifications/hooks`.
  */
 
-export { useNotificationsByDate } from './use-notifications/useNotificationsByDate';
-export { useNotifications } from './use-notifications/useNotifications';
+export {
+  useNotificationsByDate,
+  useNotifications,
+} from '@/features/notifications/hooks/useNotifications';
