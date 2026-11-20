@@ -15,7 +15,7 @@ import {
   useUpdateDocument,
   useUpdateDocumentStatus,
   useUploadDocumentFile,
-} from '@/shared/hooks/useDocuments';
+} from '@/features/documents/hooks/useDocuments';
 import type { IDocument, IDocumentComment, IDocumentFile } from '@/shared/types';
 import { emptyForm } from './document-card-modal-utils';
 import type { DocumentCardModalProps, DocumentForm } from './document-card-modal-types';

@@ -75,7 +75,7 @@ const api = vi.hoisted(() => ({
   useMarkPaymentCancelled: vi.fn(),
 }));
 
-vi.mock('@/shared/hooks/useDocuments', () => ({
+vi.mock('@/features/documents/hooks/useDocuments', () => ({
   useDocument: api.useDocument,
   useDocumentFiles: api.useDocumentFiles,
   useDocumentComments: api.useDocumentComments,

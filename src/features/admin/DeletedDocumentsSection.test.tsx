@@ -12,7 +12,7 @@ const { useArchivedDocuments, useRestoreDocument, useAccountingObjects } = vi.ho
   useAccountingObjects: vi.fn(),
 }));
 
-vi.mock('@/shared/hooks/useDocuments', () => ({
+vi.mock('@/features/documents/hooks/useDocuments', () => ({
   useArchivedDocuments,
   useRestoreDocument,
 }));

@@ -1,7 +1,7 @@
 import { useMantineTheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import type { IAccountingObject } from '@/shared/types';
-import { useDocumentPermissions } from '@/shared/hooks/useDocumentPermissions';
+import { useDocumentPermissions } from '@/features/documents/hooks/useDocumentPermissions';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { useOrg } from '@/shared/context/OrgContext';
 import { InvoiceObjectBlock } from '../InvoiceObjectBlock';

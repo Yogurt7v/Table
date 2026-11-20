@@ -10,14 +10,14 @@ import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
 import { useAccessibleObjects } from '@/shared/hooks/useAccessibleObjects';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { useUsers } from '@/shared/hooks/useUsers';
-import { useDocumentPermissions } from '@/shared/hooks/useDocumentPermissions';
+import { useDocumentPermissions } from '@/features/documents/hooks/useDocumentPermissions';
 import { useOrgCounterparties } from '@/features/mail/useOrgCounterparties';
 import {
   useAllDocumentComments,
   useAllDocumentFiles,
   useDocumentCommentSearch,
   useDocuments,
-} from '@/shared/hooks/useDocuments';
+} from '@/features/documents/hooks/useDocuments';
 import {
   loadDocumentColumnSizing,
   loadDocumentColumns,
@@ -29,9 +29,9 @@ import {
   PAGE_SIZE_STORAGE_KEY,
   type DocumentStatusFilter,
 } from './docs-page-types';
-import { useDocsPageDerived } from './use-docs-page/useDocsPageDerived';
-import { useDocsPageHighlight } from './use-docs-page/useDocsPageHighlight';
-import { useDocsPageLocationFocus } from './use-docs-page/useDocsPageLocationFocus';
+import { useDocsPageDerived } from './useDocsPageDerived';
+import { useDocsPageHighlight } from './useDocsPageHighlight';
+import { useDocsPageLocationFocus } from './useDocsPageLocationFocus';
 
 /** Хук-контроллер страницы документов: данные, фильтры, состояние таблицы и модалок. */
 export function useDocsPage() {

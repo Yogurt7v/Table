@@ -4,7 +4,7 @@ import type { DocumentGroup } from '@/features/documents/DocumentsTable';
 import { isDocumentCompleted } from '@/features/documents/document-columns';
 import { localDateToDateKey } from '@/features/mail/mail-date';
 import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
-import type { DocumentStatusFilter } from '../docs-page-types';
+import type { DocumentStatusFilter } from './docs-page-types';
 
 interface UseDocsPageDerivedArgs {
   currentOrgId: string | null;

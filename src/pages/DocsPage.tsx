@@ -22,7 +22,7 @@ import {
   saveDocumentColumns,
 } from '@/features/documents/document-columns';
 import { DocsPageToolbar } from './docs-page/DocsPageToolbar';
-import { useDocsPage } from './docs-page/useDocsPage';
+import { useDocsPage } from '@/features/documents/hooks/use-docs-page/useDocsPage';
 
 /** Страница документов: фильтры, сгруппированная таблица и модальные окна. */
 export function DocsPage() {

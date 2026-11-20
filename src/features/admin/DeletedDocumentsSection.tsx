@@ -14,7 +14,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import dayjs from 'dayjs';
-import { useArchivedDocuments, useRestoreDocument } from '@/shared/hooks/useDocuments';
+import { useArchivedDocuments, useRestoreDocument } from '@/features/documents/hooks/useDocuments';
 import { useAccountingObjects } from '@/shared/hooks/useAccountingObjects';
 import { ARCHIVE_PAGE_SIZE } from '@/api/collections';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';

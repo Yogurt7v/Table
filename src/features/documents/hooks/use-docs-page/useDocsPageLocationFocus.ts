@@ -1,7 +1,7 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { Location } from 'react-router-dom';
 import type { IDocument } from '@/shared/types';
-import type { DocumentStatusFilter } from '../docs-page-types';
+import type { DocumentStatusFilter } from './docs-page-types';
 
 interface UseDocsPageLocationFocusArgs {
   location: Location;

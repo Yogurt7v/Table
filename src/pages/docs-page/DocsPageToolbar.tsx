@@ -22,7 +22,10 @@ import {
   IconX,
 } from '@tabler/icons-react';
 
-import { PAGE_SIZE_OPTIONS, type DocumentStatusFilter } from './docs-page-types';
+import {
+  PAGE_SIZE_OPTIONS,
+  type DocumentStatusFilter,
+} from '@/features/documents/hooks/use-docs-page/docs-page-types';
 
 interface DocsPageToolbarProps {
   paymentDateRange: [Date | null, Date | null];
