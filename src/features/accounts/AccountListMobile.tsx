@@ -14,7 +14,12 @@ import {
 import { IconPencil, IconCheck, IconX } from '@tabler/icons-react';
 import { useUpdateBalance } from '@/shared/hooks/useBankAccounts';
 import type { IAccountWithBalance } from '@/shared/types';
-import { toFixed2, cleanInput, formatForDisplay, parseToNumber } from './account-balance-input';
+import {
+  toFixed2,
+  cleanInput,
+  formatForDisplay,
+  parseToNumber,
+} from './utils/account-balance-input';
 
 interface AccountListMobileProps {
   accounts: IAccountWithBalance[] | undefined;

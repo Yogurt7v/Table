@@ -14,7 +14,11 @@ export type {
 } from '@/features/admin/types';
 
 /** Банковские счета и остатки. */
-export type { IAccountWithBalance, IBalanceHistory, IBankAccount } from '@/features/accounts/types';
+export type {
+  IAccountWithBalance,
+  IBalanceHistory,
+  IBankAccount,
+} from '@/features/accounts/model/types';
 
 /** Счета, файлы, история, отметки оплаты и удалённые счета. */
 export type {
