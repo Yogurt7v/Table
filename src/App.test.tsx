@@ -36,7 +36,7 @@ vi.mock('@/features/invoices/hooks/useInvoicePermissions', () => ({
   useInvoicePermissions: mockUseInvoicePermissions,
 }));
 
-vi.mock('@/features/invoices/InvoiceSearch', () => ({
+vi.mock('@/features/invoices/ui/invoice-search/InvoiceSearch', () => ({
   InvoiceSearch: () => <div data-testid="invoice-search" />,
 }));
 vi.mock('@/features/notifications/NotificationsBell', () => ({
@@ -48,7 +48,7 @@ vi.mock('@/shared/components/MainDatePicker', () => ({
 vi.mock('@/features/accounts/AccountList', () => ({
   AccountList: () => <div data-testid="account-list" />,
 }));
-vi.mock('@/features/invoices/InvoiceSection', () => ({
+vi.mock('@/features/invoices/ui/invoice-section/InvoiceSection', () => ({
   InvoiceSection: () => <div data-testid="invoice-section" />,
 }));
 

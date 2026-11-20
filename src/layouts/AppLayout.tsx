@@ -19,7 +19,7 @@ import { useOrg } from '@/shared/context/OrgContext';
 import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
 import { DatePinnedProvider, useDatePinned } from '@/shared/context/DatePinnedContext';
 import { useSearch } from '@/shared/context/SearchContext';
-import { InvoiceSearch } from '@/features/invoices/InvoiceSearch';
+import { InvoiceSearch } from '@/features/invoices/ui/invoice-search/InvoiceSearch';
 import { NotificationsBell } from '@/features/notifications/NotificationsBell';
 import { MainDatePicker } from '@/shared/components/MainDatePicker';
 

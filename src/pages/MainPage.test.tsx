@@ -29,7 +29,7 @@ vi.mock('@/shared/components/MainDatePicker', () => ({
 vi.mock('@/features/accounts/AccountList', () => ({
   AccountList: () => <div data-testid="account-list" />,
 }));
-vi.mock('@/features/invoices/InvoiceSection', () => ({
+vi.mock('@/features/invoices/ui/invoice-section/InvoiceSection', () => ({
   InvoiceSection: () => <div data-testid="invoice-section" />,
 }));
 

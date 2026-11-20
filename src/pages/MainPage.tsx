@@ -9,7 +9,7 @@ import { useBankAccounts } from '@/shared/hooks/useBankAccounts';
 import { useInvoicePermissions } from '@/features/invoices/hooks/useInvoicePermissions';
 import { MainDatePicker } from '@/shared/components/MainDatePicker';
 import { AccountList } from '@/features/accounts/AccountList';
-import { InvoiceSection } from '@/features/invoices/InvoiceSection';
+import { InvoiceSection } from '@/features/invoices/ui/invoice-section/InvoiceSection';
 import { IconDatabaseOff } from '@tabler/icons-react';
 
 export function MainPage() {

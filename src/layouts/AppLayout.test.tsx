@@ -68,7 +68,7 @@ vi.mock('@/features/notifications/NotificationsBell', () => ({
   NotificationsBell: () => <div data-testid="notifications-bell" />,
 }));
 
-vi.mock('@/features/invoices/InvoiceSearch', () => ({
+vi.mock('@/features/invoices/ui/invoice-search/InvoiceSearch', () => ({
   InvoiceSearch: () => <div data-testid="invoice-search" />,
 }));
 
