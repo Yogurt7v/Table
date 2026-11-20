@@ -1,7 +1,7 @@
 import type { DeliveryMethod, MailType } from '@/shared/types';
 import type { MailListQuery } from '@/shared/hooks/useMail';
-import { MAIL_ATTACHMENT_FILTER_LABELS } from '../mail-labels';
-import type { MailPeriodPreset } from '../mail-date';
+import { MAIL_ATTACHMENT_FILTER_LABELS } from '../../model/mail-labels';
+import type { MailPeriodPreset } from '../../model/mail-date';
 
 /**
  * Единственное состояние фильтров почты. Всё, что `src/api/mail.ts` умеет

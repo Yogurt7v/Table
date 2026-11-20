@@ -1,6 +1,6 @@
 import type { MailListQuery } from '@/shared/hooks/useMail';
 import { LIVE_MAIL_SORT_ASC } from '@/api/mail';
-import { dateKeyToBound, resolvePeriodBounds } from '../mail-date';
+import { dateKeyToBound, resolvePeriodBounds } from '../../model/mail-date';
 import type { MailFilterState } from './mail-filter-types';
 
 /**
