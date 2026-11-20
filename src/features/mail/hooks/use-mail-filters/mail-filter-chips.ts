@@ -3,13 +3,9 @@ import {
   MAIL_COUNTERPARTY_FIELD_LABELS,
   MAIL_NO_ACCOUNTING_OBJECT_LABEL,
   MAIL_NO_DELIVERY_METHOD_LABEL,
-} from '../mail-labels';
-import { formatPeriodBounds } from '../mail-date';
-import type {
-  MailFilterChip,
-  MailFilterChipContext,
-  MailFilterState,
-} from './mail-filter-types';
+} from '../../model/mail-labels';
+import { formatPeriodBounds } from '../../model/mail-date';
+import type { MailFilterChip, MailFilterChipContext, MailFilterState } from './mail-filter-types';
 import { resetFilterGroup } from './mail-filter-state';
 
 /** Значения `MailFilterChip.value`, зарезервированные под переключатели. */

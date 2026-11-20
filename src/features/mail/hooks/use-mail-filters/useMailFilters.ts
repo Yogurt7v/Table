@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { DeliveryMethod } from '@/shared/types';
-import type { MailPeriodPreset } from '../mail-date';
+import type { MailPeriodPreset } from '../../model/mail-date';
 import { removeFilterChip } from './mail-filter-chips';
 import { buildMailListQuery } from './mail-filter-query';
 import {
