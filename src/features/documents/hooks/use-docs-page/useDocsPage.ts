@@ -9,7 +9,7 @@ import { useOrg } from '@/shared/context/OrgContext';
 import { useCurrentUserRole } from '@/shared/hooks/useCurrentUserRole';
 import { useAccessibleObjects } from '@/features/accounts/hooks/useAccessibleObjects';
 import { useAccountingObjects } from '@/features/accounts/hooks/useAccountingObjects';
-import { useUsers } from '@/shared/hooks/useUsers';
+import { useUsers } from '@/features/admin/hooks/useUsers';
 import { useDocumentPermissions } from '@/features/documents/hooks/useDocumentPermissions';
 import { useOrgCounterparties } from '@/features/mail/useOrgCounterparties';
 import {

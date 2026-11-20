@@ -8,8 +8,8 @@ import {
 } from '@/shared/types';
 import { MAIL_PAGE_SIZE } from '@/api/mail';
 import { useAccessibleObjects } from '@/features/accounts/hooks/useAccessibleObjects';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
-import { useUserMap } from '@/shared/hooks/useUserMap';
+import { useOrganizationUsers } from '@/features/admin/hooks/useOrganizationUsers';
+import { useUserMap } from '@/features/admin/hooks/useUserMap';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import {
   useAllIncomingMails,

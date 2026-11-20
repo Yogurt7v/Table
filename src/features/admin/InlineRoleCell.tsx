@@ -4,7 +4,7 @@ import { IconPlus } from '@tabler/icons-react';
 import {
   useCreateOrganizationUser,
   useDeleteOrganizationUser,
-} from '@/shared/hooks/useOrganizationUsers';
+} from '@/features/admin/hooks/useOrganizationUsers';
 import { getAccountingObjects } from '@/api/collections';
 import { useOrg } from '@/shared/context/OrgContext';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';

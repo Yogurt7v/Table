@@ -1,5 +1,5 @@
 import { useAuth } from '@/shared/context/AuthContext';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useOrganizationUsers } from '@/features/admin/hooks/useOrganizationUsers';
 import type { IOrganizationUser } from '@/shared/types';
 
 /**

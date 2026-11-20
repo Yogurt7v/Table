@@ -5,7 +5,7 @@ import {
   useOrganizationUsers,
   useCreateOrganizationUser,
   useDeleteOrganizationUser,
-} from '@/shared/hooks/useOrganizationUsers';
+} from '@/features/admin/hooks/useOrganizationUsers';
 import { useOrg } from '@/shared/context/OrgContext';
 import type { IOrganizationUser } from '@/shared/types';
 

@@ -15,7 +15,7 @@ vi.mock('@/shared/hooks/useMailPermissions', () => ({
   useMailPermissions: mockUseMailPermissions,
 }));
 
-vi.mock('@/shared/hooks/useOrganizationUsers', () => ({
+vi.mock('@/features/admin/hooks/useOrganizationUsers', () => ({
   useOrganizationUsers: mockUseOrganizationUsers,
 }));
 

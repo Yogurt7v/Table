@@ -7,8 +7,8 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
-import { useOrganizations } from '@/shared/hooks/useOrganizations';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useOrganizations } from '@/features/admin/hooks/useOrganizations';
+import { useOrganizationUsers } from '@/features/admin/hooks/useOrganizationUsers';
 import { useAuth } from '@/shared/context/AuthContext';
 import type { IOrganization } from '@/shared/types';
 

@@ -4,7 +4,7 @@ import {
   useCreateOrganization,
   useUpdateOrganization,
   useDeleteOrganization,
-} from '@/shared/hooks/useOrganizations';
+} from '@/features/admin/hooks/useOrganizations';
 import { createBankAccount } from '@/api/collections';
 import type { IOrganization } from '@/shared/types';
 import type { AdminCreateOrgData, AdminOrgTarget } from './admin-page-types';

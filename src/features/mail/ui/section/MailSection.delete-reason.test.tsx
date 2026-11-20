@@ -75,11 +75,11 @@ vi.mock('@/features/accounts/hooks/useAccessibleObjects', () => ({
   useAccessibleObjects: () => [{ id: 'obj01hxyz', name: 'Основной счёт' }],
 }));
 
-vi.mock('@/shared/hooks/useOrganizationUsers', () => ({
+vi.mock('@/features/admin/hooks/useOrganizationUsers', () => ({
   useOrganizationUsers: () => ({ data: [] }),
 }));
 
-vi.mock('@/shared/hooks/useUserMap', () => ({
+vi.mock('@/features/admin/hooks/useUserMap', () => ({
   useUserMap: () => new Map(),
 }));
 

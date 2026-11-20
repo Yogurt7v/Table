@@ -11,7 +11,7 @@ const mockUseUpdateUser = vi.hoisted(() => vi.fn());
 const mockUseAuth = vi.hoisted(() => vi.fn());
 const mockNotifyShow = vi.hoisted(() => vi.fn());
 
-vi.mock('@/shared/hooks/useUsers', () => ({
+vi.mock('@/features/admin/hooks/useUsers', () => ({
   useUpdateUser: mockUseUpdateUser,
 }));
 

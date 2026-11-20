@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActionIcon, Button, Group, Popover, Text } from '@mantine/core';
 import { IconAdjustments, IconTrash } from '@tabler/icons-react';
-import { useUpdateOrganizationUser } from '@/shared/hooks/useOrganizationUsers';
+import { useUpdateOrganizationUser } from '@/features/admin/hooks/useOrganizationUsers';
 import type { IOrganizationUser } from '@/shared/types';
 import type { Role } from './InlineRoleCellRoleConstants';
 import { InlineRoleCellObjectPicker } from './InlineRoleCellObjectPicker';

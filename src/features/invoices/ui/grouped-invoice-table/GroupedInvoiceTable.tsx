@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { IInvoice, IInvoiceFile, IPaymentMark, InvoiceColumnId } from '@/shared/types';
-import { useUserMap } from '@/shared/hooks/useUserMap';
+import { useUserMap } from '@/features/admin/hooks/useUserMap';
 import { useAutoScrollIntoView } from '@/shared/hooks/useAutoScrollIntoView';
 import { groupInvoicesByCounterparty } from '@/shared/utils/group-invoices';
 import type { DraftInvoiceForm, InvoiceEditableField } from '../../model/invoice-field-access';

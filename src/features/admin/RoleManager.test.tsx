@@ -16,7 +16,7 @@ const mockUseCreateOrganizationUser = vi.hoisted(() => vi.fn());
 const mockUseDeleteOrganizationUser = vi.hoisted(() => vi.fn());
 const mockUseOrg = vi.hoisted(() => vi.fn());
 
-vi.mock('@/shared/hooks/useOrganizationUsers', () => ({
+vi.mock('@/features/admin/hooks/useOrganizationUsers', () => ({
   useOrganizationUsers: mockUseOrganizationUsers,
   useCreateOrganizationUser: mockUseCreateOrganizationUser,
   useDeleteOrganizationUser: mockUseDeleteOrganizationUser,

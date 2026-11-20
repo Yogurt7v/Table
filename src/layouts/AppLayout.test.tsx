@@ -60,7 +60,7 @@ vi.mock('@/shared/context/OrgContext', () => ({
 
 // `useCurrentUserRole` и `useMailPermissions` остаются настоящими: роль
 // вычисляется ими из той же фикстуры `organization_users`, что и в проде.
-vi.mock('@/shared/hooks/useOrganizationUsers', () => ({
+vi.mock('@/features/admin/hooks/useOrganizationUsers', () => ({
   useOrganizationUsers: () => ({ data: mockOrgUsers.data }),
 }));
 

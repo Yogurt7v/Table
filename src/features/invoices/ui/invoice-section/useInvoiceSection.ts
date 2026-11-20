@@ -7,7 +7,7 @@ import { useOrgInvoiceFiles } from '@/features/invoices/hooks/useInvoiceFiles';
 import { useUserSetting, useUpsertUserSetting } from '@/shared/hooks/useUserSettings';
 import { useAccessibleObjects } from '@/features/accounts/hooks/useAccessibleObjects';
 import { useInvoicePermissions } from '@/features/invoices/hooks/useInvoicePermissions';
-import { useUserMap } from '@/shared/hooks/useUserMap';
+import { useUserMap } from '@/features/admin/hooks/useUserMap';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useSearch } from '@/shared/context/SearchContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';

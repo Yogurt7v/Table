@@ -8,7 +8,7 @@ import {
 import { getDeletedInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';
-import { useUserMap } from '@/shared/hooks/useUserMap';
+import { useUserMap } from '@/features/admin/hooks/useUserMap';
 import type { IDeletedInvoice } from '@/shared/types';
 
 interface DeletedInvoiceDetailModalProps {

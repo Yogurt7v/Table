@@ -56,7 +56,7 @@ vi.mock('@/shared/context/OrgContext', () => ({
   OrgProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('@/shared/hooks/useOrganizationUsers', () => ({
+vi.mock('@/features/admin/hooks/useOrganizationUsers', () => ({
   useOrganizationUsers: mockHooks.useOrganizationUsers,
 }));
 

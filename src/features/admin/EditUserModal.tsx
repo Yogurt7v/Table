@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal, TextInput, PasswordInput, Button, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { useUpdateUser } from '@/shared/hooks/useUsers';
+import { useUpdateUser } from '@/features/admin/hooks/useUsers';
 import { useAuth } from '@/shared/context/AuthContext';
 import { generatePassword } from '@/shared/utils/generate-password';
 import type { IUser } from '@/shared/types';

@@ -30,11 +30,11 @@ vi.mock('@/features/invoices/hooks/useInvoicePermissions', () => ({
   }),
 }));
 
-vi.mock('@/shared/hooks/useOrganizationUsers', () => ({
+vi.mock('@/features/admin/hooks/useOrganizationUsers', () => ({
   useOrganizationUsers: () => ({ data: [] }),
 }));
 
-vi.mock('@/shared/hooks/useUsers', () => ({
+vi.mock('@/features/admin/hooks/useUsers', () => ({
   useUsers: () => ({ data: [] }),
 }));
 

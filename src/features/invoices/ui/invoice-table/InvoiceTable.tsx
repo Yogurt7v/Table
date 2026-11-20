@@ -10,7 +10,7 @@ import type {
 
 import { type DraftInvoiceForm } from '@/features/invoices/model/invoice-field-access';
 import { useInvoicePermissions } from '@/features/invoices/hooks/useInvoicePermissions';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useOrganizationUsers } from '@/features/admin/hooks/useOrganizationUsers';
 import { useUpdateInvoice } from '@/features/invoices/hooks/useUpdateInvoice';
 import { useDeleteInvoice } from '@/features/invoices/hooks/useDeleteInvoice';
 import { useMoveInvoice } from '@/features/invoices/hooks/useMoveInvoice';

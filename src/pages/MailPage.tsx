@@ -1,7 +1,7 @@
 import { Center, Container, Loader } from '@mantine/core';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
-import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
+import { useOrganizationUsers } from '@/features/admin/hooks/useOrganizationUsers';
 import { MailSection } from '@/features/mail/MailSection';
 
 /**
