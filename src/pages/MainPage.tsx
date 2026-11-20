@@ -8,7 +8,7 @@ import { useDatePinned } from '@/shared/context/DatePinnedContext';
 import { useBankAccounts } from '@/features/accounts/hooks/useBankAccounts';
 import { useInvoicePermissions } from '@/features/invoices/hooks/useInvoicePermissions';
 import { MainDatePicker } from '@/shared/components/MainDatePicker';
-import { AccountList } from '@/features/accounts/AccountList';
+import { AccountList } from '@/features/accounts/ui/account-list/AccountList';
 import { InvoiceSection } from '@/features/invoices/ui/invoice-section/InvoiceSection';
 import { IconDatabaseOff } from '@tabler/icons-react';
 

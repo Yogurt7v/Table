@@ -22,7 +22,7 @@ import {
   cleanInput,
   formatForDisplay,
   parseToNumber,
-} from './utils/account-balance-input';
+} from '../../utils/account-balance-input';
 import { AccountListMobile } from './AccountListMobile';
 
 interface AccountListProps {

@@ -19,7 +19,7 @@ import {
   cleanInput,
   formatForDisplay,
   parseToNumber,
-} from './utils/account-balance-input';
+} from '../../utils/account-balance-input';
 
 interface AccountListMobileProps {
   accounts: IAccountWithBalance[] | undefined;

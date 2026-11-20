@@ -47,7 +47,7 @@ vi.mock('@/features/notifications/NotificationsBell', () => ({
 vi.mock('@/shared/components/MainDatePicker', () => ({
   MainDatePicker: () => <div data-testid="date-picker" />,
 }));
-vi.mock('@/features/accounts/AccountList', () => ({
+vi.mock('@/features/accounts/ui/account-list/AccountList', () => ({
   AccountList: () => <div data-testid="account-list" />,
 }));
 vi.mock('@/features/invoices/ui/invoice-section/InvoiceSection', () => ({
