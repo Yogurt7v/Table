@@ -10,21 +10,21 @@ import type {
   IOutgoingMail,
   MailType,
 } from '@/shared/types';
-import { MailThreadBuilder } from './MailThreadBuilder';
-import { buildCandidateLookup, buildParentEdgeIndex } from './mail-parent';
-import type { MailCandidate } from './mail-parent';
+import { MailThreadBuilder } from '../thread/MailThreadBuilder';
+import { buildCandidateLookup, buildParentEdgeIndex } from '../../mail-parent';
+import type { MailCandidate } from '../../mail-parent';
 import {
   buildLetterIndex,
   buildMailThreadGraph,
   detectCyclicNodeKeys,
   mailNodeKey,
   THREAD_MAX_DEPTH,
-} from './mail-thread';
-import type { MailNodeKey } from './mail-thread';
-import { mailGapDropId, mailNodeDropId, MAIL_TREE_INDENT } from './mail-thread-builder';
-import { MAIL_CHAIN_TRUNCATION_NOTE, MAIL_DETACHED_LETTER_NOTE } from './mail-thread-labels';
-import type { MailPermissions } from './mail-field-access';
-import type { LinkChangeArgs } from './useMailLinkChange';
+} from '../../mail-thread';
+import type { MailNodeKey } from '../../mail-thread';
+import { mailGapDropId, mailNodeDropId, MAIL_TREE_INDENT } from '../../mail-thread-builder';
+import { MAIL_CHAIN_TRUNCATION_NOTE, MAIL_DETACHED_LETTER_NOTE } from '../../mail-thread-labels';
+import type { MailPermissions } from '../../mail-field-access';
+import type { LinkChangeArgs } from '../../useMailLinkChange';
 
 /**
  * Конструктор переписки: одна вертикальная линия, в которой перетаскивание
@@ -106,22 +106,22 @@ vi.mock('@dnd-kit/core', () => ({
   rectIntersection: () => [],
 }));
 
-vi.mock('./useOrgMailThread', () => ({
+vi.mock('../../useOrgMailThread', () => ({
   useOrgMailThread: (orgId: string) => {
     state.lastOrgId = orgId;
     return state.thread;
   },
 }));
 
-vi.mock('./useOrgMailFiles', () => ({
+vi.mock('../../useOrgMailFiles', () => ({
   useOrgMailFiles: () => ({ data: state.files, isLoading: false, isError: false }),
 }));
 
-vi.mock('./mail-thread-order', () => ({
+vi.mock('../../mail-thread-order', () => ({
   useMailThreadOrder: () => ({ order: {}, ranks: state.ranks, place: state.place }),
 }));
 
-vi.mock('./useMailLinkChange', () => ({
+vi.mock('../../useMailLinkChange', () => ({
   useMailLinkChange: () => ({
     changeLink: async (args: LinkChangeArgs) => {
       if (state.changeLinkFails) throw new Error('связь не сохранена');
@@ -131,12 +131,12 @@ vi.mock('./useMailLinkChange', () => ({
   }),
 }));
 
-vi.mock('./MailThreadPrintModal', () => ({
+vi.mock('../thread/MailThreadPrintModal', () => ({
   MailThreadPrintModal: ({ opened }: { opened: boolean }) =>
     opened ? <div data-testid="print-modal">Окно печати</div> : null,
 }));
 
-vi.mock('./MailParentPicker', () => ({
+vi.mock('../parent/MailParentPicker', () => ({
   MailParentPicker: ({
     opened,
     candidates,

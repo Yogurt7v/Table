@@ -3,11 +3,11 @@ import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { renderWithProviders } from '@/mocks/test-utils';
-import { MailColumnSettingsModal } from './MailColumnSettingsModal';
-import { DEFAULT_VISIBLE_COLUMNS } from './mail-columns';
-import type { MailColumnId } from './mail-columns';
-import { NO_MAIL_PERMISSIONS } from './mail-field-access';
-import type { MailPermissions } from './mail-field-access';
+import { MailColumnSettingsModal } from '../columns/MailColumnSettingsModal';
+import { DEFAULT_VISIBLE_COLUMNS } from '../../mail-columns';
+import type { MailColumnId } from '../../mail-columns';
+import { NO_MAIL_PERMISSIONS } from '../../mail-field-access';
+import type { MailPermissions } from '../../mail-field-access';
 import type { MailType } from '@/shared/types';
 
 /**

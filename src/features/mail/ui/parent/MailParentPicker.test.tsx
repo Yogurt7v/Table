@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { MantineProvider, createTheme } from '@mantine/core';
-import { MailParentPicker } from './MailParentPicker';
-import type { MailCandidate, MailCandidateLookup } from './mail-parent';
+import { MailParentPicker } from '../parent/MailParentPicker';
+import type { MailCandidate, MailCandidateLookup } from '../../mail-parent';
 
 const theme = createTheme({});
 

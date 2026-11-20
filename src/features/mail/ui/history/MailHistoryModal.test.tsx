@@ -3,7 +3,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
 import type { IMailHistory } from '@/shared/types';
-import { MailHistoryModal } from './MailHistoryModal';
+import { MailHistoryModal } from '../history/MailHistoryModal';
 
 /**
  * История одного письма: лента событий и состояния запроса.

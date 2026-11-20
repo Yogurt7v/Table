@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MantineProvider, createTheme } from '@mantine/core';
-import { MailSearchInput } from './MailSearchInput';
+import { MailSearchInput } from '../search/MailSearchInput';
 
 const theme = createTheme({});
 

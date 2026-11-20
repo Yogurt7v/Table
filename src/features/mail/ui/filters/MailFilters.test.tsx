@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
-import { MailFilters } from './MailFilters';
-import { useMailFilters } from './useMailFilters';
-import type { MailSortDirection } from './useMailFilters';
+import { MailFilters } from '../filters/MailFilters';
+import { useMailFilters } from '../../useMailFilters';
+import type { MailSortDirection } from '../../useMailFilters';
 
 /**
  * Переключатель порядка живого реестра в панели фильтров.

@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
-import type { MailLetter, MailNodeKey } from './mail-thread';
-import { mailNodeKey } from './mail-thread';
-import { MailThreadGap, MailThreadNode } from './MailThreadNode';
-import type { ThreadDirection, ThreadLineNode, ThreadOverState } from './mail-thread-builder';
-import { MAIL_TREE_INDENT, mailGapDropId, mailNodeDropId } from './mail-thread-builder';
-import { MAIL_DROP_HINT_BEFORE, MAIL_DROP_HINT_HEAD } from './mail-thread-labels';
-import { MAIL_EMPTY_CELL } from './mail-labels';
+import type { MailLetter, MailNodeKey } from '../../mail-thread';
+import { mailNodeKey } from '../../mail-thread';
+import { MailThreadGap, MailThreadNode } from '../thread/MailThreadNode';
+import type { ThreadDirection, ThreadLineNode, ThreadOverState } from '../../mail-thread-builder';
+import { MAIL_TREE_INDENT, mailGapDropId, mailNodeDropId } from '../../mail-thread-builder';
+import { MAIL_DROP_HINT_BEFORE, MAIL_DROP_HINT_HEAD } from '../../mail-thread-labels';
+import { MAIL_EMPTY_CELL } from '../../mail-labels';
 
 /**
  * Строка линии переписки: то, чем человек читает вложенность и права.

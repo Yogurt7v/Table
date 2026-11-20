@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
-import { MailFormModal } from './MailFormModal';
-import type { MailFormState } from './mail-form';
+import { MailFormModal } from '../form/MailFormModal';
+import type { MailFormState } from '../../mail-form';
 import type { IIncomingMail, MailType } from '@/shared/types';
 
 /**

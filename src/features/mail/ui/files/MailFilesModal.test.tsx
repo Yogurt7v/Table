@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { RecordModel } from 'pocketbase';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { notifications } from '@mantine/notifications';
-import { MailFilesModal } from './MailFilesModal';
+import { MailFilesModal } from '../files/MailFilesModal';
 import type { IMailFile, MailType } from '@/shared/types';
 
 /**

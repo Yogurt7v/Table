@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
-import { MailSection } from './MailSection';
-import type { MailPermissions } from './mail-field-access';
+import { MailSection } from '../section/MailSection';
+import type { MailPermissions } from '../../mail-field-access';
 
 /**
  * Обязательность причины удаления в единственной модалке `MailSection`.
@@ -88,7 +88,7 @@ vi.mock('@/shared/hooks/useUserSettings', () => ({
   useUpsertUserSetting: () => ({ mutate: vi.fn() }),
 }));
 
-vi.mock('./useMailFilters', () => ({
+vi.mock('../../useMailFilters', () => ({
   buildFilterChips: () => [],
   useMailFilters: () => ({
     query: {},
@@ -100,7 +100,7 @@ vi.mock('./useMailFilters', () => ({
   }),
 }));
 
-vi.mock('./useOrgMailFiles', () => ({
+vi.mock('../../useOrgMailFiles', () => ({
   filterByAttachments: (items: unknown[]) => items,
   filterByRelations: (items: unknown[]) => items,
   useOrgMailFiles: () => ({
@@ -113,7 +113,7 @@ vi.mock('./useOrgMailFiles', () => ({
   }),
 }));
 
-vi.mock('./useOrgMailThread', () => ({
+vi.mock('../../useOrgMailThread', () => ({
   useOrgMailThread: () => ({ parentEdges: new Map(), candidates: [] }),
 }));
 
@@ -121,13 +121,13 @@ vi.mock('./useOrgCounterparties', () => ({
   useOrgCounterparties: () => ({ counterpartyOptions: [] }),
 }));
 
-vi.mock('./useMailLinkChange', () => ({
+vi.mock('../../useMailLinkChange', () => ({
   useMailLinkChange: () => ({ changeLink: vi.fn(), isPending: false }),
 }));
 
 // Таблица заменена триггером: реальные строки с настоящими меню действий ничего
 // не добавляют к проверке гейта, а стоят дорого.
-vi.mock('./MailTable', () => ({
+vi.mock('../table/MailTable', () => ({
   MailTable: ({ onDelete }: { onDelete: (mailId: string) => void }) => (
     <button type="button" onClick={() => onDelete(MAIL_ID)}>
       Удалить письмо
@@ -135,13 +135,13 @@ vi.mock('./MailTable', () => ({
   ),
 }));
 
-vi.mock('./MailFilters', () => ({ MailFilters: () => null }));
-vi.mock('./MailSearchInput', () => ({ MailSearchInput: () => null }));
-vi.mock('./MailFormModal', () => ({ MailFormModal: () => null }));
-vi.mock('./MailFilesModal', () => ({ MailFilesModal: () => null }));
-vi.mock('./MailHistoryModal', () => ({ MailHistoryModal: () => null }));
-vi.mock('./MailThreadBuilder', () => ({ MailThreadBuilder: () => null }));
-vi.mock('./MailColumnSettingsModal', () => ({ MailColumnSettingsModal: () => null }));
+vi.mock('../filters/MailFilters', () => ({ MailFilters: () => null }));
+vi.mock('../search/MailSearchInput', () => ({ MailSearchInput: () => null }));
+vi.mock('../form/MailFormModal', () => ({ MailFormModal: () => null }));
+vi.mock('../files/MailFilesModal', () => ({ MailFilesModal: () => null }));
+vi.mock('../history/MailHistoryModal', () => ({ MailHistoryModal: () => null }));
+vi.mock('../thread/MailThreadBuilder', () => ({ MailThreadBuilder: () => null }));
+vi.mock('../columns/MailColumnSettingsModal', () => ({ MailColumnSettingsModal: () => null }));
 
 function renderSection() {
   return renderWithProviders(<MailSection orgId="org01hxyz" />);

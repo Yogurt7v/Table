@@ -25,9 +25,9 @@ import { describe, it, expect } from 'vitest';
 const read = (relativePath: string): string =>
   readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 
-const MAIL_SECTION = read('./MailSection.tsx');
-const MAIL_SECTION_HEADER = read('./components/mail-section/MailSectionHeader.tsx');
-const MAIL_FILTERS = read('./MailFilters.tsx');
+const MAIL_SECTION = read('./ui/section/MailSection.tsx');
+const MAIL_SECTION_HEADER = read('./ui/mail-section/MailSectionHeader.tsx');
+const MAIL_FILTERS = read('./ui/filters/MailFilters.tsx');
 const ADMIN_PAGE = read('../../pages/AdminPage.tsx');
 
 const pathFromSrc = (relativePath: string): string =>

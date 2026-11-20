@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MantineProvider, createTheme } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { DeletedMailHistoryModal } from './MailArchiveHistoryModal';
+import { DeletedMailHistoryModal } from '../archive/MailArchiveHistoryModal';
 import type { IDeletedMailHistory, MailType } from '@/shared/types';
 
 vi.mock('@/api/mail', () => ({
@@ -10,15 +10,15 @@ vi.mock('@/api/mail', () => ({
   getDeletedOutgoingMailHistory: vi.fn(),
 }));
 
-vi.mock('./mail-date', () => ({
+vi.mock('../../mail-date', () => ({
   formatMailTimestamp: vi.fn((ts: string) => ts),
 }));
 
-vi.mock('./mail-labels', () => ({
+vi.mock('../../mail-labels', () => ({
   MAIL_HISTORY_TYPE_LABELS: { created: 'Создано', updated: 'Изменено', deleted: 'Удалено' },
 }));
 
-vi.mock('./mail-history', () => ({
+vi.mock('../../mail-history', () => ({
   buildMailHistoryEntries: vi.fn((items: IDeletedMailHistory[]) =>
     items.map((item, i) => ({
       entryId: String(i),
