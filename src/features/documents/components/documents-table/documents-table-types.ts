@@ -1,5 +1,5 @@
 import type { DocumentColumnId, IDocument, IDocumentComment, IDocumentFile } from '@/shared/types';
-import type { DocumentColumnSizing } from '@/features/documents/document-columns';
+import type { DocumentColumnSizing } from '@/features/documents/model/document-columns';
 
 /** Группа документов одного объекта учёта: заголовок, страница и общая длина. */
 export interface DocumentGroup {

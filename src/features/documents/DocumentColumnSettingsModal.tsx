@@ -18,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { DEFAULT_DOCUMENT_COLUMNS, DOCUMENT_COLUMNS } from './document-columns';
+import { DEFAULT_DOCUMENT_COLUMNS, DOCUMENT_COLUMNS } from './model/document-columns';
 import type { DocumentColumnId } from '@/shared/types';
 
 interface DocumentColumnSettingsModalProps {

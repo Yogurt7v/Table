@@ -44,7 +44,7 @@ export type {
   IDocumentComment,
   IDocumentFile,
   IDocumentHistory,
-} from '@/features/documents/types';
+} from '@/features/documents/model/types';
 
 /** Почтовая корреспонденция: типы. */
 export type {

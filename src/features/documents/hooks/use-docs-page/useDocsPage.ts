@@ -23,7 +23,7 @@ import {
   loadDocumentColumns,
   saveDocumentColumnSizing,
   type DocumentColumnSizing,
-} from '@/features/documents/document-columns';
+} from '@/features/documents/model/document-columns';
 import {
   PAGE_SIZE_OPTIONS,
   PAGE_SIZE_STORAGE_KEY,

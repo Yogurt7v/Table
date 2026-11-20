@@ -13,7 +13,7 @@ import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import {
   getDocumentColumnWidth,
   type DocumentColumnDefinition,
-} from '@/features/documents/document-columns';
+} from '@/features/documents/model/document-columns';
 import { DocumentMobileCards } from '@/features/documents/DocumentMobileCards';
 import { DocumentsTableResizableHeader } from './DocumentsTableResizableHeader';
 import { DocumentsTableRow } from './DocumentsTableRow';

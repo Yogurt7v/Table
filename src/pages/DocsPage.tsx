@@ -20,7 +20,7 @@ import { ManualDocumentModal } from '@/features/documents/ManualDocumentModal';
 import {
   saveDocumentColumnSizing,
   saveDocumentColumns,
-} from '@/features/documents/document-columns';
+} from '@/features/documents/model/document-columns';
 import { DocsPageToolbar } from './docs-page/DocsPageToolbar';
 import { useDocsPage } from '@/features/documents/hooks/use-docs-page/useDocsPage';
 

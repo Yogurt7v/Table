@@ -3,7 +3,7 @@ import type { IDocument, IDocumentComment, IDocumentFile } from '@/shared/types'
 import {
   isDocumentCompleted,
   type DocumentColumnDefinition,
-} from '@/features/documents/document-columns';
+} from '@/features/documents/model/document-columns';
 import { renderDocumentCell } from './DocumentsTableCells';
 
 /** Пропсы строки таблицы документов. */

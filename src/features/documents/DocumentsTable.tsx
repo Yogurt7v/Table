@@ -1,6 +1,6 @@
 import { Paper, Stack, Text } from '@mantine/core';
 import type { DocumentColumnId, IDocument, IDocumentComment, IDocumentFile } from '@/shared/types';
-import { DOCUMENT_COLUMNS, type DocumentColumnSizing } from './document-columns';
+import { DOCUMENT_COLUMNS, type DocumentColumnSizing } from './model/document-columns';
 import { DocumentsTableGroup } from './components/documents-table/DocumentsTableGroup';
 import type {
   DocumentGroup,

@@ -1,7 +1,7 @@
 import { useMemo, type Dispatch, type SetStateAction } from 'react';
 import type { IAccountingObject, IDocument, IDocumentComment, IDocumentFile } from '@/shared/types';
 import type { DocumentGroup } from '@/features/documents/DocumentsTable';
-import { isDocumentCompleted } from '@/features/documents/document-columns';
+import { isDocumentCompleted } from '@/features/documents/model/document-columns';
 import { localDateToDateKey } from '@/features/mail/mail-date';
 import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
 import type { DocumentStatusFilter } from './docs-page-types';

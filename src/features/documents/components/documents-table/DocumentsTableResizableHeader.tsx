@@ -1,7 +1,7 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { Table } from '@mantine/core';
 import type { DocumentColumnId } from '@/shared/types';
-import type { DocumentColumnDefinition } from '@/features/documents/document-columns';
+import type { DocumentColumnDefinition } from '@/features/documents/model/document-columns';
 
 /** Пропсы заголовка колонки с изменением ширины. */
 export interface DocumentsTableResizableHeaderProps {
