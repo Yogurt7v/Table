@@ -12,7 +12,7 @@ vi.mock('@/api/collections', async (importOriginal) => ({
   deleteInvoice,
 }));
 
-vi.mock('@/shared/hooks/useInvoicePermissions', () => ({
+vi.mock('@/features/invoices/hooks/useInvoicePermissions', () => ({
   useInvoicePermissions: () => ({
     role: 'admin',
     canCreate: true,

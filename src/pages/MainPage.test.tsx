@@ -19,7 +19,7 @@ vi.mock('@/shared/context/InvoiceNavigationContext', () => ({
 }));
 vi.mock('@/shared/context/DatePinnedContext', () => ({ useDatePinned: mockUseDatePinned }));
 vi.mock('@/shared/hooks/useBankAccounts', () => ({ useBankAccounts: mockUseBankAccounts }));
-vi.mock('@/shared/hooks/useInvoicePermissions', () => ({
+vi.mock('@/features/invoices/hooks/useInvoicePermissions', () => ({
   useInvoicePermissions: mockUseInvoicePermissions,
 }));
 

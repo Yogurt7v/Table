@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { notifications } from '@mantine/notifications';
-import { useCreateInvoice } from '@/shared/hooks/useCreateInvoice';
-import { useCreateInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
+import { useCreateInvoice } from '@/features/invoices/hooks/useCreateInvoice';
+import { useCreateInvoiceFile } from '@/features/invoices/hooks/useInvoiceFiles';
 import { useCounterpartySearch } from '@/shared/hooks/useCounterpartySearch';
 import {
   validateDraftForm,

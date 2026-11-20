@@ -4,7 +4,10 @@ import { useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { useQuery } from '@tanstack/react-query';
 import { getInvoiceFiles, getInvoiceFileUrl } from '@/api/collections';
-import { useCreateInvoiceFile, useDeleteInvoiceFile } from '@/shared/hooks/useInvoiceFiles';
+import {
+  useCreateInvoiceFile,
+  useDeleteInvoiceFile,
+} from '@/features/invoices/hooks/useInvoiceFiles';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type { IInvoiceFile } from '@/shared/types';
 

@@ -9,11 +9,11 @@ import type {
 } from '@/shared/types';
 
 import { type DraftInvoiceForm } from '@/features/invoices/model/invoice-field-access';
-import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
+import { useInvoicePermissions } from '@/features/invoices/hooks/useInvoicePermissions';
 import { useOrganizationUsers } from '@/shared/hooks/useOrganizationUsers';
-import { useUpdateInvoice } from '@/shared/hooks/useUpdateInvoice';
-import { useDeleteInvoice } from '@/shared/hooks/useDeleteInvoice';
-import { useMoveInvoice } from '@/shared/hooks/useMoveInvoice';
+import { useUpdateInvoice } from '@/features/invoices/hooks/useUpdateInvoice';
+import { useDeleteInvoice } from '@/features/invoices/hooks/useDeleteInvoice';
+import { useMoveInvoice } from '@/features/invoices/hooks/useMoveInvoice';
 import { useReorderCounterparties } from '@/shared/hooks/useReorderCounterparties';
 import { useInvoiceDraft } from '@/features/invoices/components/invoice-table/useInvoiceDraft.tsx';
 import { useInvoicePaymentActions } from '@/features/invoices/components/invoice-table/useInvoicePaymentActions';

@@ -18,7 +18,7 @@ import {
   useDeletedInvoices,
   useAllDeletedInvoices,
   useRestoreInvoice,
-} from '@/shared/hooks/useDeletedInvoices';
+} from '@/features/invoices/hooks/useDeletedInvoices';
 import { ARCHIVE_PAGE_SIZE, getDeletedInvoiceById } from '@/api/collections';
 import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
 import { DeletedInvoiceDetailModal } from './DeletedInvoiceDetailModal';

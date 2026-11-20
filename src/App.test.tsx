@@ -32,7 +32,7 @@ vi.mock('@/shared/hooks/useCurrentUserRole', () => ({
 vi.mock('@/shared/hooks/useOrganizationUsers', () => ({
   useOrganizationUsers: mockUseOrganizationUsers,
 }));
-vi.mock('@/shared/hooks/useInvoicePermissions', () => ({
+vi.mock('@/features/invoices/hooks/useInvoicePermissions', () => ({
   useInvoicePermissions: mockUseInvoicePermissions,
 }));
 

@@ -6,7 +6,7 @@ import { useSearch } from '@/shared/context/SearchContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
 import { useDatePinned } from '@/shared/context/DatePinnedContext';
 import { useBankAccounts } from '@/shared/hooks/useBankAccounts';
-import { useInvoicePermissions } from '@/shared/hooks/useInvoicePermissions';
+import { useInvoicePermissions } from '@/features/invoices/hooks/useInvoicePermissions';
 import { MainDatePicker } from '@/shared/components/MainDatePicker';
 import { AccountList } from '@/features/accounts/AccountList';
 import { InvoiceSection } from '@/features/invoices/InvoiceSection';

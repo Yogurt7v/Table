@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import {
   useDeletedInvoiceHistory,
   useDeletedInvoiceFiles,
-} from '@/shared/hooks/useDeletedInvoices';
+} from '@/features/invoices/hooks/useDeletedInvoices';
 import { getDeletedInvoiceFileUrl } from '@/api/collections';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import { getInitiatorDisplayName } from '@/shared/utils/user-display-name';

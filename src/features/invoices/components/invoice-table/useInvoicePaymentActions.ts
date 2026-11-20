@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { notifications } from '@mantine/notifications';
-import { useUpdateInvoice } from '@/shared/hooks/useUpdateInvoice';
+import { useUpdateInvoice } from '@/features/invoices/hooks/useUpdateInvoice';
 import { useDeletePaymentMark } from '@/shared/hooks/usePaymentMarks';
 import { useCreatePaymentMark } from '@/shared/hooks/usePaymentMarks';
 import { useApprovePaymentMark } from '@/shared/hooks/usePaymentMarks';
