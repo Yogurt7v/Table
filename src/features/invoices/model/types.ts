@@ -1,6 +1,6 @@
 /** Типы домена счетов: счета, файлы, история, отметки оплаты и архив. */
 
-import type { IAccountingObject, IUser } from '@/features/admin/types';
+import type { IAccountingObject, IUser } from '@/features/admin/model/types';
 
 export type PaymentMarkStatus = 'proposed' | 'approved' | 'partial';
 

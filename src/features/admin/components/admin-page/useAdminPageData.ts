@@ -10,7 +10,7 @@ import {
 import {
   buildUserDeleteConsequences,
   type UserDeleteConsequences,
-} from '@/features/admin/user-delete-consequences';
+} from '@/features/admin/model/user-delete-consequences';
 import type {
   IAccountingObject,
   IBankAccount,

@@ -1,6 +1,6 @@
 import { Stack, Text } from '@mantine/core';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import type { UserDeleteConsequences } from '@/features/admin/user-delete-consequences';
+import type { UserDeleteConsequences } from '@/features/admin/model/user-delete-consequences';
 import type { AdminUserTarget } from './admin-page-types';
 
 /** Пропсы подтверждения удаления пользователя. */

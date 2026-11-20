@@ -1,5 +1,5 @@
 import type { IUser } from '@/shared/types';
-import type { UserDeleteConsequences } from '@/features/admin/user-delete-consequences';
+import type { UserDeleteConsequences } from '@/features/admin/model/user-delete-consequences';
 import { CreateUserModal } from '@/features/admin/CreateUserModal';
 import { EditUserModal } from '@/features/admin/EditUserModal';
 import { AdminDeleteUserModal } from './AdminDeleteUserModal';

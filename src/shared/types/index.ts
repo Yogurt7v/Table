@@ -11,7 +11,7 @@ export type {
   IOrganizationUser,
   IUser,
   IUserSetting,
-} from '@/features/admin/types';
+} from '@/features/admin/model/types';
 
 /** Банковские счета и остатки. */
 export type {
