@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { notifications } from '@mantine/notifications';
-import { MAIL_LETTER_NOT_FOUND_NOTE } from '@/features/mail/mail-thread-labels';
+import { MAIL_LETTER_NOT_FOUND_NOTE } from '@/features/mail/model/mail-thread-labels';
 
 /**
  * Флеш-подсветка строки реестра после перехода из дерева переписки.

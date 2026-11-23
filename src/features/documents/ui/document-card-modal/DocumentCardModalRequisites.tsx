@@ -11,7 +11,7 @@ import {
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconDeviceFloppy, IconPencil, IconX } from '@tabler/icons-react';
-import { dateKeyToLocalDate, localDateToDateKey } from '@/features/mail/mail-date';
+import { dateKeyToLocalDate, localDateToDateKey } from '@/features/mail/model/mail-date';
 import type { IDocument } from '@/shared/types';
 import type { DocumentForm } from './document-card-modal-types';
 

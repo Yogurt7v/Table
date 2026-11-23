@@ -1,7 +1,7 @@
 import { ActionIcon, Box, Button, Group, Paper, Tooltip } from '@mantine/core';
 import { IconMailPlus, IconPlus, IconSettings } from '@tabler/icons-react';
 import { BreadcrumbsNav } from '@/shared/components/BreadcrumbsNav';
-import { MailSearchInput } from '@/features/mail/MailSearchInput';
+import { MailSearchInput } from '@/features/mail/ui/search/MailSearchInput';
 import type { MailType } from '@/shared/types';
 
 /** Пропсы шапки раздела: поиск, счётчики и действия. */

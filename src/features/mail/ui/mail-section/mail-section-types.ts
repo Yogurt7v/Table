@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { MailType } from '@/shared/types';
-import type { MailColumnId } from '@/features/mail/mail-columns';
-import type { MailPermissions } from '@/features/mail/mail-field-access';
+import type { MailColumnId } from '@/features/mail/model/mail-columns';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
 
 /**
  * Что открыто в форме письма. У копии запоминается регистр источника

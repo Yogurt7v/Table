@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import type { MailPrintFile } from '@/features/mail/mail-thread-print';
+import type { MailPrintFile } from '@/features/mail/model/mail-thread-print';
 import { PRINT_CSS } from './mail-thread-print-css';
 import { printFileNote } from './mail-thread-print-note';
 import type { PrintBlobs, PrintRow } from './mail-thread-print-types';

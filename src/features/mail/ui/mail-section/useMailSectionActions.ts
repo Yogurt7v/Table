@@ -10,14 +10,14 @@ import {
   useUpdateIncomingMail,
   useUpdateOutgoingMail,
 } from '@/shared/hooks/useMail';
-import { useMailLinkChange } from '@/features/mail/useMailLinkChange';
-import { candidateByKey, parentEdgesOf, planLinkChange } from '@/features/mail/mail-parent';
-import { mailNodeKey } from '@/features/mail/mail-thread';
-import type { MailNodeKey } from '@/features/mail/mail-thread';
-import { MAIL_TYPE_LABELS } from '@/features/mail/mail-labels';
-import { computeRegisterTarget } from '@/features/mail/mail-register-target';
-import { useOrgCounterparties } from '@/features/mail/useOrgCounterparties';
-import { snapshotForHistory, type MailFormState } from '@/features/mail/mail-form';
+import { useMailLinkChange } from '@/features/mail/hooks/useMailLinkChange';
+import { candidateByKey, parentEdgesOf, planLinkChange } from '@/features/mail/model/mail-parent';
+import { mailNodeKey } from '@/features/mail/model/mail-thread';
+import type { MailNodeKey } from '@/features/mail/model/mail-thread';
+import { MAIL_TYPE_LABELS } from '@/features/mail/model/mail-labels';
+import { computeRegisterTarget } from '@/features/mail/model/mail-register-target';
+import { useOrgCounterparties } from '@/features/mail/hooks/useOrgCounterparties';
+import { snapshotForHistory, type MailFormState } from '@/features/mail/model/mail-form';
 import { buildDeleteMailSubject } from './delete-mail-subject';
 import type { MailFormTarget, MailThreadTarget } from './mail-section-types';
 import type { MailSectionData } from './useMailSectionData';

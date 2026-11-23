@@ -19,7 +19,7 @@ vi.mock('@/features/admin/hooks/useOrganizationUsers', () => ({
   useOrganizationUsers: mockUseOrganizationUsers,
 }));
 
-vi.mock('@/features/mail/MailSection', () => ({
+vi.mock('@/features/mail/ui/section/MailSection', () => ({
   MailSection: () => <div data-testid="mail-section" />,
 }));
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { MailFilterChip, UseMailFiltersResult } from '@/features/mail/useMailFilters';
+import type { MailFilterChip, UseMailFiltersResult } from '@/features/mail/hooks/useMailFilters';
 
 /** Пропсы панели фильтров реестра писем. */
 export interface MailFiltersProps {

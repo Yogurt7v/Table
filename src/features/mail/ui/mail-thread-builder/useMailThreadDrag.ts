@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import type { DragOverEvent, DragStartEvent } from '@dnd-kit/core';
-import type { MailNodeKey } from '@/features/mail/mail-thread';
+import type { MailNodeKey } from '@/features/mail/model/mail-thread';
 import {
   descendantKeys,
   mailNodeDropId,
@@ -10,16 +10,16 @@ import {
   type MailOrderPlacement,
   type ThreadLineLayout,
   type ThreadOverState,
-} from '@/features/mail/mail-thread-builder';
+} from '@/features/mail/model/mail-thread-builder';
 import {
   candidateByKey,
   parentEdgesOf,
   planLinkChange,
   type MailCandidateLookup,
   type ParentEdgeIndex,
-} from '@/features/mail/mail-parent';
-import type { useMailLinkChange } from '@/features/mail/useMailLinkChange';
-import { MAIL_CYCLE_NOTIFICATION } from '@/features/mail/mail-thread-labels';
+} from '@/features/mail/model/mail-parent';
+import type { useMailLinkChange } from '@/features/mail/hooks/useMailLinkChange';
+import { MAIL_CYCLE_NOTIFICATION } from '@/features/mail/model/mail-thread-labels';
 import type { DetachedLetter } from './mail-thread-builder-types';
 
 /** Параметры перетаскивания писем в конструкторе. */

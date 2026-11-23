@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import { dateKeyToLocalDate } from '@/features/mail/mail-date';
+import { dateKeyToLocalDate } from '@/features/mail/model/mail-date';
 
 interface InvoiceNavigationContextValue {
   selectedDate: Date;

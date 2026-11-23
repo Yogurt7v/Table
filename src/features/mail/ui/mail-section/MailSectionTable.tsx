@@ -1,12 +1,12 @@
 import { Box, Stack, Tabs } from '@mantine/core';
-import { MailFilters } from '@/features/mail/MailFilters';
-import { MailTable } from '@/features/mail/MailTable';
-import type { MailColumnId } from '@/features/mail/mail-columns';
-import type { MailPermissions } from '@/features/mail/mail-field-access';
-import type { MailRow } from '@/features/mail/mail-row';
+import { MailFilters } from '@/features/mail/ui/filters/MailFilters';
+import { MailTable } from '@/features/mail/ui/table/MailTable';
+import type { MailColumnId } from '@/features/mail/model/mail-columns';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
+import type { MailRow } from '@/features/mail/model/mail-row';
 import type { MailType } from '@/shared/types';
-import { MAIL_REGISTER_TAB_LABELS } from '@/features/mail/mail-labels';
-import type { MailFilterChip, UseMailFiltersResult } from '@/features/mail/useMailFilters';
+import { MAIL_REGISTER_TAB_LABELS } from '@/features/mail/model/mail-labels';
+import type { MailFilterChip, UseMailFiltersResult } from '@/features/mail/hooks/useMailFilters';
 
 /** Пропсы табличной части: вкладки, строки, фильтры и колонки. */
 export interface MailSectionTableProps {

@@ -1,7 +1,7 @@
-import { MailFilesModal } from '@/features/mail/MailFilesModal';
-import { MailHistoryModal } from '@/features/mail/MailHistoryModal';
-import { MailThreadBuilder } from '@/features/mail/MailThreadBuilder';
-import { MailColumnSettingsModal } from '@/features/mail/MailColumnSettingsModal';
+import { MailFilesModal } from '@/features/mail/ui/mail-section/MailFilesModal';
+import { MailHistoryModal } from '@/features/mail/ui/archive/MailArchiveHistoryModal';
+import { MailThreadBuilder } from '@/features/mail/ui/mail-thread-builder/MailThreadBuilder';
+import { MailColumnSettingsModal } from '@/features/mail/ui/mail-form-modal/MailColumnSettingsModal';
 import type {
   MailColumnsDialogProps,
   MailFilesDialogProps,

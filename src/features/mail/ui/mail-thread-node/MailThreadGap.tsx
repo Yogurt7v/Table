@@ -2,7 +2,7 @@
 
 import { Box, Text } from '@mantine/core';
 import { useDroppable } from '@dnd-kit/core';
-import type { ThreadOverState } from '@/features/mail/mail-thread-builder';
+import type { ThreadOverState } from '@/features/mail/model/mail-thread-builder';
 import { GUTTER_WIDTH, SPINE_IDLE, SPINE_WIDTH } from './mail-thread-node-constants';
 
 interface MailThreadGapProps {

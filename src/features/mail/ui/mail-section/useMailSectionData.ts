@@ -19,18 +19,18 @@ import {
 } from '@/shared/hooks/useMail';
 import { useUpsertUserSetting, useUserSetting } from '@/shared/hooks/useUserSettings';
 import { foldSearchText, matchesFolded } from '@/shared/utils/search-text';
-import { mailSearchFieldsOf } from '@/features/mail/mail-field-access';
-import { buildFilterChips, useMailFilters } from '@/features/mail/useMailFilters';
+import { mailSearchFieldsOf } from '@/features/mail/model/mail-field-access';
+import { buildFilterChips, useMailFilters } from '@/features/mail/hooks/useMailFilters';
 import {
   filterByAttachments,
   filterByRelations,
   useOrgMailFiles,
   useOrgMailRelationIds,
-} from '@/features/mail/useOrgMailFiles';
-import { useOrgMailThread } from '@/features/mail/useOrgMailThread';
-import { resolveVisibleColumns } from '@/features/mail/mail-column-visibility';
-import type { MailColumnId } from '@/features/mail/mail-columns';
-import { toMailRow, type MailRow } from '@/features/mail/mail-row';
+} from '@/features/mail/hooks/useOrgMailFiles';
+import { useOrgMailThread } from '@/features/mail/hooks/useOrgMailThread';
+import { resolveVisibleColumns } from '@/features/mail/model/mail-column-visibility';
+import type { MailColumnId } from '@/features/mail/model/mail-columns';
+import { toMailRow, type MailRow } from '@/features/mail/model/mail-row';
 
 const NO_ATTACHMENT_NAMES: string[] = [];
 

@@ -1,8 +1,8 @@
 /** Вертикальная линия переписки с ответвлением и засечкой для узла. */
 
 import { Box } from '@mantine/core';
-import { MAIL_REGISTER_COLORS } from '@/features/mail/mail-labels';
-import type { ThreadOverState } from '@/features/mail/mail-thread-builder';
+import { MAIL_REGISTER_COLORS } from '@/features/mail/model/mail-labels';
+import type { ThreadOverState } from '@/features/mail/model/mail-thread-builder';
 import {
   SPINE_DROP,
   SPINE_HOVER,
@@ -11,7 +11,7 @@ import {
   SPINE_WIDTH,
   TICK_SIZE,
 } from './mail-thread-node-constants';
-import { MAIL_TREE_INDENT } from '@/features/mail/mail-thread-builder';
+import { MAIL_TREE_INDENT } from '@/features/mail/model/mail-thread-builder';
 
 /**
  * Ячейка линии: вертикальная черта, ответвление к письму и засечка по центру

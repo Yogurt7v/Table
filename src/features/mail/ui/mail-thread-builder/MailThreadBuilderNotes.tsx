@@ -1,11 +1,11 @@
 import { Alert, Text } from '@mantine/core';
 import { IconAlertTriangle } from '@tabler/icons-react';
-import { THREAD_MAX_DEPTH } from '@/features/mail/mail-thread';
+import { THREAD_MAX_DEPTH } from '@/features/mail/model/mail-thread';
 import {
   MAIL_CHAIN_CYCLE_NOTE,
   MAIL_CHAIN_TRUNCATION_NOTE,
   MAIL_DETACHED_LETTER_NOTE,
-} from '@/features/mail/mail-thread-labels';
+} from '@/features/mail/model/mail-thread-labels';
 
 /** Пропсы пояснений под линией писем. */
 export interface MailThreadBuilderNotesProps {

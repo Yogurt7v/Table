@@ -8,9 +8,9 @@ import {
   MAIL_NO_ACCOUNTING_OBJECT_LABEL,
   MAIL_NO_DELIVERY_METHOD_LABEL,
   // MAIL_PERIOD_PRESET_LABELS,
-} from '@/features/mail/mail-labels';
+} from '@/features/mail/model/mail-labels';
 import { MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
-import type { MailAttachmentFilter, UseMailFiltersResult } from '@/features/mail/useMailFilters';
+import type { MailAttachmentFilter, UseMailFiltersResult } from '@/features/mail/hooks/useMailFilters';
 import { CheckMarker, FilterColumn, FilterOption } from './FilterOption';
 import { DELIVERY_METHODS } from './mail-filters-constants';
 

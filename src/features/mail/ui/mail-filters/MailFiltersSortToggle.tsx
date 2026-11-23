@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core';
 import { IconChevronsDown, IconChevronsUp } from '@tabler/icons-react';
-import type { UseMailFiltersResult } from '@/features/mail/useMailFilters';
+import type { UseMailFiltersResult } from '@/features/mail/hooks/useMailFilters';
 
 /**
  * Переключатель порядка рядом с кнопкой «Фильтр». Подпись и aria-label

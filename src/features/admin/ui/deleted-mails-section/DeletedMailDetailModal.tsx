@@ -1,7 +1,7 @@
 import { Box, Group, Modal, Stack, Text } from '@mantine/core';
 import dayjs from 'dayjs';
 import type { IDeletedIncomingMail, IDeletedOutgoingMail, MailType } from '@/shared/types';
-import { MAIL_TYPE_LABELS } from '@/features/mail/mail-labels';
+import { MAIL_TYPE_LABELS } from '@/features/mail/model/mail-labels';
 
 type DeletedMail = IDeletedIncomingMail | IDeletedOutgoingMail;
 

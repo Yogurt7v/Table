@@ -5,12 +5,12 @@ import {
   type MailLetterIndex,
   type MailNodeKey,
   type MailThreadGraph,
-} from '@/features/mail/mail-thread';
+} from '@/features/mail/model/mail-thread';
 import {
   buildThreadLine,
   type ThreadDirection,
   type ThreadLineLayout,
-} from '@/features/mail/mail-thread-builder';
+} from '@/features/mail/model/mail-thread-builder';
 import type { DetachedLetter } from './mail-thread-builder-types';
 
 /** Параметры расчёта линии писем. */

@@ -1,7 +1,7 @@
-import { MailFormModal } from '@/features/mail/MailFormModal';
-import type { MailFormState } from '@/features/mail/mail-form';
-import type { MailCandidateLookup, ParentEdgeIndex } from '@/features/mail/mail-parent';
-import type { MailNodeKey } from '@/features/mail/mail-thread';
+import { MailFormModal } from '@/features/mail/ui/form/MailFormModal';
+import type { MailFormState } from '@/features/mail/model/mail-form';
+import type { MailCandidateLookup, ParentEdgeIndex } from '@/features/mail/model/mail-parent';
+import type { MailNodeKey } from '@/features/mail/model/mail-thread';
 import type { IIncomingMail, IOutgoingMail, MailType } from '@/shared/types';
 import type { MailFormTarget } from './mail-section-types';
 

@@ -1,6 +1,6 @@
 import { Box, Loader, Text } from '@mantine/core';
 import { IconMailOff } from '@tabler/icons-react';
-import { MailFiltersReset } from '@/features/mail/MailFilters';
+import { MailFiltersReset } from '@/features/mail/ui/filters/MailFilters';
 
 /** Пропсы пустого состояния таблицы писем. */
 export interface MailTableEmptyStateProps {

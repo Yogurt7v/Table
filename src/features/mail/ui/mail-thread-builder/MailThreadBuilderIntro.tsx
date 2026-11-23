@@ -1,6 +1,6 @@
 import { Alert, Button, Text } from '@mantine/core';
 import { IconLinkPlus } from '@tabler/icons-react';
-import { MAIL_THREAD_UNBUILT_TITLE } from '@/features/mail/mail-thread-labels';
+import { MAIL_THREAD_UNBUILT_TITLE } from '@/features/mail/model/mail-thread-labels';
 
 /** Пропсы вводного блока конструктора. */
 export interface MailThreadBuilderIntroProps {

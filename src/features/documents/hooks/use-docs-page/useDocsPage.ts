@@ -11,7 +11,7 @@ import { useAccessibleObjects } from '@/features/accounts/hooks/useAccessibleObj
 import { useAccountingObjects } from '@/features/accounts/hooks/useAccountingObjects';
 import { useUsers } from '@/features/admin/hooks/useUsers';
 import { useDocumentPermissions } from '@/features/documents/hooks/useDocumentPermissions';
-import { useOrgCounterparties } from '@/features/mail/useOrgCounterparties';
+import { useOrgCounterparties } from '@/features/mail/hooks/useOrgCounterparties';
 import {
   useAllDocumentComments,
   useAllDocumentFiles,

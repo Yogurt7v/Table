@@ -13,7 +13,7 @@ import {
 import { DatePickerInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
 import { useCreateManualDocument, useOrgInvoices } from '@/features/documents/hooks/useDocuments';
-import { dateKeyToLocalDate, localDateToDateKey, todayDateKey } from '@/features/mail/mail-date';
+import { dateKeyToLocalDate, localDateToDateKey, todayDateKey } from '@/features/mail/model/mail-date';
 import { formatAmountRub } from '@/shared/utils/format-currency';
 import type { IAccountingObject, IInvoice, IUser } from '@/shared/types';
 import type { OrgRole } from '@/features/invoices/model/invoice-field-access';

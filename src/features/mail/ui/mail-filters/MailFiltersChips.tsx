@@ -1,6 +1,6 @@
 import { ActionIcon, Badge, Group } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
-import type { MailFilterChip } from '@/features/mail/useMailFilters';
+import type { MailFilterChip } from '@/features/mail/hooks/useMailFilters';
 
 interface MailFiltersChipsProps {
   chips: MailFilterChip[];

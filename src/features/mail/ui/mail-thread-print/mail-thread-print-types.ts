@@ -1,5 +1,5 @@
-import type { ThreadLineNode } from '@/features/mail/mail-thread-builder';
-import type { MailPrintFile, MailPrintLetter } from '@/features/mail/mail-thread-print';
+import type { ThreadLineNode } from '@/features/mail/model/mail-thread-builder';
+import type { MailPrintFile, MailPrintLetter } from '@/features/mail/model/mail-thread-print';
 
 /** Пропсы модалки печати вложений переписки. */
 export interface MailThreadPrintModalProps {

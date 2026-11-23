@@ -2,7 +2,7 @@ import { Center, Container, Loader } from '@mantine/core';
 import { useOrg } from '@/shared/context/OrgContext';
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { useOrganizationUsers } from '@/features/admin/hooks/useOrganizationUsers';
-import { MailSection } from '@/features/mail/MailSection';
+import { MailSection } from '@/features/mail/ui/section/MailSection';
 
 /**
  * Страница реестра писем. Права решают всё: без `can_view_mails` страница не

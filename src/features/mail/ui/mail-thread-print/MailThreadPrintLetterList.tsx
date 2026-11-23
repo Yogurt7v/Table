@@ -1,7 +1,7 @@
 import { Badge, Box, Checkbox, Group, Stack, Text } from '@mantine/core';
-import { MAIL_TREE_INDENT } from '@/features/mail/mail-thread-builder';
-import type { MailPrintLetter } from '@/features/mail/mail-thread-print';
-import { MAIL_REGISTER_BADGE_LABELS, MAIL_REGISTER_COLORS } from '@/features/mail/mail-labels';
+import { MAIL_TREE_INDENT } from '@/features/mail/model/mail-thread-builder';
+import type { MailPrintLetter } from '@/features/mail/model/mail-thread-print';
+import { MAIL_REGISTER_BADGE_LABELS, MAIL_REGISTER_COLORS } from '@/features/mail/model/mail-labels';
 
 /** Пропсы дерева писем с флажками файлов. */
 export interface MailThreadPrintLetterListProps {

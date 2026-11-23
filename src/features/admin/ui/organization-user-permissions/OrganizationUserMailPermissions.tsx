@@ -3,7 +3,7 @@ import { Button, Checkbox, Group, Stack, Table, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateOrganizationUserMailPermissions } from '@/api/mail';
-import { getMailPermissions } from '@/features/mail/mail-field-access';
+import { getMailPermissions } from '@/features/mail/model/mail-field-access';
 import type { IOrganizationUser, MailPermissionFlags } from '@/shared/types';
 
 /** The seven authoritative columns, in the order they are written back. */

@@ -1,15 +1,15 @@
 import { ActionIcon, Text, Tooltip } from '@mantine/core';
 import { IconLink } from '@tabler/icons-react';
 import { MAIL_DELIVERY_METHOD_EMOJI, MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
-import type { MailColumnId } from '@/features/mail/mail-columns';
-import type { MailRow } from '@/features/mail/mail-row';
-import { MailAttachmentIndicator } from '@/features/mail/MailAttachmentIndicator';
-import { formatMailDate, formatMailTimestamp } from '@/features/mail/mail-date';
+import type { MailColumnId } from '@/features/mail/model/mail-columns';
+import type { MailRow } from '@/features/mail/model/mail-row';
+import { MailAttachmentIndicator } from '@/features/mail/ui/indicators/MailAttachmentIndicator';
+import { formatMailDate, formatMailTimestamp } from '@/features/mail/model/mail-date';
 import {
   MAIL_EMPTY_CELL,
   MAIL_NO_ACCOUNTING_OBJECT_LABEL,
   MAIL_NO_DELIVERY_METHOD_LABEL,
-} from '@/features/mail/mail-labels';
+} from '@/features/mail/model/mail-labels';
 
 /** Пропсы ячейки таблицы писем. */
 export interface MailTableCellProps {

@@ -68,7 +68,7 @@ export type {
   MailPermissionFlags,
   MailRelationSide,
   MailType,
-} from '@/features/mail/types';
+} from '@/features/mail/model/types';
 
 /** Почтовая корреспонденция: константы способов доставки. */
-export { MAIL_DELIVERY_METHOD_EMOJI, MAIL_DELIVERY_METHOD_NAMES } from '@/features/mail/types';
+export { MAIL_DELIVERY_METHOD_EMOJI, MAIL_DELIVERY_METHOD_NAMES } from '@/features/mail/model/types';

@@ -1,6 +1,6 @@
 import type { MailType } from '@/shared/types';
-import type { MailNodeKey } from '@/features/mail/mail-thread';
-import type { MailPermissions } from '@/features/mail/mail-field-access';
+import type { MailNodeKey } from '@/features/mail/model/mail-thread';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
 
 /** Пропсы конструктора переписки. */
 export interface MailThreadBuilderProps {

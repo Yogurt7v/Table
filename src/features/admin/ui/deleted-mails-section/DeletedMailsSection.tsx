@@ -32,15 +32,15 @@ import type {
   IDeletedOutgoingMail,
   MailType,
 } from '@/shared/types';
-import { DeletedMailHistoryModal } from '@/features/mail/MailArchiveHistoryModal';
-import { formatMailDate, formatMailTimestamp } from '@/features/mail/mail-date';
+import { DeletedMailHistoryModal } from '@/features/mail/ui/archive/MailArchiveHistoryModal';
+import { formatMailDate, formatMailTimestamp } from '@/features/mail/model/mail-date';
 import {
   MAIL_COUNTERPARTY_FIELD_LABELS,
   MAIL_EMPTY_CELL,
   MAIL_NUMBER_FIELD_LABELS,
   MAIL_REGISTER_TAB_LABELS,
   MAIL_TYPE_LABELS,
-} from '@/features/mail/mail-labels';
+} from '@/features/mail/model/mail-labels';
 import { DeletedMailDetailModal } from './DeletedMailDetailModal';
 
 type DeletedMail = IDeletedIncomingMail | IDeletedOutgoingMail;

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
-import type { MailColumnId } from '@/features/mail/mail-columns';
+import type { MailColumnId } from '@/features/mail/model/mail-columns';
 import {
   clampShare,
   loadColumnSizing,
   resolveColumnShares,
   saveColumnSizing,
   type ColumnSizingState,
-} from '@/features/mail/mail-table-column-sizing';
+} from '@/features/mail/model/mail-table-column-sizing';
 import { MIN_COLUMN_WIDTH_PX } from './mail-table-styles';
 
 /** Параметры ширин колонок таблицы писем. */

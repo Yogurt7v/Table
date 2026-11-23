@@ -1,4 +1,4 @@
-import type { MailPrintFileKind } from '@/features/mail/mail-thread-print';
+import type { MailPrintFileKind } from '@/features/mail/model/mail-thread-print';
 import type { PrintBlobStatus } from './mail-thread-print-types';
 
 /**

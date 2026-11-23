@@ -1,18 +1,18 @@
 import { Box } from '@mantine/core';
 import type { MailType } from '@/shared/types';
-import type { MailNodeKey } from '@/features/mail/mail-thread';
+import type { MailNodeKey } from '@/features/mail/model/mail-thread';
 import {
   mailGapDropId,
   type ThreadDirection,
   type ThreadLineLayout,
   type ThreadOverState,
-} from '@/features/mail/mail-thread-builder';
-import { MailThreadGap, MailThreadNode } from '@/features/mail/MailThreadNode';
+} from '@/features/mail/model/mail-thread-builder';
+import { MailThreadGap, MailThreadNode } from '@/features/mail/ui/mail-thread-node/MailThreadNode';
 import {
   MAIL_DROP_HINT_BEFORE,
   MAIL_DROP_HINT_HEAD,
   MAIL_DROP_HINT_TAIL,
-} from '@/features/mail/mail-thread-labels';
+} from '@/features/mail/model/mail-thread-labels';
 
 /** Пропсы линии писем конструктора. */
 export interface MailThreadBuilderLineProps {

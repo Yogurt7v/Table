@@ -31,7 +31,7 @@ vi.mock('@/features/accounts/hooks/useAccountingObjects', () => ({
   useAccountingObjects: () => ({ data: [{ id: 'obj1', name: 'Основной счёт' }] }),
 }));
 
-vi.mock('@/features/mail/MailArchiveHistoryModal', () => ({
+vi.mock('@/features/mail/ui/archive/MailArchiveHistoryModal', () => ({
   DeletedMailHistoryModal: () => <div>история-модалка</div>,
 }));
 
