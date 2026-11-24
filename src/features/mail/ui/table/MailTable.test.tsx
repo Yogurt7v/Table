@@ -3,10 +3,10 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { MailTable } from '../table/MailTable';
-import { DEFAULT_VISIBLE_COLUMNS } from '../../mail-columns';
-import type { MailColumnId } from '../../mail-columns';
-import type { MailPermissions } from '../../mail-field-access';
-import type { MailRow } from '../../mail-row';
+import { DEFAULT_VISIBLE_COLUMNS } from '@/features/mail/model/mail-columns';
+import type { MailColumnId } from '@/features/mail/model/mail-columns';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
+import type { MailRow } from '@/features/mail/model/mail-row';
 
 /**
  * Реестр писем: строки, пустое состояние и действия строки.

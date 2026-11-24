@@ -1,10 +1,10 @@
 import { Box, Group, Pagination, Table, Text } from '@mantine/core';
 import type { MailType } from '@/shared/types';
-import { getOrderedColumns, type MailColumnId } from '../../mail-columns';
+import { getOrderedColumns, type MailColumnId } from '@/features/mail/model/mail-columns';
 import { MailActionsMenu } from '../actions/MailActionsMenu';
 import { MailMobileCards } from '../mobile/MailMobileCards';
-import type { MailRow } from '../../mail-row';
-import type { MailPermissions } from '../../mail-field-access';
+import type { MailRow } from '@/features/mail/model/mail-row';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
 import { MailTableCell } from '../mail-table/MailTableCell';
 import { MailTableEmptyState } from '../mail-table/MailTableEmptyState';
 import { useMailTableColumnResize } from '../mail-table/useMailTableColumnResize';

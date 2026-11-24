@@ -3,8 +3,8 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { MailFilters } from '../filters/MailFilters';
-import { useMailFilters } from '../../useMailFilters';
-import type { MailSortDirection } from '../../useMailFilters';
+import { useMailFilters } from '@/features/mail/hooks/useMailFilters';
+import type { MailSortDirection } from '@/features/mail/hooks/useMailFilters';
 
 /**
  * Переключатель порядка живого реестра в панели фильтров.

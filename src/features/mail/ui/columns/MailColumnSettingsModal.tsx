@@ -18,11 +18,11 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { DEFAULT_VISIBLE_COLUMNS } from '../../mail-columns';
-import type { MailColumnId } from '../../mail-columns';
-import { getColumnSettingsItems } from '../../mail-column-visibility';
-import type { MailColumnSettingItem } from '../../mail-column-visibility';
-import type { MailPermissions } from '../../mail-field-access';
+import { DEFAULT_VISIBLE_COLUMNS } from '@/features/mail/model/mail-columns';
+import type { MailColumnId } from '@/features/mail/model/mail-columns';
+import { getColumnSettingsItems } from '@/features/mail/model/mail-column-visibility';
+import type { MailColumnSettingItem } from '@/features/mail/model/mail-column-visibility';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
 import type { MailType } from '@/shared/types';
 
 interface MailColumnSettingsModalProps {

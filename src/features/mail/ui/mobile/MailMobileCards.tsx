@@ -4,16 +4,16 @@ import type { MailType } from '@/shared/types';
 import { MailActionsMenu } from '../actions/MailActionsMenu';
 import { MailAttachmentIndicator } from '../indicators/MailAttachmentIndicator';
 import { MailFiltersReset } from '../filters/MailFilters';
-import { formatMailDate } from '../../mail-date';
+import { formatMailDate } from '@/features/mail/model/mail-date';
 import { MAIL_DELIVERY_METHOD_EMOJI, MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import {
   MAIL_EMPTY_CELL,
   MAIL_NO_ACCOUNTING_OBJECT_LABEL,
   MAIL_NO_DELIVERY_METHOD_LABEL,
-} from '../../mail-labels';
-import type { MailRow } from '../../mail-row';
-import type { MailColumnId } from '../../mail-columns';
-import type { MailPermissions } from '../../mail-field-access';
+} from '@/features/mail/model/mail-labels';
+import type { MailRow } from '@/features/mail/model/mail-row';
+import type { MailColumnId } from '@/features/mail/model/mail-columns';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
 
 interface MailMobileCardsProps {
   rows: MailRow[];

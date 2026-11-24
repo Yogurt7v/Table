@@ -10,15 +10,15 @@ vi.mock('@/api/mail', () => ({
   getDeletedOutgoingMailHistory: vi.fn(),
 }));
 
-vi.mock('../../mail-date', () => ({
+vi.mock('@/features/mail/model/mail-date', () => ({
   formatMailTimestamp: vi.fn((ts: string) => ts),
 }));
 
-vi.mock('../../mail-labels', () => ({
+vi.mock('@/features/mail/model/mail-labels', () => ({
   MAIL_HISTORY_TYPE_LABELS: { created: 'Создано', updated: 'Изменено', deleted: 'Удалено' },
 }));
 
-vi.mock('../../mail-history', () => ({
+vi.mock('@/features/mail/model/mail-history', () => ({
   buildMailHistoryEntries: vi.fn((items: IDeletedMailHistory[]) =>
     items.map((item, i) => ({
       entryId: String(i),

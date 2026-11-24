@@ -1,7 +1,7 @@
 import { Box, Button, Group, Popover, Stack } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar, IconFilter, IconX } from '@tabler/icons-react';
-import { dateKeyToLocalDate, localDateToDateKey } from '../../mail-date';
+import { dateKeyToLocalDate, localDateToDateKey } from '@/features/mail/model/mail-date';
 import { MailFiltersChips } from '../mail-filters/MailFiltersChips';
 import { MailFiltersPanel } from '../mail-filters/MailFiltersPanel';
 import { MailFiltersSortToggle } from '../mail-filters/MailFiltersSortToggle';

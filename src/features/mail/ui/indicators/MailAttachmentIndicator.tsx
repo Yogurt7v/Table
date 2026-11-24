@@ -1,6 +1,6 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core';
 import { IconPaperclip } from '@tabler/icons-react';
-import type { MailRow } from '../../mail-row';
+import type { MailRow } from '@/features/mail/model/mail-row';
 
 interface MailAttachmentIndicatorProps {
   row: MailRow;

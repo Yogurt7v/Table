@@ -16,7 +16,7 @@ import { useDeleteMailFile, useMailFiles, useUploadMailFiles } from '@/shared/ho
 import { getMailFileUrl } from '@/api/mail';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import type { IMailFile, MailType } from '@/shared/types';
-import { formatMailTimestamp } from '../../mail-date';
+import { formatMailTimestamp } from '@/features/mail/model/mail-date';
 
 /** Поле `file` в `mail_files` — multiple, коллекция ограничивает запись десятью. */
 const MAX_FILES = 10;

@@ -4,10 +4,10 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { MailColumnSettingsModal } from '../columns/MailColumnSettingsModal';
-import { DEFAULT_VISIBLE_COLUMNS } from '../../mail-columns';
-import type { MailColumnId } from '../../mail-columns';
-import { NO_MAIL_PERMISSIONS } from '../../mail-field-access';
-import type { MailPermissions } from '../../mail-field-access';
+import { DEFAULT_VISIBLE_COLUMNS } from '@/features/mail/model/mail-columns';
+import type { MailColumnId } from '@/features/mail/model/mail-columns';
+import { NO_MAIL_PERMISSIONS } from '@/features/mail/model/mail-field-access';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
 import type { MailType } from '@/shared/types';
 
 /**

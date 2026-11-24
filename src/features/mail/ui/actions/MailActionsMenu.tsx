@@ -1,7 +1,7 @@
 import { ActionIcon, Menu } from '@mantine/core';
 import { IconCopy, IconHistory, IconPencil, IconSettings, IconTrash } from '@tabler/icons-react';
 import type { MailType } from '@/shared/types';
-import type { MailPermissions } from '../../mail-field-access';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
 
 interface MailActionsMenuProps {
   mailId: string;

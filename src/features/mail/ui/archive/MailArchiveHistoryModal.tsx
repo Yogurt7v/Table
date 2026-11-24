@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader, Modal, Paper, Stack, Text } from '@mantine/core';
 import { getDeletedIncomingMailHistory, getDeletedOutgoingMailHistory } from '@/api/mail';
 import type { IDeletedMailHistory, MailType } from '@/shared/types';
-import { formatMailTimestamp } from '../../mail-date';
-import { MAIL_HISTORY_TYPE_LABELS } from '../../mail-labels';
-import { buildMailHistoryEntries } from '../../mail-history';
+import { formatMailTimestamp } from '@/features/mail/model/mail-date';
+import { MAIL_HISTORY_TYPE_LABELS } from '@/features/mail/model/mail-labels';
+import { buildMailHistoryEntries } from '@/features/mail/model/mail-history';
 
 interface DeletedMailHistoryModalProps {
   deletedMailId: string;

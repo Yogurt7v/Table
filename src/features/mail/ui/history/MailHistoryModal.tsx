@@ -15,9 +15,15 @@ import {
   useOutgoingMailHistory,
 } from '@/shared/hooks/useMail';
 import type { MailHistoryType, MailType } from '@/shared/types';
-import { formatMailTimestampSeconds } from '../../mail-date';
-import { buildMailHistoryEntries, formatMailHistoryValue } from '../../mail-history';
-import { MAIL_HISTORY_FIELD_LABELS, MAIL_HISTORY_TYPE_LABELS } from '../../mail-labels';
+import { formatMailTimestampSeconds } from '@/features/mail/model/mail-date';
+import {
+  buildMailHistoryEntries,
+  formatMailHistoryValue,
+} from '@/features/mail/model/mail-history';
+import {
+  MAIL_HISTORY_FIELD_LABELS,
+  MAIL_HISTORY_TYPE_LABELS,
+} from '@/features/mail/model/mail-labels';
 
 const ACTION_ICONS: Record<MailHistoryType, ReactNode> = {
   created: <IconPlus size={14} />,
