@@ -1,7 +1,7 @@
 import { isOptionsGroup } from '@mantine/core';
 import type { ComboboxItem, ComboboxLikeProps } from '@mantine/core';
 import { MAIL_DELIVERY_METHOD_NAMES, type DeliveryMethod } from '@/shared/types';
-import { rankCounterpartyMatches } from '../../mail-counterparty-match';
+import { rankCounterpartyMatches } from '@/features/mail/model/mail-counterparty-match';
 
 /** Граница `sm` — тот же порог, по которому `MailThreadBuilder` меняет раскладку. */
 export const WIDE_QUERY = '(min-width: 48em)';

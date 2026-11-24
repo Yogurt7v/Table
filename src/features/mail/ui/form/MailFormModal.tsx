@@ -1,6 +1,6 @@
 import { Button, Group, Modal, SegmentedControl, Stack } from '@mantine/core';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import { MAIL_TYPE_LABELS } from '../../mail-labels';
+import { MAIL_TYPE_LABELS } from '@/features/mail/model/mail-labels';
 import { MailFormModalFields } from '../mail-form-modal/MailFormModalFields';
 import { FORM_CONTENT_MAX_WIDTH } from '../mail-form-modal/mail-form-modal-constants';
 import { useMailFormModal } from '../mail-form-modal/useMailFormModal';

@@ -13,16 +13,20 @@ import {
 import { DatePickerInput } from '@mantine/dates';
 import { IconHistory } from '@tabler/icons-react';
 import type { DeliveryMethod, MailType } from '@/shared/types';
-import { dateKeyToLocalDate, localDateToDateKey } from '../../mail-date';
+import { dateKeyToLocalDate, localDateToDateKey } from '@/features/mail/model/mail-date';
 import {
   MAIL_COUNTERPARTY_FIELD_LABELS,
   MAIL_COUNTERPARTY_NUMBER_FIELD_LABELS,
   MAIL_NUMBER_FIELD_LABELS,
-} from '../../mail-labels';
-import { MailParentHint } from '../../MailParentHint';
-import type { MailFormErrors, MailFormState } from '../../mail-form';
-import type { MailCandidate, MailCandidateLookup, ParentIntent } from '../../mail-parent';
-import { suggestParent } from '../../mail-parent';
+} from '@/features/mail/model/mail-labels';
+import { MailParentHint } from '@/features/mail/ui/parent/MailParentHint';
+import type { MailFormErrors, MailFormState } from '@/features/mail/model/mail-form';
+import type {
+  MailCandidate,
+  MailCandidateLookup,
+  ParentIntent,
+} from '@/features/mail/model/mail-parent';
+import { suggestParent } from '@/features/mail/model/mail-parent';
 import {
   DELIVERY_OPTIONS,
   DROPDOWN_MAX_HEIGHT,

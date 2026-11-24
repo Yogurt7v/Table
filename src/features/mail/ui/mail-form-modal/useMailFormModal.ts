@@ -2,16 +2,20 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useMediaQuery } from '@mantine/hooks';
 import type { MailType } from '@/shared/types';
 import { useBeforeUnloadGuard } from '@/shared/hooks/useBeforeUnloadGuard';
-import { mailNodeKey } from '../../mail-thread';
-import { toMailForm, validateMailForm, carryOverForRegisterSwitch } from '../../mail-form';
-import type { MailFormErrors, MailFormState } from '../../mail-form';
+import { mailNodeKey } from '@/features/mail/model/mail-thread';
+import {
+  toMailForm,
+  validateMailForm,
+  carryOverForRegisterSwitch,
+} from '@/features/mail/model/mail-form';
+import type { MailFormErrors, MailFormState } from '@/features/mail/model/mail-form';
 import {
   candidateByKey,
   intendedParentKey,
   parentSelectOptions,
   suggestParent,
-} from '../../mail-parent';
-import type { MailCandidate, ParentIntent } from '../../mail-parent';
+} from '@/features/mail/model/mail-parent';
+import type { MailCandidate, ParentIntent } from '@/features/mail/model/mail-parent';
 import { RESOLVE_DEBOUNCE_MS, WIDE_QUERY } from './mail-form-modal-constants';
 import { initialIntent, savedParentKey } from './mail-form-modal-utils';
 import type { MailFormModalProps } from './mail-form-modal-types';

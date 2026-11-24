@@ -1,8 +1,8 @@
 import type { IIncomingMail, IOutgoingMail, MailType } from '@/shared/types';
-import { mailNodeKey } from '../../mail-thread';
-import type { MailNodeKey } from '../../mail-thread';
-import { PENDING_PARENT_INTENT, parentEdgesOf } from '../../mail-parent';
-import type { ParentEdgeIndex, ParentIntent } from '../../mail-parent';
+import { mailNodeKey } from '@/features/mail/model/mail-thread';
+import type { MailNodeKey } from '@/features/mail/model/mail-thread';
+import { PENDING_PARENT_INTENT, parentEdgesOf } from '@/features/mail/model/mail-parent';
+import type { ParentEdgeIndex, ParentIntent } from '@/features/mail/model/mail-parent';
 
 /** Ключ уже сохранённого родителя — им форма открывается, а не угадывается заново. */
 export function savedParentKey(

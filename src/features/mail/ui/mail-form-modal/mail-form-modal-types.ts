@@ -1,7 +1,7 @@
 import type { IIncomingMail, IOutgoingMail, MailType } from '@/shared/types';
-import type { MailNodeKey } from '../../mail-thread';
-import type { MailFormState } from '../../mail-form';
-import type { MailCandidateLookup, ParentEdgeIndex } from '../../mail-parent';
+import type { MailNodeKey } from '@/features/mail/model/mail-thread';
+import type { MailFormState } from '@/features/mail/model/mail-form';
+import type { MailCandidateLookup, ParentEdgeIndex } from '@/features/mail/model/mail-parent';
 
 export interface MailFormModalProps {
   opened: boolean;

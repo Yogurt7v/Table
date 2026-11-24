@@ -4,7 +4,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { MailFormModal } from '../form/MailFormModal';
-import type { MailFormState } from '../../mail-form';
+import type { MailFormState } from '@/features/mail/model/mail-form';
 import type { IIncomingMail, MailType } from '@/shared/types';
 
 /**
