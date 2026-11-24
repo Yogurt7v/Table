@@ -3,7 +3,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/mocks/test-utils';
 import { MailSection } from '../section/MailSection';
-import type { MailPermissions } from '../../mail-field-access';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
 
 /**
  * Обязательность причины удаления в единственной модалке `MailSection`.
@@ -88,7 +88,7 @@ vi.mock('@/shared/hooks/useUserSettings', () => ({
   useUpsertUserSetting: () => ({ mutate: vi.fn() }),
 }));
 
-vi.mock('../../useMailFilters', () => ({
+vi.mock('@/features/mail/hooks/useMailFilters', () => ({
   buildFilterChips: () => [],
   useMailFilters: () => ({
     query: {},
@@ -100,7 +100,7 @@ vi.mock('../../useMailFilters', () => ({
   }),
 }));
 
-vi.mock('../../useOrgMailFiles', () => ({
+vi.mock('@/features/mail/hooks/useOrgMailFiles', () => ({
   filterByAttachments: (items: unknown[]) => items,
   filterByRelations: (items: unknown[]) => items,
   useOrgMailFiles: () => ({
@@ -113,15 +113,15 @@ vi.mock('../../useOrgMailFiles', () => ({
   }),
 }));
 
-vi.mock('../../useOrgMailThread', () => ({
+vi.mock('@/features/mail/hooks/useOrgMailThread', () => ({
   useOrgMailThread: () => ({ parentEdges: new Map(), candidates: [] }),
 }));
 
-vi.mock('./useOrgCounterparties', () => ({
+vi.mock('@/features/mail/hooks/useOrgCounterparties', () => ({
   useOrgCounterparties: () => ({ counterpartyOptions: [] }),
 }));
 
-vi.mock('../../useMailLinkChange', () => ({
+vi.mock('@/features/mail/hooks/useMailLinkChange', () => ({
   useMailLinkChange: () => ({ changeLink: vi.fn(), isPending: false }),
 }));
 

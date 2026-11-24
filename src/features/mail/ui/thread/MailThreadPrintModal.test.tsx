@@ -4,10 +4,10 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { renderWithProviders } from '@/mocks/test-utils';
 import type { IMailFile, MailType } from '@/shared/types';
 import { MailThreadPrintModal } from '../thread/MailThreadPrintModal';
-import { mailNodeKey } from '../../mail-thread';
-import type { MailNodeKey } from '../../mail-thread';
-import type { ThreadLineNode } from '../../mail-thread-builder';
-import { mailPrintFileUrl } from '../../mail-thread-print';
+import { mailNodeKey } from '@/features/mail/model/mail-thread';
+import type { MailNodeKey } from '@/features/mail/model/mail-thread';
+import type { ThreadLineNode } from '@/features/mail/model/mail-thread-builder';
+import { mailPrintFileUrl } from '@/features/mail/model/mail-thread-print';
 
 /**
  * Печать вложений переписки — модалка, которая собирает из отмеченного один
@@ -67,7 +67,7 @@ const state = vi.hoisted(() => ({
   plan: new Map<string, FetchOutcome>(),
 }));
 
-vi.mock('../../useOrgMailFiles', () => ({
+vi.mock('@/features/mail/hooks/useOrgMailFiles', () => ({
   useOrgMailFiles: (orgId: string) => {
     state.lastOrgId = orgId;
     return { data: state.files, isLoading: state.isLoading, isError: state.isError };

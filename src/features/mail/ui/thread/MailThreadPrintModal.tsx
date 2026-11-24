@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Button, Group, Loader, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import { IconPrinter } from '@tabler/icons-react';
-import { useOrgMailFiles } from '../../useOrgMailFiles';
+import { useOrgMailFiles } from '@/features/mail/hooks/useOrgMailFiles';
 import {
   buildThreadPrintLetters,
   countPrintFiles,
   groupPrintFilesByLetter,
   printSelectionLabel,
-} from '../../mail-thread-print';
+} from '@/features/mail/model/mail-thread-print';
 import { MailThreadPrintDocument } from '../mail-thread-print/MailThreadPrintDocument';
 import { MailThreadPrintLetterList } from '../mail-thread-print/MailThreadPrintLetterList';
 import { usePrintBlobs } from '../mail-thread-print/usePrintBlobs';

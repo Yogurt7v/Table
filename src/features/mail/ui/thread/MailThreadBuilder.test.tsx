@@ -11,20 +11,27 @@ import type {
   MailType,
 } from '@/shared/types';
 import { MailThreadBuilder } from '../thread/MailThreadBuilder';
-import { buildCandidateLookup, buildParentEdgeIndex } from '../../mail-parent';
-import type { MailCandidate } from '../../mail-parent';
+import { buildCandidateLookup, buildParentEdgeIndex } from '@/features/mail/model/mail-parent';
+import type { MailCandidate } from '@/features/mail/model/mail-parent';
 import {
   buildLetterIndex,
   buildMailThreadGraph,
   detectCyclicNodeKeys,
   mailNodeKey,
   THREAD_MAX_DEPTH,
-} from '../../mail-thread';
-import type { MailNodeKey } from '../../mail-thread';
-import { mailGapDropId, mailNodeDropId, MAIL_TREE_INDENT } from '../../mail-thread-builder';
-import { MAIL_CHAIN_TRUNCATION_NOTE, MAIL_DETACHED_LETTER_NOTE } from '../../mail-thread-labels';
-import type { MailPermissions } from '../../mail-field-access';
-import type { LinkChangeArgs } from '../../useMailLinkChange';
+} from '@/features/mail/model/mail-thread';
+import type { MailNodeKey } from '@/features/mail/model/mail-thread';
+import {
+  mailGapDropId,
+  mailNodeDropId,
+  MAIL_TREE_INDENT,
+} from '@/features/mail/model/mail-thread-builder';
+import {
+  MAIL_CHAIN_TRUNCATION_NOTE,
+  MAIL_DETACHED_LETTER_NOTE,
+} from '@/features/mail/model/mail-thread-labels';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
+import type { LinkChangeArgs } from '@/features/mail/hooks/useMailLinkChange';
 
 /**
  * Конструктор переписки: одна вертикальная линия, в которой перетаскивание
@@ -106,22 +113,22 @@ vi.mock('@dnd-kit/core', () => ({
   rectIntersection: () => [],
 }));
 
-vi.mock('../../useOrgMailThread', () => ({
+vi.mock('@/features/mail/hooks/useOrgMailThread', () => ({
   useOrgMailThread: (orgId: string) => {
     state.lastOrgId = orgId;
     return state.thread;
   },
 }));
 
-vi.mock('../../useOrgMailFiles', () => ({
+vi.mock('@/features/mail/hooks/useOrgMailFiles', () => ({
   useOrgMailFiles: () => ({ data: state.files, isLoading: false, isError: false }),
 }));
 
-vi.mock('../../mail-thread-order', () => ({
+vi.mock('@/features/mail/model/mail-thread-order', () => ({
   useMailThreadOrder: () => ({ order: {}, ranks: state.ranks, place: state.place }),
 }));
 
-vi.mock('../../useMailLinkChange', () => ({
+vi.mock('@/features/mail/hooks/useMailLinkChange', () => ({
   useMailLinkChange: () => ({
     changeLink: async (args: LinkChangeArgs) => {
       if (state.changeLinkFails) throw new Error('связь не сохранена');

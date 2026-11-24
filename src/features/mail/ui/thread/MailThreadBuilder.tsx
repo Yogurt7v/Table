@@ -11,13 +11,13 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import type { MailType } from '@/shared/types';
-import { mailNodeKey } from '../../mail-thread';
-import { hasAnyRelation } from '../../mail-thread-builder';
-import { planLinkChange } from '../../mail-parent';
-import { useMailThreadOrder } from '../../mail-thread-order';
-import { useMailLinkChange } from '../../useMailLinkChange';
-import { useOrgMailThread } from '../../useOrgMailThread';
-import { useOrgMailFiles } from '../../useOrgMailFiles';
+import { mailNodeKey } from '@/features/mail/model/mail-thread';
+import { hasAnyRelation } from '@/features/mail/model/mail-thread-builder';
+import { planLinkChange } from '@/features/mail/model/mail-parent';
+import { useMailThreadOrder } from '@/features/mail/model/mail-thread-order';
+import { useMailLinkChange } from '@/features/mail/hooks/useMailLinkChange';
+import { useOrgMailThread } from '@/features/mail/hooks/useOrgMailThread';
+import { useOrgMailFiles } from '@/features/mail/hooks/useOrgMailFiles';
 import { MailParentPicker } from '../parent/MailParentPicker';
 import { MailThreadBuilderLine } from '../mail-thread-builder/MailThreadBuilderLine';
 import { MailThreadPrintModal } from '../thread/MailThreadPrintModal';
@@ -34,10 +34,10 @@ import {
   buildThreadPrintLetters,
   countPrintFiles,
   groupPrintFilesByLetter,
-} from '../../mail-thread-print';
-import { formatMailDate } from '../../mail-date';
-import { MAIL_EMPTY_CELL, MAIL_TYPE_LABELS } from '../../mail-labels';
-import type { MailPermissions } from '../../mail-field-access';
+} from '@/features/mail/model/mail-thread-print';
+import { formatMailDate } from '@/features/mail/model/mail-date';
+import { MAIL_EMPTY_CELL, MAIL_TYPE_LABELS } from '@/features/mail/model/mail-labels';
+import type { MailPermissions } from '@/features/mail/model/mail-field-access';
 
 /** Границы `sm` из темы Mantine — тот же порог, по которому реестр меняет таблицу на карточки. */
 const WIDE_QUERY = '(min-width: 48em)';

@@ -1,12 +1,12 @@
 import { Badge, Group, Text, UnstyledButton } from '@mantine/core';
-import { formatMailDate } from '../../mail-date';
+import { formatMailDate } from '@/features/mail/model/mail-date';
 import {
   MAIL_EMPTY_CELL,
   MAIL_NUMBER_FIELD_LABELS,
   MAIL_REGISTER_BADGE_LABELS,
   MAIL_REGISTER_COLORS,
-} from '../../mail-labels';
-import type { MailCandidate } from '../../mail-parent';
+} from '@/features/mail/model/mail-labels';
+import type { MailCandidate } from '@/features/mail/model/mail-parent';
 
 /**
  * Строка письма-кандидата в списках выбора родителя.

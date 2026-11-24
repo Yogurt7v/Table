@@ -12,15 +12,19 @@ import {
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { MailType } from '@/shared/types';
-import { MAIL_TREE_INDENT, mailNodeDropId } from '../../mail-thread-builder';
-import type { ThreadLineNode, ThreadDirection, ThreadOverState } from '../../mail-thread-builder';
-import { formatMailDate, toDateKey } from '../../mail-date';
-import { mailChainDirectionLabel } from '../../mail-thread-labels';
+import { MAIL_TREE_INDENT, mailNodeDropId } from '@/features/mail/model/mail-thread-builder';
+import type {
+  ThreadLineNode,
+  ThreadDirection,
+  ThreadOverState,
+} from '@/features/mail/model/mail-thread-builder';
+import { formatMailDate, toDateKey } from '@/features/mail/model/mail-date';
+import { mailChainDirectionLabel } from '@/features/mail/model/mail-thread-labels';
 import {
   MAIL_EMPTY_CELL,
   MAIL_REGISTER_BADGE_LABELS,
   MAIL_REGISTER_COLORS,
-} from '../../mail-labels';
+} from '@/features/mail/model/mail-labels';
 import {
   GUTTER_WIDTH,
   HANDLE_BOX,

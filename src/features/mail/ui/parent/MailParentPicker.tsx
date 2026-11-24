@@ -3,7 +3,7 @@ import { Modal, Stack, Text } from '@mantine/core';
 import { matchesFolded, foldSearchText } from '@/shared/utils/search-text';
 import { MailCandidateRow } from '../parent/MailCandidateRow';
 import { MailSearchInput } from '../search/MailSearchInput';
-import type { MailCandidate, MailCandidateLookup } from '../../mail-parent';
+import type { MailCandidate, MailCandidateLookup } from '@/features/mail/model/mail-parent';
 
 /**
  * Ручной выбор родителя: все письма организации обоих регистров с поиском.

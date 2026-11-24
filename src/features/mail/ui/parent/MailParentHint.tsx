@@ -1,15 +1,19 @@
 import { Box, Button, Group, Paper, Stack, Text } from '@mantine/core';
 import { IconLink, IconLinkOff, IconPointFilled } from '@tabler/icons-react';
 import type { MailType } from '@/shared/types';
-import { formatMailDate } from '../../mail-date';
+import { formatMailDate } from '@/features/mail/model/mail-date';
 import { MailCandidateRow } from '../parent/MailCandidateRow';
 import {
   MAIL_EMPTY_CELL,
   MAIL_REGISTER_BADGE_LABELS,
   MAIL_REGISTER_TAB_LABELS,
-} from '../../mail-labels';
-import { PARENT_REGISTER_BY_TYPE } from '../../mail-parent';
-import type { MailCandidate, ParentIntent, ParentSuggestion } from '../../mail-parent';
+} from '@/features/mail/model/mail-labels';
+import { PARENT_REGISTER_BY_TYPE } from '@/features/mail/model/mail-parent';
+import type {
+  MailCandidate,
+  ParentIntent,
+  ParentSuggestion,
+} from '@/features/mail/model/mail-parent';
 
 /**
  * Догадка по номеру контрагента — подсказка под полем, из которого она выросла.

@@ -7,7 +7,7 @@ import {
   type ThreadLineLayout,
   type ThreadOverState,
 } from '@/features/mail/model/mail-thread-builder';
-import { MailThreadGap, MailThreadNode } from '@/features/mail/ui/mail-thread-node/MailThreadNode';
+import { MailThreadGap, MailThreadNode } from '@/features/mail/ui/thread/MailThreadNode';
 import {
   MAIL_DROP_HINT_BEFORE,
   MAIL_DROP_HINT_HEAD,
