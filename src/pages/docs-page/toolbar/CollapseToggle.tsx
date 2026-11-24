@@ -10,7 +10,7 @@ interface CollapseToggleProps {
 export function CollapseToggle({ collapsedAll, onToggleCollapseAll }: CollapseToggleProps) {
   return (
     <Button
-      size="compact-sm"
+      size="compact-md"
       variant="light"
       color="gray"
       flex="1"

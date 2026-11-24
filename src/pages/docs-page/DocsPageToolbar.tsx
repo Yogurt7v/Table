@@ -6,6 +6,7 @@ import {
   SearchAndPageSize,
 } from './toolbar';
 import type { DocsPageToolbarProps } from './DocsPageToolbarProps';
+import { Group } from '@mantine/core';
 
 /** Панель управления страницы документов: периоды, поиск, фильтры и действия. */
 export function DocsPageToolbar(props: DocsPageToolbarProps) {
@@ -31,30 +32,35 @@ export function DocsPageToolbar(props: DocsPageToolbarProps) {
       />
 
       {/* Фильтры, сворачивание групп и создание документа */}
-      <FilterMenu
-        filterRef={props.filterRef}
-        filterOpened={props.filterOpened}
-        setFilterOpened={props.setFilterOpened}
-        activeFilterCount={props.activeFilterCount}
-        sortOrder={props.sortOrder}
-        setSortOrder={props.setSortOrder}
-        statusFilter={props.statusFilter}
-        setStatusFilter={props.setStatusFilter}
-        counterpartyOptions={props.counterpartyOptions}
-        filterCounterparty={props.filterCounterparty}
-        setFilterCounterparty={props.setFilterCounterparty}
-        objects={props.objects}
-        objectOptions={props.objectOptions}
-        filterObjectIds={props.filterObjectIds}
-        setFilterObjectIds={props.setFilterObjectIds}
-        resetFilters={props.resetFilters}
-        setPages={props.setPages}
-      />
-      <CollapseToggle
-        collapsedAll={props.collapsedAll}
-        onToggleCollapseAll={props.onToggleCollapseAll}
-      />
-      <CreateButton canCreate={props.canCreate} onCreate={props.onCreate} />
+      <Group justify="flex-start">
+        <FilterMenu
+          filterRef={props.filterRef}
+          filterOpened={props.filterOpened}
+          setFilterOpened={props.setFilterOpened}
+          activeFilterCount={props.activeFilterCount}
+          sortOrder={props.sortOrder}
+          setSortOrder={props.setSortOrder}
+          statusFilter={props.statusFilter}
+          setStatusFilter={props.setStatusFilter}
+          counterpartyOptions={props.counterpartyOptions}
+          filterCounterparty={props.filterCounterparty}
+          setFilterCounterparty={props.setFilterCounterparty}
+          objects={props.objects}
+          objectOptions={props.objectOptions}
+          filterObjectIds={props.filterObjectIds}
+          setFilterObjectIds={props.setFilterObjectIds}
+          resetFilters={props.resetFilters}
+          setPages={props.setPages}
+        />
+        <CollapseToggle
+          collapsedAll={props.collapsedAll}
+          onToggleCollapseAll={props.onToggleCollapseAll}
+        />
+      </Group>
+
+      <Group justify="flex-end">
+        <CreateButton canCreate={props.canCreate} onCreate={props.onCreate} />
+      </Group>
     </>
   );
 }
