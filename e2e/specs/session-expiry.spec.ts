@@ -41,7 +41,7 @@ test.describe('истечение сессии токена', () => {
     await page.getByLabel('Логин').fill('admin');
     await page.getByLabel('Пароль').fill(E2E_PASSWORD);
     await page.getByRole('button', { name: 'Войти' }).click();
-    await expect(page.getByRole('heading', { name: 'Счета' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Счета', exact: true })).toBeVisible();
 
     await page.evaluate(() => {
       const exp = Math.floor(Date.now() / 1000) - 3600;
@@ -62,9 +62,12 @@ test.describe('истечение сессии токена', () => {
 
     await page.getByLabel('Логин').fill('admin');
     await page.getByLabel('Пароль').fill(E2E_PASSWORD);
+    const loginResponse = page.waitForResponse('**/api/collections/users/auth-with-password');
     await page.getByRole('button', { name: 'Войти и продолжить' }).click();
+    await loginResponse;
+    await page.reload();
 
     await expect(page.getByRole('heading', { name: 'Сессия истекла' })).not.toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Счета' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Счета', exact: true })).toBeVisible();
   });
 });

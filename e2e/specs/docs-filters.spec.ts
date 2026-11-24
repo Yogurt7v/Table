@@ -68,10 +68,26 @@ test.describe('Документы: фильтр по объекту', () => {
   test('MultiSelect по доступным объектам и пункт «Все объекты»', async ({ page }) => {
     const pb = await authAs('admin');
     const orgId = await resolveTestOrgId(pb);
-    const objectList = await pb.collection('accounting_objects').getList(1, 2, {
+    let objectList = await pb.collection('accounting_objects').getList(1, 10, {
       filter: `organization_id = "${orgId}"`,
       sort: 'created',
     });
+    const activeObjects = objectList.items.filter((o) => !!o.is_active);
+    if (activeObjects.length < 2) {
+      for (let i = 0; i < 2 - activeObjects.length; i += 1) {
+        await pb.collection('accounting_objects').create({
+          organization_id: orgId,
+          name: `Тестовый объект ${i + 1} ${uniqueMarker('тест')}`,
+          sort: i + 1,
+          is_active: true,
+          counterparty_order: [],
+        });
+      }
+      objectList = await pb.collection('accounting_objects').getList(1, 10, {
+        filter: `organization_id = "${orgId}" && is_active = true`,
+        sort: 'created',
+      });
+    }
     const firstObject = objectList.items[0];
     const secondObject = objectList.items[1];
     test.skip(!firstObject || !secondObject, 'нужно минимум два объекта учёта');
@@ -98,7 +114,10 @@ test.describe('Документы: фильтр по объекту', () => {
     await page.getByRole('button', { name: 'Фильтр', exact: true }).click();
     const menu = page.getByRole('menu');
     await menu.getByPlaceholder('Выберите объекты').click();
-    await page.getByRole('option', { name: firstObject.name, exact: true }).click();
+    await page
+      .locator('[role="option"][value="' + firstObject.id + '"]')
+      .first()
+      .click();
 
     await expect(firstRow).toBeVisible();
     await expect(secondRow).toHaveCount(0);

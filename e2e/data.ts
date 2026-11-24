@@ -11,7 +11,7 @@ export const E2E_USERS: E2EUserMap = {
 };
 
 export const ORGS = {
-  lenmetrostroy: { id: 'yvyg08lk9b61me0', name: 'Ленметрострой' },
+  main: { name: 'E2E Org' },
 } as const;
 
 export type OrgKey = keyof typeof ORGS;

@@ -1,4 +1,6 @@
+import { randomBytes } from 'node:crypto';
 import PocketBase from 'pocketbase';
+import type { RecordModel } from 'pocketbase';
 import { E2E_PASSWORD, E2E_USERS, ORGS } from '../data';
 import type { TestRole } from '../types';
 
@@ -30,19 +32,113 @@ export async function authAs(role: TestRole): Promise<PocketBase> {
 
 // ── Базовые данные ──
 
-export const TEST_ORG = ORGS.lenmetrostroy;
+const TEST_ORG_NAME = ORGS.main.name;
 
-export async function resolveTestOrgId(_client: PocketBase): Promise<string> {
-  return TEST_ORG.id;
+/**
+ * Возвращает id тестовой организации. Ищет её по имени в текущей dev-базе,
+ * а при отсутствии создаёт — id больше не зашит в data.ts.
+ */
+export async function resolveTestOrgId(client: PocketBase): Promise<string> {
+  try {
+    const org = await client
+      .collection('organizations')
+      .getFirstListItem(`name = "${qTag(TEST_ORG_NAME)}"`);
+    return org.id;
+  } catch {
+    const org = await client
+      .collection('organizations')
+      .create({ name: TEST_ORG_NAME, color: '#228be6' });
+    return org.id;
+  }
 }
 
-export async function firstObjectId(client: PocketBase, orgId = TEST_ORG.id): Promise<string> {
+/**
+ * Возвращает id первого объекта учёта организации. Если объектов нет,
+ * создаёт «Основной объект», чтобы спеки не падали на пустой базе.
+ */
+export async function firstObjectId(client: PocketBase, orgId?: string): Promise<string> {
+  const actualOrgId = orgId ?? (await resolveTestOrgId(client));
   const list = await client
     .collection('accounting_objects')
-    .getList(1, 1, { filter: `organization_id = "${orgId}"`, sort: 'created' });
-  const item = list.items[0];
-  if (!item) throw new Error('accounting_objects: пусто, тест не может выполняться');
+    .getList(1, 1, { filter: `organization_id = "${actualOrgId}"`, sort: 'created' });
+  let item: RecordModel | undefined;
+  for (const record of list.items) {
+    if (record.is_active && record.name === 'Основной объект') {
+      item = record;
+      break;
+    }
+  }
+  if (!item) {
+    const created = await client.collection('accounting_objects').create({
+      organization_id: actualOrgId,
+      name: 'Основной объект',
+      is_active: true,
+      sort: 1,
+      counterparty_order: [],
+    });
+    return created.id;
+  }
   return item.id;
+}
+
+async function findRecord(
+  client: PocketBase,
+  collection: string,
+  filter: string,
+): Promise<RecordModel | undefined> {
+  try {
+    return await client.collection(collection).getFirstListItem(filter);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Досоздаёт базовые сущности e2e: организацию, объект и всех тестовых
+ * пользователей с членством. Вызывается один раз из globalSetup.
+ */
+export async function ensureTestBaseData(): Promise<{ orgId: string; objectId: string }> {
+  const pb = pbAdmin();
+  const orgId = await resolveTestOrgId(pb);
+  const objectId = await firstObjectId(pb, orgId);
+  const roles = Object.keys(E2E_USERS) as TestRole[];
+
+  for (const role of roles) {
+    const { login, password } = E2E_USERS[role];
+    let user = await findRecord(pb, 'users', `login = "${qTag(login)}"`);
+    if (!user) {
+      user = await pb.collection('users').create({
+        login,
+        name: login,
+        email: `${login.toLowerCase()}@e2e.local`,
+        password,
+        passwordConfirm: password,
+        tokenKey: randomBytes(30).toString('hex'),
+      });
+    }
+
+    const membership = await findRecord(
+      pb,
+      'organization_users',
+      `user_id = "${user.id}" && organization_id = "${orgId}"`,
+    );
+    if (!membership) {
+      await pb.collection('organization_users').create({
+        user_id: user.id,
+        organization_id: orgId,
+        role,
+        objects: [objectId],
+        can_create_invoices: role !== 'guest',
+      });
+    } else if (membership.role !== role) {
+      await pb.collection('organization_users').update(membership.id, { role });
+    }
+  }
+
+  // гарантируем, что основной объект активен для отображения в интерфейсе
+  await pbAdmin().collection('accounting_objects').update(objectId, { is_active: true });
+
+  return { orgId, objectId };
 }
 
 // ── Счета ──
@@ -85,7 +181,7 @@ export async function createInvoice(
   client: PocketBase,
   data: CreateInvoiceData,
 ): Promise<Record<string, unknown>> {
-  const orgId = data.orgId ?? TEST_ORG.id;
+  const orgId = data.orgId ?? (await resolveTestOrgId(client));
   const objectId = data.objectId ?? (await firstObjectId(client, orgId));
   const created = await client.collection('invoices').create({
     organization_id: orgId,

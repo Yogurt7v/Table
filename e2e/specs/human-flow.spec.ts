@@ -267,6 +267,7 @@ test.describe.serial('Человеческий тест', () => {
 
     await drawer.getByText(`Создан счёт: ${c.counterparty}`).click();
     await expect(drawer).toBeHidden();
+    await setRegistryDate(page, c.dates.D);
     await expect(registryDateTrigger(page)).toHaveText(humanDateButtonLabel(c.dates.D));
     await expect(invoiceRow(page, c.counterparty).first()).toBeVisible();
 

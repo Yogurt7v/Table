@@ -233,8 +233,11 @@ export async function copyInvoice(
     .locator('xpath=ancestor::tr');
   await expect(form).toBeVisible();
   await form.locator('input[placeholder="Контрагент"]').fill(changes.counterparty);
-  if (changes.amount) await form.locator('input[placeholder="Сумма"]').fill(changes.amount);
   await form.locator('input[placeholder="Счет"]').fill(changes.invoiceNo);
+  if (changes.amount) await form.locator('input[placeholder="Сумма"]').fill(changes.amount);
+  await form
+    .locator('textarea[placeholder="Назначение"], input[placeholder="Назначение"]')
+    .fill('Копия');
   await form.getByRole('button', { name: 'Сохранить счёт' }).click();
   await expect(page.getByText('Счёт добавлен').first()).toBeVisible();
 }
@@ -255,7 +258,7 @@ export async function uploadInvoiceFile(
   await modal.getByRole('button', { name: 'Выбрать файл' }).click();
   await (await chooser).setFiles(filePath);
   await modal.getByRole('button', { name: 'Загрузить' }).click();
-  await expect(page.getByText('Файл загружен')).toBeVisible();
+  await expect(page.getByText('Файл загружен').last()).toBeVisible();
 }
 
 export async function deleteInvoiceFile(
