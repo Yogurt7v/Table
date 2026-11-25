@@ -247,6 +247,25 @@ describe('createManualDocument', () => {
       type: 'document_created',
     });
   });
+
+  it('creates a manual document without payment date', async () => {
+    putList('documents', []);
+
+    await createManualDocument({
+      organizationId: 'org1',
+      accountingObjectId: 'obj1',
+      paymentDate: '',
+      counterparty: 'ООО Без даты',
+      responsibleId: 'u3',
+    });
+
+    expect(created('documents')).toMatchObject({
+      payment_date: '',
+      counterparty: 'ООО Без даты',
+      provided: false,
+      confirmed: false,
+    });
+  });
 });
 
 describe('updateDocumentWithHistory', () => {

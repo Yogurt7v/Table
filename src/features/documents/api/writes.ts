@@ -21,7 +21,7 @@ import { currentActorId, currentActorName } from './shared.ts';
 export interface CreateDocumentInput {
   organizationId: string;
   accountingObjectId: string;
-  paymentDate: string;
+  paymentDate?: string;
   counterparty: string;
   purpose?: string;
   contractNo?: string;
@@ -40,7 +40,7 @@ export async function createManualDocument(input: CreateDocumentInput): Promise<
     organization_id: input.organizationId,
     accounting_object_id: input.accountingObjectId,
     seq,
-    payment_date: input.paymentDate,
+    payment_date: input.paymentDate ?? '',
     counterparty: input.counterparty,
     purpose: input.purpose ?? '',
     contract_no: input.contractNo ?? '',
