@@ -1,21 +1,32 @@
 import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
+  ActionIcon,
   Button,
+  FileButton,
   Grid,
   Group,
   Modal,
   NumberInput,
+  Paper,
   Select,
   Stack,
+  Text,
   Textarea,
   TextInput,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
+import { IconPaperclip, IconUpload, IconX } from '@tabler/icons-react';
+import { uploadDocumentFile } from '@/api/documents';
 import { useCreateManualDocument, useOrgInvoices } from '@/features/documents/hooks/useDocuments';
-import { dateKeyToLocalDate, localDateToDateKey, todayDateKey } from '@/features/mail/model/mail-date';
+import {
+  dateKeyToLocalDate,
+  localDateToDateKey,
+  todayDateKey,
+} from '@/features/mail/model/mail-date';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import type { IAccountingObject, IInvoice, IUser } from '@/shared/types';
+import type { IAccountingObject, IDocument, IInvoice, IUser } from '@/shared/types';
 import type { OrgRole } from '@/features/invoices/model/invoice-field-access';
 
 interface ManualDocumentModalProps {
@@ -64,8 +75,11 @@ export function ManualDocumentModal({
   users,
 }: ManualDocumentModalProps) {
   const createDocument = useCreateManualDocument(organizationId);
+  const queryClient = useQueryClient();
   const invoicesQuery = useOrgInvoices(opened ? organizationId : '');
   const [form, setForm] = useState<FormState>(() => initialForm(currentUserId));
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canChooseResponsible = role === 'admin' || role === 'moderator';
 
@@ -112,11 +126,12 @@ export function ManualDocumentModal({
   };
 
   const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
-      await createDocument.mutateAsync({
+      const created = await createDocument.mutateAsync({
         organizationId,
         accountingObjectId: form.accountingObjectId,
-        paymentDate: form.paymentDate,
+        paymentDate: form.paymentDate || undefined,
         counterparty: form.counterparty,
         purpose: form.purpose,
         contractNo: form.contractNo,
@@ -132,19 +147,48 @@ export function ManualDocumentModal({
           ? invoicesQuery.data?.find((invoice) => invoice.id === form.sourceInvoiceId)?.invoice_no
           : undefined,
       });
-      notifications.show({ color: 'green', message: 'Документ создан' });
+
+      let documentForUpload: IDocument = created;
+      const failedFiles: string[] = [];
+      for (const file of selectedFiles) {
+        try {
+          await uploadDocumentFile(documentForUpload, file);
+          documentForUpload = { ...documentForUpload, provided: true };
+        } catch {
+          failedFiles.push(file.name);
+        }
+      }
+
+      // Файлы грузятся после создания документа, поэтому колонка «Файлы» в таблице
+      // не узнаёт о них из инвалидации создания — обновляем кэш вручную.
+      if (selectedFiles.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ['document-files-all', organizationId] });
+      }
+
+      if (failedFiles.length > 0) {
+        notifications.show({
+          color: 'red',
+          message: `Документ создан, но не удалось загрузить файл: ${failedFiles.join(', ')}`,
+        });
+      } else {
+        notifications.show({ color: 'green', message: 'Документ создан' });
+      }
+
+      setSelectedFiles([]);
       onClose();
     } catch {
       notifications.show({ color: 'red', message: 'Не удалось создать документ' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const canSubmit =
     !!form.accountingObjectId &&
-    !!form.paymentDate &&
     !!form.counterparty.trim() &&
     !!form.responsibleId &&
-    !createDocument.isPending;
+    !createDocument.isPending &&
+    !isSubmitting;
 
   return (
     <Modal opened={opened} onClose={onClose} title="Новый документ" size="lg">
@@ -178,7 +222,7 @@ export function ManualDocumentModal({
               valueFormat="DD.MM.YYYY"
               value={dateKeyToLocalDate(form.paymentDate)}
               onChange={(value) => patch({ paymentDate: localDateToDateKey(value) })}
-              required
+              clearable
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, sm: 6 }}>
@@ -234,13 +278,66 @@ export function ManualDocumentModal({
               maxRows={5}
             />
           </Grid.Col>
+          <Grid.Col span={12}>
+            <Stack gap="xs">
+              <Text size="sm" fw={500}>
+                Файлы
+              </Text>
+              <Group gap="sm">
+                <FileButton onChange={(files) => setSelectedFiles(files ?? [])} accept="*" multiple>
+                  {(props) => (
+                    <Button
+                      {...props}
+                      variant="light"
+                      leftSection={<IconUpload size={16} />}
+                      disabled={isSubmitting}
+                    >
+                      Выбрать файлы
+                    </Button>
+                  )}
+                </FileButton>
+                {selectedFiles.length > 0 && (
+                  <Text size="sm" c="dimmed">
+                    Выбрано: {selectedFiles.length}
+                  </Text>
+                )}
+              </Group>
+              {selectedFiles.length > 0 && (
+                <Stack gap={4}>
+                  {selectedFiles.map((file, index) => (
+                    <Paper key={`${file.name}-${index}`} withBorder px="sm" py={6}>
+                      <Group justify="space-between" gap="xs" wrap="nowrap">
+                        <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
+                          <IconPaperclip size={14} />
+                          <Text size="sm" truncate="end">
+                            {file.name}
+                          </Text>
+                        </Group>
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          aria-label={`Убрать файл ${file.name}`}
+                          onClick={() =>
+                            setSelectedFiles((current) => current.filter((_, i) => i !== index))
+                          }
+                          disabled={isSubmitting}
+                        >
+                          <IconX size={14} />
+                        </ActionIcon>
+                      </Group>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
+          </Grid.Col>
         </Grid>
 
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>
+          <Button variant="default" onClick={onClose} disabled={isSubmitting}>
             Отмена
           </Button>
-          <Button onClick={handleSubmit} loading={createDocument.isPending} disabled={!canSubmit}>
+          <Button onClick={handleSubmit} loading={isSubmitting} disabled={!canSubmit}>
             Создать документ
           </Button>
         </Group>

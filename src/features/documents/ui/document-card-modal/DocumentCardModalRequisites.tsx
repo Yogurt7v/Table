@@ -109,19 +109,19 @@ export function DocumentCardModalRequisites({
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 3 }}>
           <TextInput
-            label="Договор"
-            value={form.contract_no}
-            onChange={(event) => onPatch({ contract_no: event.currentTarget.value })}
-            readOnly={!editing || !canEdit}
-          />
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, sm: 3 }}>
-          <TextInput
             label="Счёт №"
             value={form.invoice_no}
             onChange={(event) => onPatch({ invoice_no: event.currentTarget.value })}
             readOnly={!editing || !canEdit}
           />
+          <Grid.Col span={{ base: 12, sm: 3 }}>
+            <TextInput
+              label="Договор"
+              value={form.contract_no}
+              onChange={(event) => onPatch({ contract_no: event.currentTarget.value })}
+              readOnly={!editing || !canEdit}
+            />
+          </Grid.Col>
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <Select
@@ -139,6 +139,7 @@ export function DocumentCardModalRequisites({
             value={dateKeyToLocalDate(form.payment_date)}
             onChange={(value) => onPatch({ payment_date: localDateToDateKey(value) })}
             disabled={!editing || !canEditPaymentDate}
+            clearable
           />
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 3 }}>
