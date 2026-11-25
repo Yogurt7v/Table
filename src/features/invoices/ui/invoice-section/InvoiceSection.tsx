@@ -127,6 +127,7 @@ export function InvoiceSection({
           activeFilters={page.activeFilters}
           highlightedIds={page.highlightedIds}
           hasSearch={!!page.debouncedSearchText}
+          searchText={page.debouncedSearchText}
           draftObjectId={page.draftObjectId}
           permissions={{
             canCreate: page.permissions.canCreate,
