@@ -9,14 +9,14 @@
     "pb": "./pocketbase serve",
     "pbt": "./pocketbase serve --dir=pb_data_test --http=127.0.0.1:8090",
     "pbe": "pocketbase.exe serve",
-    "prebuild": "vitest run && playwright test",
-    "build": "pnpm lint && pnpm typecheck && pnpm exec tsc -b && pnpm test && pnpm test:e2e && pnpm humantest && pnpm exec vite build",
+    "build": "pnpm test && pnpm lint && pnpm typecheck && pnpm exec tsc -b && pnpm exec vite build",
     "build:portable": "vite build --outDir builds/table-$(date +%Y%m%d-%H%M%S)",
     "preview": "vite preview",
     "start": "./pocketbase serve --http=0.0.0.0:8090",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "pnpm test:unit && playwright test",
+    "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
@@ -24,8 +24,7 @@
     "format:write": "prettier --write .",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
-    "humantest": "playwright test e2e/specs/human-flow.spec.ts"
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
