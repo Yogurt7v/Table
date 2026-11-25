@@ -17,6 +17,7 @@ export interface InvoiceSectionObjectsListProps {
   invoices: IInvoice[] | undefined;
   highlightedIds: string[];
   hasSearch: boolean;
+  searchText: string;
   draftObjectId: string | null;
   permissions: { canCreate: boolean; role: string | null };
   paymentMarks: IPaymentMark[] | undefined;

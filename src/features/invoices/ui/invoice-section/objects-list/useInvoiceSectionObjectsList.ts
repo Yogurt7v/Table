@@ -4,34 +4,29 @@ import type { IAccountingObject } from '@/shared/types';
 
 /**
  * Состояние списка объектов: сворачивание групп и раскрытие секции
- * «Объекты без счетов». При поиске всё разворачивается, а секция без
- * счетов автоматически раскрывается при появлении поиска.
+ * «Объекты без счетов». При поиске секция раскрывается, только если
+ * в скрытых объектах есть совпадения; сохранённые группы не трогаются.
  */
 export function useInvoiceSectionObjectsList(
   objects: IAccountingObject[],
   hiddenObjects: IAccountingObject[],
   hasSearch: boolean,
+  hiddenObjectsHaveMatches: boolean,
 ) {
-  const { collapsedIds, collapseAll, expand, expandAll } = useCollapsedObjects();
-  const [hiddenOpen, setHiddenOpen] = useState(hasSearch);
+  const { collapsedIds, collapseAll, expand } = useCollapsedObjects();
+  const shouldOpenHidden = hasSearch && hiddenObjectsHaveMatches;
+  const [hiddenOpen, setHiddenOpen] = useState(shouldOpenHidden);
   const allCollapsed =
     objects.length > 0 && !hiddenOpen && objects.every((o) => collapsedIds.has(o.id));
   const showCollapseButton = objects.length > 1 || (objects.length > 0 && hiddenObjects.length > 0);
 
-  const prevHasSearchRef = useRef(hasSearch);
-
-  // Поиск: раскрыть все объекты, чтобы найденные строки были видны.
+  // Секция «Объекты без счетов» открывается при поиске, только когда в ней есть
+  // совпадения; закрыть её пользователь может вручную.
+  const prevShouldOpenHiddenRef = useRef(shouldOpenHidden);
   useEffect(() => {
-    if (hasSearch) expandAll();
-  }, [hasSearch, expandAll]);
-
-  // При переходе «нет поиска → есть поиск» открыть секцию без счетов.
-  useEffect(() => {
-    if (hasSearch && !prevHasSearchRef.current) {
-      setHiddenOpen(true);
-    }
-    prevHasSearchRef.current = hasSearch;
-  }, [hasSearch]);
+    if (shouldOpenHidden && !prevShouldOpenHiddenRef.current) setHiddenOpen(true);
+    prevShouldOpenHiddenRef.current = shouldOpenHidden;
+  }, [shouldOpenHidden]);
 
   const handleCollapseAll = () => {
     collapseAll();

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useMantineTheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import type { IAccountingObject } from '@/shared/types';
@@ -5,6 +6,7 @@ import { useDocumentPermissions } from '@/features/documents/hooks/useDocumentPe
 import { useMailPermissions } from '@/shared/hooks/useMailPermissions';
 import { useOrg } from '@/shared/context/OrgContext';
 import { InvoiceObjectBlock } from '../invoice-object-block/InvoiceObjectBlock';
+import { filterObjectInvoices } from './invoice-section-utils';
 import { CollapseObjectsButton } from './objects-list/CollapseObjectsButton';
 import { HiddenObjectsSection } from './objects-list/HiddenObjectsSection';
 import { InvoiceSectionObjectsHeader } from './objects-list/InvoiceSectionObjectsHeader';
@@ -29,6 +31,7 @@ export function InvoiceSectionObjectsList({
   activeFilters,
   highlightedIds,
   hasSearch,
+  searchText,
   draftObjectId,
   permissions,
   paymentMarks,
@@ -44,6 +47,24 @@ export function InvoiceSectionObjectsList({
   onActiveFiltersChange,
   paidTodayTotal,
 }: InvoiceSectionObjectsListProps) {
+  // Совпадения в скрытых объектах: при поиске секция открывается только при их наличии.
+  const hiddenObjectsHaveMatches = useMemo(
+    () =>
+      hasSearch &&
+      hiddenObjects.some(
+        (obj) =>
+          filterObjectInvoices(
+            invoices,
+            obj.id,
+            paymentMarks,
+            activeFilters,
+            hasSearch,
+            highlightedIds,
+          ).length > 0,
+      ),
+    [hasSearch, hiddenObjects, invoices, paymentMarks, activeFilters, highlightedIds],
+  );
+
   const {
     hiddenOpen,
     allCollapsed,
@@ -51,7 +72,7 @@ export function InvoiceSectionObjectsList({
     handleCollapseAll,
     handleExpandAll,
     toggleHiddenOpen,
-  } = useInvoiceSectionObjectsList(objects, hiddenObjects, hasSearch);
+  } = useInvoiceSectionObjectsList(objects, hiddenObjects, hasSearch, hiddenObjectsHaveMatches);
 
   const isFullAccess =
     permissions.role === 'admin' || permissions.role === 'moderator' || permissions.role === 'boss';
@@ -73,6 +94,7 @@ export function InvoiceSectionObjectsList({
       date={date}
       highlightedIds={highlightedIds}
       hasSearch={hasSearch}
+      searchText={searchText}
       draftObjectId={draftObjectId}
       permissions={{ canCreate: permissions.canCreate }}
       accountingObjects={allObjects}
@@ -97,7 +119,7 @@ export function InvoiceSectionObjectsList({
 
   const collapseButton = (
     <CollapseObjectsButton
-      show={showCollapseButton}
+      show={showCollapseButton && !hasSearch}
       allCollapsed={allCollapsed}
       onExpandAll={handleExpandAll}
       onCollapseAll={handleCollapseAll}
