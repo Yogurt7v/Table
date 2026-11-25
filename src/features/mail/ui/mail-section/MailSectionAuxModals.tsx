@@ -1,4 +1,4 @@
-import { MailFilesModal } from '@/features/mail/ui/files/MailFilesModal';
+import MailFilesModal from '@/features/mail/ui/files/MailFilesModal';
 import { MailHistoryModal } from '@/features/mail/ui/history/MailHistoryModal';
 import { MailThreadBuilder } from '@/features/mail/ui/thread/MailThreadBuilder';
 import { MailColumnSettingsModal } from '@/features/mail/ui/columns/MailColumnSettingsModal';
