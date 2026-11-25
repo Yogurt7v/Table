@@ -4,16 +4,24 @@ import { MantineProvider } from '@mantine/core';
 import { MainDatePicker } from './MainDatePicker';
 
 const mockUseInvoiceNavigation = vi.hoisted(() => vi.fn());
+const mockUseSearch = vi.hoisted(() => vi.fn());
 
 vi.mock('@/shared/context/InvoiceNavigationContext', () => ({
   useInvoiceNavigation: mockUseInvoiceNavigation,
 }));
 
+vi.mock('@/shared/context/SearchContext', () => ({
+  useSearch: mockUseSearch,
+}));
+
 function setup(variant: 'page' | 'header', selectedDate: Date = new Date('2024-01-15')) {
+  const setSelectedDate = vi.fn();
+  const setSearchAll = vi.fn();
   mockUseInvoiceNavigation.mockReturnValue({
     selectedDate,
-    setSelectedDate: vi.fn(),
+    setSelectedDate,
   });
+  mockUseSearch.mockReturnValue({ setSearchAll });
 
   const utils = render(
     <MantineProvider>
@@ -26,7 +34,7 @@ function setup(variant: 'page' | 'header', selectedDate: Date = new Date('2024-0
     '.mantine-DatePickerInput-input',
   );
   if (!inputButton) throw new Error('Кнопка DatePickerInput не найдена');
-  return { inputButton };
+  return { inputButton, setSelectedDate, setSearchAll, ...utils };
 }
 
 describe('MainDatePicker', () => {
@@ -49,5 +57,20 @@ describe('MainDatePicker', () => {
     expect(inputButton).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(inputButton);
     expect(inputButton).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('показывает кнопку «Сегодня» и сбрасывает дату и поиск по всем датам', () => {
+    const { getByRole, setSelectedDate, setSearchAll } = setup('page', new Date('2024-01-15'));
+
+    fireEvent.click(getByRole('button', { name: /Сегодня/i }));
+
+    expect(setSelectedDate).toHaveBeenCalledTimes(1);
+    expect(setSearchAll).toHaveBeenCalledWith(false);
+  });
+
+  it('не показывает кнопку «Сегодня» для текущей даты', () => {
+    const { queryByRole } = setup('page', new Date());
+
+    expect(queryByRole('button', { name: /Сегодня/i })).not.toBeInTheDocument();
   });
 });
