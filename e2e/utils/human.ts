@@ -148,6 +148,11 @@ async function ensureMembership(
     role,
     objects: objectIds,
     can_create_invoices: canCreateInvoices,
+    // Флаги модульного просмотра проставляем как у продакшн-хелпера
+    // createOrganizationUser: миграция проставляет их существующим записям,
+    // а новые membership должны видеть регистр сразу.
+    can_view_invoices: true,
+    can_view_documents: true,
   };
   if (existing) {
     await pb.collection('organization_users').update(existing.id, payload);
