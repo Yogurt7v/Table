@@ -1,14 +1,29 @@
 import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import type { TestRole } from '../types';
-import { E2E_USERS, E2E_PASSWORD } from '../data';
+import { E2E_USERS, E2E_PASSWORD, ORGS } from '../data';
 
 export const APP = 'http://localhost:5173/';
 
 /**
- * Вход через форму логина. Роль — из data.ts; селекторы сверены с LoginPage.
+ * Переключает организацию на тестовую после входа. Свежий браузер выбирает
+ * самую старую организацию пользователя, а e2e-данные создаются в E2E Org,
+ * поэтому без этого шага UI и API работают с разными организациями.
  */
-export async function loginViaUi(page: Page, role: string) {
+async function selectE2eOrg(page: Page, orgName: string): Promise<void> {
+  const select = page.locator('input[placeholder="Выберите организацию"]:visible').first();
+  if ((await select.count()) === 0) return;
+  if ((await select.inputValue().catch(() => '')) === orgName) return;
+  await select.click();
+  await page.getByRole('option', { name: orgName, exact: true }).click();
+  await expect(select).toHaveValue(orgName);
+}
+
+/**
+ * Вход через форму логина. Роль — из data.ts; селекторы сверены с LoginPage.
+ * После входа переключается на организацию сценария (по умолчанию — E2E Org).
+ */
+export async function loginViaUi(page: Page, role: string, orgName: string = ORGS.main.name) {
   const creds = E2E_USERS[role as TestRole];
   const login: string = creds?.login ?? role;
   const password: string = creds?.password ?? E2E_PASSWORD;
@@ -24,6 +39,7 @@ export async function loginViaUi(page: Page, role: string) {
   await page.getByLabel('Пароль').fill(password);
   await page.getByRole('button', { name: 'Войти' }).click();
   await expect(page.getByRole('button', { name: 'Выйти' }).first()).toBeVisible();
+  await selectE2eOrg(page, orgName);
 }
 
 /**

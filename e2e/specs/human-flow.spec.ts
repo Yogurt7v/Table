@@ -136,7 +136,7 @@ test.describe.serial('Человеческий тест', () => {
   test('1. модератор: переименование, обмен и удаление объектов и счёта', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.moderator);
+    await loginViaUi(page, c.logins.moderator, c.orgName);
     await openAdmin(page);
     const modal = await openEditOrgModal(page, c.orgName);
 
@@ -171,7 +171,7 @@ test.describe.serial('Человеческий тест', () => {
   test('3. пользователь создаёт счёт на дату ровно месяц назад', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.user);
+    await loginViaUi(page, c.logins.user, c.orgName);
     await openRegistry(page);
     await selectOrg(page, c.orgName);
     await setRegistryDate(page, c.dates.D);
@@ -196,7 +196,7 @@ test.describe.serial('Человеческий тест', () => {
   test('4. редактирование, перенос, копия, файл и комментарий', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.user);
+    await loginViaUi(page, c.logins.user, c.orgName);
     await openRegistry(page);
     await selectOrg(page, c.orgName);
     await setRegistryDate(page, c.dates.D);
@@ -212,7 +212,7 @@ test.describe.serial('Человеческий тест', () => {
     expect(targetObject).toBeTruthy();
 
     await logoutViaUi(page);
-    await loginViaUi(page, c.logins.moderator);
+    await loginViaUi(page, c.logins.moderator, c.orgName);
     await setRegistryDate(page, c.dates.D);
     expect(await invoiceMenuItems(page, c.counterparty)).toContain('Перенести');
     await moveInvoice(page, c.counterparty, String(targetObject?.name));
@@ -220,7 +220,7 @@ test.describe.serial('Человеческий тест', () => {
     expect(moved?.accounting_object_id).toBe(targetObject?.id);
 
     await logoutViaUi(page);
-    await loginViaUi(page, c.logins.user);
+    await loginViaUi(page, c.logins.user, c.orgName);
     await setRegistryDate(page, c.dates.D);
 
     await copyInvoice(page, c.counterparty, {
@@ -256,7 +256,7 @@ test.describe.serial('Человеческий тест', () => {
   test('5. администратор проверяет уведомления и историю счёта', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.admin);
+    await loginViaUi(page, c.logins.admin, c.orgName);
     await openRegistry(page);
     await selectOrg(page, c.orgName);
 
@@ -284,7 +284,7 @@ test.describe.serial('Человеческий тест', () => {
   test('6. администратор создаёт босса для организации', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.admin);
+    await loginViaUi(page, c.logins.admin, c.orgName);
     await openAdmin(page);
     await createUserViaAdmin(page, {
       name: humanUserName(marker, 'boss'),
@@ -313,7 +313,7 @@ test.describe.serial('Человеческий тест', () => {
   test('7. босс отмечает частичную оплату 45% на дату +7', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.boss);
+    await loginViaUi(page, c.logins.boss, c.orgName);
     await selectOrg(page, c.orgName);
     await setRegistryDate(page, c.dates.D7);
 
@@ -339,7 +339,7 @@ test.describe.serial('Человеческий тест', () => {
   test('8. модератор оплачивает остаток по указу и проверяет остаток счёта', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.moderator);
+    await loginViaUi(page, c.logins.moderator, c.orgName);
     await selectOrg(page, c.orgName);
     await setRegistryDate(page, c.dates.D7);
 
@@ -371,7 +371,7 @@ test.describe.serial('Человеческий тест', () => {
   test('9. пользователь проверяет даты, колонки, печать и Excel', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.user);
+    await loginViaUi(page, c.logins.user, c.orgName);
     await selectOrg(page, c.orgName);
 
     await setRegistryDate(page, c.dates.D);
@@ -410,7 +410,7 @@ test.describe.serial('Человеческий тест', () => {
   test('10. босс помечает остаток счёта на согласование', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.boss);
+    await loginViaUi(page, c.logins.boss, c.orgName);
     await selectOrg(page, c.orgName);
     await setRegistryDate(page, c.dates.D9);
 
@@ -434,7 +434,7 @@ test.describe.serial('Человеческий тест', () => {
   }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.moderator);
+    await loginViaUi(page, c.logins.moderator, c.orgName);
     await selectOrg(page, c.orgName);
     await setRegistryDate(page, c.dates.D9);
 
@@ -485,7 +485,7 @@ test.describe.serial('Человеческий тест', () => {
   }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.admin);
+    await loginViaUi(page, c.logins.admin, c.orgName);
     await openAdmin(page);
     await openArchiveTab(page);
 
@@ -519,7 +519,7 @@ test.describe.serial('Человеческий тест', () => {
   }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.admin);
+    await loginViaUi(page, c.logins.admin, c.orgName);
     await openAdmin(page);
     const drawer = await openNotifications(page);
     await expect(drawer.getByText('Счёт оплачен').first()).toBeVisible();
@@ -574,7 +574,7 @@ test.describe.serial('Человеческий тест', () => {
   test('14. удаление счетов, босса и объектов', async ({ page }) => {
     test.setTimeout(120_000);
     const c = ctx();
-    await loginViaUi(page, c.logins.admin);
+    await loginViaUi(page, c.logins.admin, c.orgName);
     const orgInvoices = await getInvoicesByOrg(c.orgId);
     expect(orgInvoices.length).toBeGreaterThan(0);
 
