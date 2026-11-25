@@ -1,4 +1,4 @@
-import { Button, type ButtonProps } from '@mantine/core';
+import { Button, type ButtonProps, type ElementProps } from '@mantine/core';
 import { type ReactNode } from 'react';
 
 interface StandardButtonProps extends Omit<ButtonProps, 'size' | 'leftSection'> {
@@ -11,7 +11,7 @@ interface StandardButtonProps extends Omit<ButtonProps, 'size' | 'leftSection'> 
   /** Цвет кнопки (по умолчанию 'blue') */
   color?: ButtonProps['color'];
   /** Обработчик клика */
-  onClick?: ButtonProps['onClick'];
+  onClick?: ElementProps<'button'>['onClick'];
   /** Состояние загрузки */
   loading?: boolean;
   /** Отключена ли кнопка */

@@ -33,7 +33,7 @@ export function MainDatePicker({ variant }: MainDatePickerProps) {
 
   // Рендерит инпут выбора даты, метку сегодняшнего дня в календаре и кнопку «Сегодня».
   return (
-    <Group gap="xs" wrap="nowrap" align="center">
+    <Group wrap="nowrap" gap="md">
       <DatePickerInput
         maxDate={new Date()}
         leftSection={<IconCalendar size={isHeader ? 16 : 18} stroke={1.8} />}
