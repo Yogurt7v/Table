@@ -61,7 +61,7 @@ export function MailTableCell({
       return <Text size="sm">{row.counterpartyNumber || MAIL_EMPTY_CELL}</Text>;
     case 'subject':
       return (
-        <Text size="sm" lineClamp={2} title={row.comment || row.subject}>
+        <Text size="sm" lineClamp={5} title={row.comment || row.subject}>
           {row.subject}
         </Text>
       );
@@ -69,7 +69,7 @@ export function MailTableCell({
       const text = row.comment || MAIL_EMPTY_CELL;
       const parts = text.split(EMOJI_SPLIT);
       return (
-        <Text size="sm" lineClamp={2} title={row.comment}>
+        <Text size="sm" lineClamp={5} title={row.comment}>
           {parts.map((part, index) => {
             if (IS_EMOJI.test(part)) {
               return (
