@@ -92,6 +92,7 @@ export const COLUMNS_AT_LAYOUT_INTRO: MailColumnId[] = [
   'counterparty',
   'counterparty_number',
   'subject',
+  'comment',
   'responsible_name',
   'delivery_method',
   'accounting_object_id',

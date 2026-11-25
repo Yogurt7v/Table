@@ -13,6 +13,8 @@ import {
 import { DatePickerInput } from '@mantine/dates';
 import { IconHistory } from '@tabler/icons-react';
 import type { DeliveryMethod, MailType } from '@/shared/types';
+import { useRef } from 'react';
+import { COMMENT_EMOJI_FONT_SIZE, MAIL_COMMENT_EMOJIS } from '@/features/mail/model/mail-comment-emojis';
 import { dateKeyToLocalDate, localDateToDateKey } from '@/features/mail/model/mail-date';
 import {
   MAIL_COUNTERPARTY_FIELD_LABELS,
@@ -75,6 +77,26 @@ export function MailFormModalFields({
   onDeclineParent,
   onOpenThread,
 }: MailFormModalFieldsProps) {
+  const commentRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertEmoji = (emoji: string) => {
+    const textarea = commentRef.current;
+    const current = form.comment ?? '';
+    if (!textarea) {
+      onPatch({ comment: current + emoji });
+      return;
+    }
+    const start = textarea.selectionStart ?? current.length;
+    const end = textarea.selectionEnd ?? current.length;
+    const next = current.slice(0, start) + emoji + current.slice(end);
+    onPatch({ comment: next });
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const pos = start + emoji.length;
+      textarea.setSelectionRange(pos, pos);
+    });
+  };
+
   return (
     <Stack gap="lg" style={{ flexShrink: 0 }}>
       <MailFormSection title="Кому и о чём">
@@ -221,15 +243,46 @@ export function MailFormModalFields({
             />
           </Grid.Col>
         </Grid>
-        <Textarea
-          label="Комментарий"
-          placeholder="Комментарий к письму"
-          autosize
-          minRows={2}
-          maxLength={2000}
-          value={form.comment}
-          onChange={(e) => onPatch({ comment: e.currentTarget.value })}
-        />
+        <Box
+          style={{
+            border: '1px solid var(--mantine-color-default-border)',
+            borderRadius: 'var(--mantine-radius-sm)',
+            overflow: 'hidden',
+          }}
+        >
+          <Group
+            gap="xs"
+            p="xs"
+          >
+            {MAIL_COMMENT_EMOJIS.map(({ emoji, label }) => (
+              <Button
+                key={emoji}
+                type="button"
+                variant="subtle"
+                size="sm"
+                px={6}
+                onClick={() => insertEmoji(emoji)}
+                title={label}
+                aria-label={label}
+              >
+                <span role="img" aria-label={label} style={{ fontSize: COMMENT_EMOJI_FONT_SIZE, lineHeight: 1 }}>
+                  {emoji}
+                </span>
+              </Button>
+            ))}
+          </Group>
+          <Textarea
+            ref={commentRef}
+            variant="unstyled"
+            placeholder="Комментарий к письму"
+            autosize
+            minRows={2}
+            maxLength={2000}
+            value={form.comment}
+            onChange={(e) => onPatch({ comment: e.currentTarget.value })}
+            styles={{ input: { padding: 'var(--mantine-spacing-xs)' } }}
+          />
+        </Box>
       </MailFormSection>
     </Stack>
   );

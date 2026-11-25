@@ -72,6 +72,7 @@ export function MailMobileCards({
   const showsDelivery = shows('delivery_method');
   const showsCreated = shows('created');
   const showsThread = shows('thread');
+  const showsComment = shows('comment');
 
   return (
     <Stack hiddenFrom="sm" gap="sm">
@@ -203,7 +204,7 @@ export function MailMobileCards({
             </Group>
           )}
 
-          {row.comment && (
+          {showsComment && row.comment && (
             <Text size="xs" c="dimmed" lineClamp={2} mt={2}>
               {row.comment}
             </Text>

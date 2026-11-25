@@ -3,6 +3,7 @@ import { IconLink } from '@tabler/icons-react';
 import { MAIL_DELIVERY_METHOD_EMOJI, MAIL_DELIVERY_METHOD_NAMES } from '@/shared/types';
 import type { MailColumnId } from '@/features/mail/model/mail-columns';
 import type { MailRow } from '@/features/mail/model/mail-row';
+import { COMMENT_EMOJI_FONT_SIZE } from '@/features/mail/model/mail-comment-emojis';
 import { MailAttachmentIndicator } from '@/features/mail/ui/indicators/MailAttachmentIndicator';
 import { formatMailDate, formatMailTimestamp } from '@/features/mail/model/mail-date';
 import {
@@ -10,6 +11,10 @@ import {
   MAIL_NO_ACCOUNTING_OBJECT_LABEL,
   MAIL_NO_DELIVERY_METHOD_LABEL,
 } from '@/features/mail/model/mail-labels';
+
+/** Символы, выделяемые как эмодзи (размер у них свой, текст вокруг — обычный). */
+const EMOJI_SPLIT = /(\p{Extended_Pictographic})/gu;
+const IS_EMOJI = /\p{Extended_Pictographic}/u;
 
 /** Пропсы ячейки таблицы писем. */
 export interface MailTableCellProps {
@@ -60,6 +65,28 @@ export function MailTableCell({
           {row.subject}
         </Text>
       );
+    case 'comment': {
+      const text = row.comment || MAIL_EMPTY_CELL;
+      const parts = text.split(EMOJI_SPLIT);
+      return (
+        <Text size="sm" lineClamp={2} title={row.comment}>
+          {parts.map((part, index) => {
+            if (IS_EMOJI.test(part)) {
+              return (
+                <span
+                  key={index}
+                  style={{ fontSize: COMMENT_EMOJI_FONT_SIZE, lineHeight: 1 }}
+                  role="img"
+                >
+                  {part}
+                </span>
+              );
+            }
+            return <span key={index}>{part}</span>;
+          })}
+        </Text>
+      );
+    }
     case 'responsible_name':
       return (
         <Text size="sm" lineClamp={2}>

@@ -12,6 +12,7 @@ export type MailColumnId =
   | 'counterparty'
   | 'counterparty_number'
   | 'subject'
+  | 'comment'
   | 'responsible_name'
   | 'delivery_method'
   | 'accounting_object_id'
@@ -44,6 +45,7 @@ const NUMBER = 84;
 const COUNTERPARTY = 132;
 const COUNTERPARTY_NUMBER = 94;
 const SUBJECT = 138;
+const COMMENT = 120;
 const RESPONSIBLE = 100;
 const DELIVERY = 82;
 const OBJECT = 108;
@@ -65,6 +67,7 @@ export const ALL_MAIL_COLUMNS: MailColumnDef[] = [
   { id: 'counterparty', label: 'Контрагент', weight: COUNTERPARTY },
   { id: 'counterparty_number', label: 'Номер контрагента', weight: COUNTERPARTY_NUMBER },
   { id: 'subject', label: 'Тема', weight: SUBJECT },
+  { id: 'comment', label: 'Комментарий', weight: COMMENT },
   { id: 'responsible_name', label: 'Ответственный', weight: RESPONSIBLE },
   { id: 'delivery_method', label: 'Способ доставки', weight: DELIVERY },
   { id: 'accounting_object_id', label: 'Объект учёта', weight: OBJECT },

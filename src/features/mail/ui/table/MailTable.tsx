@@ -89,7 +89,16 @@ export function MailTable({
                   key={column.id}
                   style={{ ...TH_STYLE, width: `${shares.get(column.id) ?? 0}%` }}
                 >
-                  <div style={{ overflow: 'hidden', maxWidth: '100%' }}>{column.header}</div>
+                  <div
+                    style={{
+                      overflow: 'hidden',
+                      maxWidth: '100%',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {column.header}
+                  </div>
                   <div
                     onMouseDown={(event) => handleResizeStart(column.id, event)}
                     className="col-resize-handle"
