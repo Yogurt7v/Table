@@ -203,21 +203,21 @@ pb_migrations/        # JS-миграции схемы PocketBase (91 файл)
 | `pnpm dev`            | Запуск Vite dev-сервера                          |
 | `pnpm dev:all`        | Фронт + PocketBase одной командой (concurrently) |
 | `pnpm pb`             | Запуск PocketBase (порт 8090)                    |
-| `pnpm build`          | `vitest run` (prebuild) + `tsc -b && vite build` |
+| `pnpm build`          | Все тесты, затем lint/typecheck и сборка         |
 | `pnpm build:portable` | Сборка в `builds/table-<дата-время>`             |
 | `pnpm lint`           | Проверка ESLint                                  |
 | `pnpm typecheck`      | `tsc --noEmit`                                   |
-| `pnpm test`           | `vitest run`                                     |
+| `pnpm test`           | Все тесты: `test:unit` + `playwright test`       |
+| `pnpm test:unit`      | `vitest run` (только юнит-тесты)                 |
 | `pnpm test:watch`     | `vitest` (watch)                                 |
 | `pnpm test:coverage`  | `vitest run --coverage`                          |
 | `pnpm test:e2e`       | Playwright e2e (сам поднимает pb + vite)         |
 | `pnpm test:e2e:ui`    | Playwright в UI-режиме                           |
-| `pnpm humantest`      | Сквозной сценарий пользователя (human-flow)      |
 | `pnpm format`         | `prettier --check .`                             |
 | `pnpm format:write`   | `prettier --write .`                             |
 | `pnpm start`          | Прод-запуск PocketBase на `0.0.0.0:8090`         |
 
-Порядок перед коммитом: `pnpm lint && pnpm typecheck && pnpm build`.
+Перед коммитом: `pnpm build` — он сам запускает все тесты, lint, typecheck и сборку.
 
 `pnpm build` обязателен: `typecheck` гоняет корневой `tsconfig.json` через `tsc --noEmit`, а `build` — `tsc -b` по project references (`tsconfig.app.json`). Опции в них не совпадают, и `build` находит ошибки, которые `typecheck` пропускает.
 
@@ -237,13 +237,13 @@ pb_migrations/        # JS-миграции схемы PocketBase (91 файл)
 
 - 119 файлов, ~1480 тестов; файлы рядом с кодом: `*.test.ts`, `*.test.tsx`
 - Setup-файл `src/test-setup.ts` импортирует `@testing-library/jest-dom` и мокает `window.matchMedia`
-- Запуск: `pnpm test` или `pnpm test:watch`
+- Запуск: `pnpm test:unit` или `pnpm test:watch`
 
 **E2E** — Playwright:
 
 - 13 сценариев в `e2e/specs/`: авторизация, счета и их создание, оплаты, переносы, файлы, архив, права, поиск и фильтры, уведомления, админка, расчётные счета, сквозной сценарий пользователя
 - `playwright.config.ts` сам поднимает PocketBase (`pnpm pb`) и Vite (`pnpm dev`) перед прогоном
-- Запуск: `pnpm test:e2e` (обычный), `pnpm test:e2e:ui` (интерактивный), `pnpm humantest` (сквозной сценарий)
+- Запуск: `pnpm test:e2e` (обычный), `pnpm test:e2e:ui` (интерактивный); сквозной сценарий входит в общий прогон
 
 ---
 
