@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
+  Badge,
   Paper,
   Title,
   Group,
@@ -23,9 +24,9 @@ import {
 import { useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
 import { useDatePinned } from '@/shared/context/DatePinnedContext';
 import { InvoiceTable } from '@/features/invoices/ui/invoice-table/InvoiceTable';
-import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 import { formatAmountRub } from '@/shared/utils/format-currency';
-import { matchesInvoiceFilter } from '@/features/invoices/utils/invoice-filter';
+import { pluralCount } from '@/shared/utils/plural-ru';
+import { filterObjectInvoices } from '@/features/invoices/ui/invoice-section/invoice-section-utils';
 import type { InvoiceFilterType } from '@/features/invoices/utils/invoice-filter';
 import type {
   IInvoice,
@@ -43,6 +44,7 @@ interface InvoiceObjectBlockProps {
   date: string;
   highlightedIds: string[];
   hasSearch: boolean;
+  searchText: string;
   draftObjectId: string | null;
   permissions: { canCreate: boolean };
   accountingObjects: IAccountingObject[];
@@ -63,6 +65,7 @@ export function InvoiceObjectBlock({
   date,
   highlightedIds,
   hasSearch,
+  searchText,
   draftObjectId,
   permissions,
   accountingObjects,
@@ -74,16 +77,31 @@ export function InvoiceObjectBlock({
   onPrint,
   onExport,
 }: InvoiceObjectBlockProps) {
-  const objInvoices = useMemo(() => {
-    if (!invoices) return [];
-    return invoices
-      .filter((i) => normalizeRelationId(i.accounting_object_id) === obj.id)
-      .filter((i) => matchesInvoiceFilter(i, paymentMarks, activeFilters))
-      .filter((i) => !hasSearch || highlightedIds.includes(i.id));
-  }, [invoices, paymentMarks, activeFilters, obj.id, hasSearch, highlightedIds]);
+  const objInvoices = useMemo(
+    () =>
+      filterObjectInvoices(
+        invoices,
+        obj.id,
+        paymentMarks,
+        activeFilters,
+        hasSearch,
+        highlightedIds,
+      ),
+    [invoices, paymentMarks, activeFilters, obj.id, hasSearch, highlightedIds],
+  );
+  const matchCount = objInvoices.length;
+
+  // Локальное раскрытие блока в поиске не пишет в localStorage, чтобы не стирать
+  // сохранённые группы пользователя. Override привязан к тексту поиска и
+  // сбрасывается сам при смене запроса.
+  const [searchExpanded, setSearchExpanded] = useState<{
+    searchText: string;
+    expanded: boolean;
+  } | null>(null);
+  const activeSearchExpanded =
+    searchExpanded?.searchText === searchText ? searchExpanded.expanded : null;
 
   const { isCollapsed, toggle } = useCollapsedObjects();
-  const collapsed = isCollapsed(obj.id);
 
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
@@ -92,6 +110,25 @@ export function InvoiceObjectBlock({
 
   const isDraftOpen = draftObjectId === obj.id;
   const hasDraftElsewhere = draftObjectId !== null && draftObjectId !== obj.id;
+
+  const isSearchEmpty = hasSearch && matchCount === 0;
+  const collapsed = isDraftOpen
+    ? false
+    : hasSearch
+      ? activeSearchExpanded === null
+        ? matchCount === 0
+        : !activeSearchExpanded
+      : isCollapsed(obj.id);
+
+  // Клик по шапке: в поиске раскрывает/сворачивает только этот блок, вне поиска
+  // переключает сохранённую группу.
+  const handleHeaderClick = () => {
+    if (hasSearch) {
+      setSearchExpanded({ searchText, expanded: collapsed });
+      return;
+    }
+    toggle(obj.id);
+  };
 
   const totalAmount = useMemo(() => {
     return objInvoices.reduce((sum, inv) => {
@@ -126,12 +163,23 @@ export function InvoiceObjectBlock({
           border: '1px solid var(--mantine-color-gray-3)',
           borderRadius: 'var(--mantine-radius-sm)',
           padding: 'var(--mantine-spacing-xs)',
+          opacity: isSearchEmpty ? 0.55 : 1,
+          transition: 'opacity 150ms ease',
         }}
-        onClick={() => toggle(obj.id)}
+        onClick={handleHeaderClick}
       >
         {collapsed ? <IconChevronRight size={18} /> : <IconChevronDown size={18} />}
-        <Title order={5}>{obj.name}</Title>
-        {onPrint && !isMobile && (
+        <Title order={5} c={isSearchEmpty ? 'dimmed' : undefined}>
+          {obj.name}
+        </Title>
+        {hasSearch && (
+          <Badge size="sm" variant="light" color={isSearchEmpty ? 'gray' : 'blue'}>
+            {isSearchEmpty
+              ? 'Нет совпадений'
+              : pluralCount(matchCount, ['совпадение', 'совпадения', 'совпадений'])}
+          </Badge>
+        )}
+        {onPrint && !isMobile && !isSearchEmpty && (
           <Tooltip label="Печать">
             <ActionIcon
               size="sm"
@@ -146,7 +194,7 @@ export function InvoiceObjectBlock({
             </ActionIcon>
           </Tooltip>
         )}
-        {onExport && (
+        {onExport && !isSearchEmpty && (
           <Tooltip label="Экспорт в Excel">
             <ActionIcon
               size="sm"

@@ -1,4 +1,7 @@
-import type { IInvoice } from '@/shared/types';
+import type { IInvoice, IPaymentMark } from '@/shared/types';
+import { matchesInvoiceFilter } from '@/features/invoices/utils/invoice-filter';
+import type { InvoiceFilterType } from '@/features/invoices/utils/invoice-filter';
+import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
 
 /** Удаляет невидимые символы-разделители и схлопывает пробельные последовательности. */
 export function stripInvisible(value: string): string {
@@ -7,6 +10,25 @@ export function stripInvisible(value: string): string {
     .replace(/[\u00a0\u2000-\u200f\u2028-\u202f\u205f\u3000\ufeff]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Счета объекта с учётом активных фильтров и поисковой подсветки:
+ * при поиске остаются только счета, совпавшие с запросом.
+ */
+export function filterObjectInvoices(
+  invoices: IInvoice[] | undefined,
+  objectId: string,
+  paymentMarks: IPaymentMark[] | undefined,
+  activeFilters: InvoiceFilterType[],
+  hasSearch: boolean,
+  highlightedIds: string[],
+): IInvoice[] {
+  if (!invoices) return [];
+  return invoices
+    .filter((invoice) => normalizeRelationId(invoice.accounting_object_id) === objectId)
+    .filter((invoice) => matchesInvoiceFilter(invoice, paymentMarks, activeFilters))
+    .filter((invoice) => !hasSearch || highlightedIds.includes(invoice.id));
 }
 
 /**

@@ -658,7 +658,7 @@ describe('InvoiceSection', () => {
       expectAllText('ООО "Поставщик Б"', false);
     });
 
-    it('при активном поиске принудительно разворачивает все, включая скрытые объекты', async () => {
+    it('при активном поиске раскрывает секцию скрытых объектов с совпадениями', async () => {
       state.searchText = 'ООО';
       setupHandlers({ objects: [accObj1, hiddenAccObj2] });
 
@@ -670,6 +670,67 @@ describe('InvoiceSection', () => {
       );
       expectAllText('ООО "Поставщик Б"', true);
       expectAllText('ООО "Контрагент А"', true);
+    });
+  });
+
+  describe('поиск по текущему дню', () => {
+    it('сворачивает объект без совпадений до шапки с пометкой', async () => {
+      state.searchText = 'Контрагент';
+      setupHandlers();
+      await renderLoaded();
+      expectAllText('ООО "Контрагент А"', true);
+      expect(screen.queryByText('ООО "Поставщик Б"')).not.toBeInTheDocument();
+      const emptyHeader = screen.getByText('Капитальные вложения').parentElement!;
+      expect(within(emptyHeader).getByText('Нет совпадений')).toBeVisible();
+      expect(screen.getByText('1 совпадение')).toBeVisible();
+    });
+
+    it('раскрывает объект без совпадений по клику, чтобы можно было добавить счёт', async () => {
+      const user = userEvent.setup();
+      state.searchText = 'Контрагент';
+      setupHandlers();
+      await renderLoaded();
+      const header = screen.getByText('Капитальные вложения').parentElement!;
+      const block = header.closest('.mantine-Paper-root') as HTMLElement;
+      expect(within(block).getByText('Нет счетов на эту дату')).not.toBeVisible();
+      await user.click(header);
+      await waitFor(() => {
+        expect(within(block).getByText('Нет счетов на эту дату')).toBeVisible();
+      });
+      await user.click(header);
+      await waitFor(() => {
+        expect(within(block).getByText('Нет счетов на эту дату')).not.toBeVisible();
+      });
+    });
+
+    it('не стирает сохранённое состояние сворачивания при поиске', async () => {
+      localStorage.setItem('collapsed-objects:org1', JSON.stringify(['ao1']));
+      state.searchText = 'ООО';
+      setupHandlers();
+      await renderLoaded();
+      expectAllText('ООО "Контрагент А"', true);
+      expect(JSON.parse(localStorage.getItem('collapsed-objects:org1') ?? 'null')).toEqual(['ao1']);
+    });
+
+    it('не раскрывает секцию скрытых объектов без совпадений', async () => {
+      state.searchText = 'Контрагент';
+      setupHandlers({ objects: [accObj1, { ...accObj2, is_active: false }] });
+      await renderLoaded();
+      expect(screen.getByRole('button', { name: 'Развернуть объекты без счетов' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+    });
+
+    it('показывает шапки всех объектов, когда совпадений нет', async () => {
+      state.searchText = 'нет-такого';
+      setupHandlers();
+      await renderLoaded();
+      expect(screen.getByText('Основная деятельность')).toBeVisible();
+      expect(screen.getByText('Капитальные вложения')).toBeVisible();
+      expect(screen.queryByText('ООО "Контрагент А"')).not.toBeInTheDocument();
+      expect(screen.queryByText('ООО "Поставщик Б"')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Нет совпадений')).toHaveLength(2);
     });
   });
 });
