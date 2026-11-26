@@ -84,7 +84,17 @@ export function InlineRoleCellAssignmentRow({
                 setObjectsOpen((open) => !open);
               }}
             >
-              Объекты: {selectedCount}
+              Объекты:{' '}
+              <span
+                style={{
+                  display: 'inline-block',
+                  minWidth: '2ch',
+                  textAlign: 'right',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {selectedCount}
+              </span>
             </Button>
           </Popover.Target>
           <Popover.Dropdown>
