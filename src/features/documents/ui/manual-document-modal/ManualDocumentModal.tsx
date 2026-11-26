@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  Autocomplete,
   Button,
   Grid,
   Group,
@@ -12,10 +13,13 @@ import {
   TextInput,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
+import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { uploadDocumentFile } from '@/api/documents';
 import { FilesDropZone } from '@/shared/components/FilesDropZone';
 import { useCreateManualDocument, useOrgInvoices } from '@/features/documents/hooks/useDocuments';
+import { useOrgCounterparties } from '@/features/mail/hooks/useOrgCounterparties';
+import { rankCounterpartyMatches } from '@/features/mail/model/mail-counterparty-match';
 import {
   dateKeyToLocalDate,
   localDateToDateKey,
@@ -50,7 +54,7 @@ interface FormState {
 function initialForm(currentUserId: string | undefined): FormState {
   return {
     accountingObjectId: '',
-    paymentDate: todayDateKey(),
+    paymentDate: '',
     counterparty: '',
     purpose: '',
     contractNo: '',
@@ -73,9 +77,16 @@ export function ManualDocumentModal({
   const createDocument = useCreateManualDocument(organizationId);
   const queryClient = useQueryClient();
   const invoicesQuery = useOrgInvoices(opened ? organizationId : '');
+  const { counterpartyOptions } = useOrgCounterparties(organizationId, opened);
   const [form, setForm] = useState<FormState>(() => initialForm(currentUserId));
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [debouncedCounterparty] = useDebouncedValue(form.counterparty, 300);
+  const counterpartySuggestions = useMemo(() => {
+    const query = debouncedCounterparty.trim();
+    if (!query) return [];
+    return rankCounterpartyMatches(counterpartyOptions, query, 8);
+  }, [counterpartyOptions, debouncedCounterparty]);
 
   const canChooseResponsible = role === 'admin' || role === 'moderator';
 
@@ -222,10 +233,13 @@ export function ManualDocumentModal({
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, sm: 6 }}>
-            <TextInput
+            <Autocomplete
               label="Контрагент"
               value={form.counterparty}
-              onChange={(event) => patch({ counterparty: event.currentTarget.value })}
+              onChange={(value) => patch({ counterparty: value })}
+              data={counterpartySuggestions}
+              filter={({ options }) => options}
+              limit={8}
               required
             />
           </Grid.Col>

@@ -35,7 +35,7 @@ test.describe('Документы: ручное создание', () => {
     expect(document?.sync_locked).toBe(true);
     expect(Number(document?.seq)).toBeGreaterThan(0);
     expect(document?.organization_id).toBe(orgId);
-    expect(String(document?.payment_date).slice(0, 10)).toBe(todayIso());
+    expect(String(document?.payment_date ?? '')).toBe('');
     expect(Number(document?.amount)).toBe(1500);
   });
 

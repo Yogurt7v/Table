@@ -190,7 +190,10 @@ export function useDocsPageDerived({
             if (sortOrder === 'old') {
               return (a.created ?? '').localeCompare(b.created ?? '');
             }
-            return 0;
+            return (
+              (b.created ?? '').localeCompare(a.created ?? '') ||
+              (b.seq ?? 0) - (a.seq ?? 0)
+            );
           });
         const totalPages = Math.max(1, Math.ceil(objectDocuments.length / pageSize));
         const page = Math.min(pages[object.id] ?? 1, totalPages);
