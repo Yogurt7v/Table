@@ -41,6 +41,7 @@ export function DocumentCardModalHistory({ history, loading }: DocumentCardModal
       <Stack gap="xs">
         {history.map((record) => {
           const details = historyDetails(record.previous_data, record.type);
+          console.log(details);
           return (
             <Paper key={record.id} withBorder p="sm" radius="md">
               <Group justify="space-between" mb={4} align="flex-start" wrap="nowrap">

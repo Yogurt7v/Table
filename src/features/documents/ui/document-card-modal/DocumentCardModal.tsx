@@ -167,9 +167,9 @@ export function DocumentCardModal({
               loading={ctx.filesQuery.isLoading}
               canUpload={ctx.canUpload}
               canDeleteFile={ctx.canDeleteFile}
-              selectedFile={ctx.selectedFile}
+              selectedFiles={ctx.selectedFiles}
               uploading={ctx.uploadFile.isPending}
-              onSelectFile={ctx.setSelectedFile}
+              onFilesChange={ctx.setSelectedFiles}
               onRequestDelete={ctx.setFileToDelete}
               onUpload={ctx.handleUpload}
             />

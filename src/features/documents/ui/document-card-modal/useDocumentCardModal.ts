@@ -62,7 +62,7 @@ export function useDocumentCardModal({
   const [archiveOpened, setArchiveOpened] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<IDocumentFile | null>(null);
   const [commentToDelete, setCommentToDelete] = useState<IDocumentComment | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [commentText, setCommentText] = useState('');
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export function useDocumentCardModal({
     setEditing(false);
     setTab(initialTab);
     setReason('');
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setCommentText('');
   }, [document, initialTab]);
 
@@ -181,13 +181,30 @@ export function useDocumentCardModal({
   };
 
   const handleUpload = async () => {
-    if (!document || !selectedFile) return;
-    try {
-      await uploadFile.mutateAsync({ document, file: selectedFile });
-      setSelectedFile(null);
-      notifications.show({ color: 'green', message: 'Файл загружен' });
-    } catch {
-      notifications.show({ color: 'red', message: 'Не удалось загрузить файл' });
+    if (!document || selectedFiles.length === 0) return;
+    const failed: File[] = [];
+    let uploaded = 0;
+    for (const file of selectedFiles) {
+      try {
+        await uploadFile.mutateAsync({ document, file });
+        uploaded += 1;
+      } catch {
+        failed.push(file);
+      }
+    }
+    // Неудачные файлы остаются в очереди: их можно повторить, не выбирая заново.
+    setSelectedFiles(failed);
+    if (uploaded > 0) {
+      notifications.show({
+        color: 'green',
+        message: uploaded === 1 ? 'Файл загружен' : `Загружено файлов: ${uploaded}`,
+      });
+    }
+    if (failed.length > 0) {
+      notifications.show({
+        color: 'red',
+        message: `Не удалось загрузить файл: ${failed.map((file) => file.name).join(', ')}`,
+      });
     }
   };
 
@@ -285,8 +302,8 @@ export function useDocumentCardModal({
     setFileToDelete,
     commentToDelete,
     setCommentToDelete,
-    selectedFile,
-    setSelectedFile,
+    selectedFiles,
+    setSelectedFiles,
     commentText,
     setCommentText,
     isAdmin,

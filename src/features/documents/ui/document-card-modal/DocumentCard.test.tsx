@@ -231,4 +231,29 @@ describe('DocumentCardModal', () => {
     await waitFor(() => expect(api.useAddDocumentComment).toBeDefined());
     expect(api.useAddDocumentComment).toHaveBeenCalled();
   });
+
+  it('uploads every file selected in the files tab', async () => {
+    const queryClient = makeQueryClient();
+    const mutateAsync = vi.fn().mockResolvedValue({});
+    api.useUploadDocumentFile.mockReturnValue({ mutateAsync, isPending: false });
+    const user = userEvent.setup({ applyAccept: false });
+    renderModal({ role: 'admin' as OrgRole, currentUserId: 'u1' }, queryClient);
+
+    await user.click(screen.getByRole('tab', { name: 'Файлы' }));
+    // `document` в этом файле — фикстура документа, поэтому глобальный DOM берём явно.
+    const input = globalThis.document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) throw new Error('поле выбора файлов не найдено');
+    await user.upload(input, [
+      new File(['a'], 'a.pdf', { type: 'application/pdf' }),
+      new File(['b'], 'b.pdf', { type: 'application/pdf' }),
+    ]);
+
+    await user.click(screen.getByRole('button', { name: 'Загрузить (2)' }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
+    expect(mutateAsync.mock.calls.map(([vars]) => (vars as { file: File }).file.name)).toEqual([
+      'a.pdf',
+      'b.pdf',
+    ]);
+  });
 });

@@ -1,24 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  ActionIcon,
   Button,
-  FileButton,
   Grid,
   Group,
   Modal,
   NumberInput,
-  Paper,
   Select,
   Stack,
-  Text,
   Textarea,
   TextInput,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { notifications } from '@mantine/notifications';
-import { IconPaperclip, IconUpload, IconX } from '@tabler/icons-react';
 import { uploadDocumentFile } from '@/api/documents';
+import { FilesDropZone } from '@/shared/components/FilesDropZone';
 import { useCreateManualDocument, useOrgInvoices } from '@/features/documents/hooks/useDocuments';
 import {
   dateKeyToLocalDate,
@@ -279,57 +275,12 @@ export function ManualDocumentModal({
             />
           </Grid.Col>
           <Grid.Col span={12}>
-            <Stack gap="xs">
-              <Text size="sm" fw={500}>
-                Файлы
-              </Text>
-              <Group gap="sm">
-                <FileButton onChange={(files) => setSelectedFiles(files ?? [])} accept="*" multiple>
-                  {(props) => (
-                    <Button
-                      {...props}
-                      variant="light"
-                      leftSection={<IconUpload size={16} />}
-                      disabled={isSubmitting}
-                    >
-                      Выбрать файлы
-                    </Button>
-                  )}
-                </FileButton>
-                {selectedFiles.length > 0 && (
-                  <Text size="sm" c="dimmed">
-                    Выбрано: {selectedFiles.length}
-                  </Text>
-                )}
-              </Group>
-              {selectedFiles.length > 0 && (
-                <Stack gap={4}>
-                  {selectedFiles.map((file, index) => (
-                    <Paper key={`${file.name}-${index}`} withBorder px="sm" py={6}>
-                      <Group justify="space-between" gap="xs" wrap="nowrap">
-                        <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-                          <IconPaperclip size={14} />
-                          <Text size="sm" truncate="end">
-                            {file.name}
-                          </Text>
-                        </Group>
-                        <ActionIcon
-                          variant="subtle"
-                          color="gray"
-                          aria-label={`Убрать файл ${file.name}`}
-                          onClick={() =>
-                            setSelectedFiles((current) => current.filter((_, i) => i !== index))
-                          }
-                          disabled={isSubmitting}
-                        >
-                          <IconX size={14} />
-                        </ActionIcon>
-                      </Group>
-                    </Paper>
-                  ))}
-                </Stack>
-              )}
-            </Stack>
+            <FilesDropZone
+              files={selectedFiles}
+              onFilesChange={setSelectedFiles}
+              disabled={isSubmitting}
+              hint="Файлы будут загружены после создания документа"
+            />
           </Grid.Col>
         </Grid>
 

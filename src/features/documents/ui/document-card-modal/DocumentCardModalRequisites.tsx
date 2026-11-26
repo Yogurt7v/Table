@@ -99,6 +99,7 @@ export function DocumentCardModalRequisites({
 
       {/* Поля документа: правка ограничена правами текущей роли */}
       <Grid gutter="md">
+        {/* Ряд 1: Контрагент (6) + Счёт № (3) + Договор (3) = 12 */}
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <TextInput
             label="Контрагент"
@@ -114,15 +115,17 @@ export function DocumentCardModalRequisites({
             onChange={(event) => onPatch({ invoice_no: event.currentTarget.value })}
             readOnly={!editing || !canEdit}
           />
-          <Grid.Col span={{ base: 12, sm: 3 }}>
-            <TextInput
-              label="Договор"
-              value={form.contract_no}
-              onChange={(event) => onPatch({ contract_no: event.currentTarget.value })}
-              readOnly={!editing || !canEdit}
-            />
-          </Grid.Col>
         </Grid.Col>
+        <Grid.Col span={{ base: 12, sm: 3 }}>
+          <TextInput
+            label="Договор"
+            value={form.contract_no}
+            onChange={(event) => onPatch({ contract_no: event.currentTarget.value })}
+            readOnly={!editing || !canEdit}
+          />
+        </Grid.Col>
+
+        {/* Ряд 2: Объект (6) + Дата оплаты (3) + Сумма (3) = 12 */}
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <Select
             label="Объект"
@@ -153,6 +156,8 @@ export function DocumentCardModalRequisites({
             thousandSeparator=" "
           />
         </Grid.Col>
+
+        {/* Ряд 3: Ответственный (6) + Автор (6) = 12 */}
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <Select
             label="Ответственный"
@@ -165,6 +170,8 @@ export function DocumentCardModalRequisites({
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <TextInput label="Автор" value={document.created_by_name || '—'} readOnly />
         </Grid.Col>
+
+        {/* Ряд 4: Назначение на всю ширину */}
         <Grid.Col span={12}>
           <Textarea
             label="Назначение"

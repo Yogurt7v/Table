@@ -2,9 +2,7 @@ import {
   ActionIcon,
   Anchor,
   Badge,
-  Button,
   Center,
-  FileButton,
   Group,
   Loader,
   Paper,
@@ -13,8 +11,9 @@ import {
   ThemeIcon,
   Tooltip,
 } from '@mantine/core';
-import { IconFile, IconPaperclip, IconTrash, IconUpload, IconX } from '@tabler/icons-react';
+import { IconFile, IconPaperclip, IconTrash } from '@tabler/icons-react';
 import { getDocumentFileUrl } from '@/api/documents';
+import { FilesDropZone } from '@/shared/components/FilesDropZone';
 import type { IDocument, IDocumentFile } from '@/shared/types';
 
 /** Пропсы вкладки «Файлы». */
@@ -24,16 +23,16 @@ export interface DocumentCardModalFilesProps {
   loading: boolean;
   canUpload: boolean;
   canDeleteFile: (file: IDocumentFile) => boolean;
-  selectedFile: File | null;
+  selectedFiles: File[];
   uploading: boolean;
-  onSelectFile: (file: File | null) => void;
+  onFilesChange: (files: File[]) => void;
   onRequestDelete: (file: IDocumentFile) => void;
   onUpload: () => void;
 }
 
 /**
- * Вкладка «Файлы»: список файлов документа с удалением,
- * форма загрузки нового файла и пустое состояние.
+ * Вкладка «Файлы»: зона выбора и загрузки новых файлов,
+ * список файлов документа с удалением и пустое состояние.
  */
 export function DocumentCardModalFiles({
   document,
@@ -41,14 +40,24 @@ export function DocumentCardModalFiles({
   loading,
   canUpload,
   canDeleteFile,
-  selectedFile,
+  selectedFiles,
   uploading,
-  onSelectFile,
+  onFilesChange,
   onRequestDelete,
   onUpload,
 }: DocumentCardModalFilesProps) {
   return (
     <Stack gap="md">
+      {/* Зона выбора и загрузки: файлы уходят на сервер по кнопке «Загрузить» */}
+      {canUpload && (
+        <FilesDropZone
+          files={selectedFiles}
+          onFilesChange={onFilesChange}
+          onUpload={onUpload}
+          uploading={uploading}
+        />
+      )}
+
       {/* Список файлов или пустое состояние */}
       {loading ? (
         <Loader size="sm" />
@@ -111,44 +120,6 @@ export function DocumentCardModalFiles({
             </Group>
           </Paper>
         ))
-      )}
-
-      {/* Форма загрузки: выбор файла и кнопка «Загрузить» */}
-      {canUpload && (
-        <Paper withBorder p="md" radius="md">
-          <Stack gap="xs">
-            <FileButton onChange={onSelectFile}>
-              {(props) => (
-                <Button {...props} variant="default" leftSection={<IconUpload size={16} />}>
-                  Выбрать файл
-                </Button>
-              )}
-            </FileButton>
-            {selectedFile && (
-              <Group gap="xs" wrap="nowrap">
-                <Text size="sm" style={{ flex: 1, minWidth: 0 }} truncate>
-                  {selectedFile.name}
-                </Text>
-                <ActionIcon
-                  variant="subtle"
-                  color="red"
-                  aria-label="Снять выбор файла"
-                  onClick={() => onSelectFile(null)}
-                >
-                  <IconX size={16} />
-                </ActionIcon>
-              </Group>
-            )}
-            <Button
-              leftSection={<IconUpload size={16} />}
-              disabled={!selectedFile}
-              loading={uploading}
-              onClick={onUpload}
-            >
-              Загрузить
-            </Button>
-          </Stack>
-        </Paper>
       )}
     </Stack>
   );
