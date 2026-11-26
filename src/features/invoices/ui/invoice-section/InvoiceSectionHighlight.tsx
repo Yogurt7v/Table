@@ -4,7 +4,7 @@ import type { IAccountingObject, IInvoice } from '@/shared/types';
 import { useCollapsedObjects } from '@/shared/context/CollapsedObjectsContext';
 import { useInvoiceNavigation } from '@/shared/context/InvoiceNavigationContext';
 import { normalizeRelationId } from '@/shared/utils/normalize-invoice';
-import { flashHighlightRow } from './invoice-section-highlight';
+import { findVisibleHighlightEl, flashHighlightRow } from './invoice-section-highlight';
 
 export function AutoExpandOnHighlight({
   highlightedInvoiceId,
@@ -85,10 +85,9 @@ export function AutoExpandOnHighlight({
     // анимацию открытия объекта (Collapse). Иначе строка счёта может ещё
     // не быть отрисована в DOM при первом опросе.
     const startPolling = () => {
-      const selector = `[data-highlight-id="${CSS.escape(highlightedInvoiceId)}"]`;
       const startedAt = Date.now();
       pollIntervalRef.current = window.setInterval(() => {
-        const el = document.querySelector(selector);
+        const el = findVisibleHighlightEl(highlightedInvoiceId);
         if (el) {
           stopHighlightPolling();
           flashHighlightRow(highlightedInvoiceId);
