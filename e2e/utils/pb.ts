@@ -129,9 +129,17 @@ export async function ensureTestBaseData(): Promise<{ orgId: string; objectId: s
         role,
         objects: [objectId],
         can_create_invoices: role !== 'guest',
+        can_view_invoices: true,
+        can_view_documents: true,
       });
-    } else if (membership.role !== role) {
-      await pb.collection('organization_users').update(membership.id, { role });
+    } else {
+      const patch: Record<string, unknown> = {};
+      if (membership.role !== role) patch.role = role;
+      if (membership.can_view_invoices !== true) patch.can_view_invoices = true;
+      if (membership.can_view_documents !== true) patch.can_view_documents = true;
+      if (Object.keys(patch).length > 0) {
+        await pb.collection('organization_users').update(membership.id, patch);
+      }
     }
   }
 
