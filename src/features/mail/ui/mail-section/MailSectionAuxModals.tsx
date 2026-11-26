@@ -1,4 +1,4 @@
-import MailFilesModal from '@/features/mail/ui/files/MailFilesModal';
+import MailFilesDialog from '@/features/mail/ui/files/MailFilesDialog';
 import { MailHistoryModal } from '@/features/mail/ui/history/MailHistoryModal';
 import { MailThreadBuilder } from '@/features/mail/ui/thread/MailThreadBuilder';
 import { MailColumnSettingsModal } from '@/features/mail/ui/columns/MailColumnSettingsModal';
@@ -31,7 +31,7 @@ export function MailSectionAuxModals({
   return (
     <>
       {/* Файлы письма */}
-      <MailFilesModal
+      <MailFilesDialog
         mailId={files.filesFor}
         mailType={files.tab}
         mailLabel={files.labelFor(files.filesFor)}

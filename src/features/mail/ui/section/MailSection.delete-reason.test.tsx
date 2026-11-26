@@ -138,7 +138,7 @@ vi.mock('../table/MailTable', () => ({
 vi.mock('../filters/MailFilters', () => ({ MailFilters: () => null }));
 vi.mock('../search/MailSearchInput', () => ({ MailSearchInput: () => null }));
 vi.mock('../form/MailFormModal', () => ({ MailFormModal: () => null }));
-vi.mock('../files/MailFilesModal', () => ({ default: () => null }));
+vi.mock('../files/MailFilesDialog', () => ({ default: () => null }));
 vi.mock('../history/MailHistoryModal', () => ({ MailHistoryModal: () => null }));
 vi.mock('../thread/MailThreadBuilder', () => ({ MailThreadBuilder: () => null }));
 vi.mock('../columns/MailColumnSettingsModal', () => ({ MailColumnSettingsModal: () => null }));
