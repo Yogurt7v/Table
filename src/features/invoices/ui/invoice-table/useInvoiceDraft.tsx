@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { notifications } from '@mantine/notifications';
 import { useCreateInvoice } from '@/features/invoices/hooks/useCreateInvoice';
 import { useCreateInvoiceFile } from '@/features/invoices/hooks/useInvoiceFiles';
@@ -18,14 +18,29 @@ interface UseInvoiceDraftProps {
   orgId: string;
   objectId: string;
   date: string;
+  isDraftOpen: boolean;
   onDraftCancel: () => void;
   onOpenDraft?: (objectId: string) => void;
+}
+
+/** Форма черновика из копируемого счёта: оплата и файл в копию не переносятся. */
+function draftFromCopy(invoice: IInvoice): DraftInvoiceForm {
+  return {
+    ...createEmptyDraft(),
+    counterparty: invoice.counterparty,
+    purpose: invoice.purpose,
+    contract_no: invoice.contract_no,
+    invoice_no: invoice.invoice_no,
+    amount: invoice.amount,
+    comment: invoice.comment,
+  };
 }
 
 export function useInvoiceDraft({
   orgId,
   objectId,
   date,
+  isDraftOpen,
   onDraftCancel,
   onOpenDraft,
 }: UseInvoiceDraftProps) {
@@ -42,12 +57,26 @@ export function useInvoiceDraft({
     setDraftForm((prev) => ({ ...prev, ...patch }));
   };
 
+  // Форма живёт между открытиями черновика: при открытии заполняем её данными
+  // копируемого счёта или сбрасываем в пустую, иначе остаются прошлые значения.
+  useEffect(() => {
+    if (!isDraftOpen) return;
+    const source = copySourceRef.current;
+    copySourceRef.current = null;
+    setDraftForm(source ? draftFromCopy(source) : createEmptyDraft());
+  }, [isDraftOpen]);
+
   const handleCopy = useCallback(
     (invoice: IInvoice) => {
-      copySourceRef.current = invoice;
+      if (isDraftOpen) {
+        // Черновик уже открыт — эффект открытия не перезапустится, заполняем сразу.
+        setDraftForm(draftFromCopy(invoice));
+      } else {
+        copySourceRef.current = invoice;
+      }
       onOpenDraft?.(normalizeRelationId(invoice.accounting_object_id));
     },
-    [onOpenDraft],
+    [isDraftOpen, onOpenDraft],
   );
 
   const handleSaveDraft = async () => {

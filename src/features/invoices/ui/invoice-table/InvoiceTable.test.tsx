@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -163,5 +164,46 @@ describe('InvoiceTable — удаление счёта', () => {
     await user.click(screen.getByRole('button', { name: 'Удалить' }));
 
     await waitFor(() => expect(deleteInvoice).toHaveBeenCalledWith('abc123', 'частичная оплата'));
+  });
+});
+
+/** Повторяет связку InvoiceObjectBlock ↔ InvoiceSection: черновик открывается по objectId. */
+function CopyHarness({ invoices }: { invoices: IInvoice[] }) {
+  const [draftObjectId, setDraftObjectId] = useState<string | null>(null);
+  return (
+    <InvoiceTable
+      orgId="org1"
+      objectId="ao1"
+      date="2026-06-01"
+      invoices={invoices}
+      highlightedIds={[]}
+      isDraftOpen={draftObjectId === 'ao1'}
+      onOpenDraft={setDraftObjectId}
+      onCancelDraft={() => setDraftObjectId(null)}
+      accountingObjects={[]}
+      visibleColumns={[
+        'counterparty',
+        'purpose',
+        'contract_no',
+        'invoice_no',
+        'comment',
+        'actions',
+      ]}
+    />
+  );
+}
+
+describe('InvoiceTable — копирование счёта', () => {
+  it('открывает черновик с данными копируемого счёта', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CopyHarness invoices={[invoice('inv1')]} />);
+
+    await user.click(actionsButton());
+    await user.click(await screen.findByRole('menuitem', { name: 'Копировать' }));
+
+    expect((await screen.findAllByDisplayValue('ООО "Тест"')).length).toBeGreaterThan(0);
+    expect(screen.getAllByDisplayValue('Оплата работ').length).toBeGreaterThan(0);
+    expect(screen.getAllByDisplayValue('Д-1').length).toBeGreaterThan(0);
+    expect(screen.getAllByDisplayValue('СФ-001').length).toBeGreaterThan(0);
   });
 });

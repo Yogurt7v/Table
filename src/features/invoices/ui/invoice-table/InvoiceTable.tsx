@@ -121,6 +121,7 @@ export function InvoiceTable({
     orgId,
     objectId,
     date,
+    isDraftOpen,
     onDraftCancel: onCancelDraft,
     onOpenDraft,
   });
