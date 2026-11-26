@@ -93,8 +93,11 @@ export function MailTable({
                     style={{
                       overflow: 'hidden',
                       maxWidth: '100%',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitBoxOrient: 'vertical',
+                      WebkitLineClamp: 2,
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
                     }}
                   >
                     {column.header}

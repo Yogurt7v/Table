@@ -14,7 +14,10 @@ import { DatePickerInput } from '@mantine/dates';
 import { IconHistory } from '@tabler/icons-react';
 import type { DeliveryMethod, MailType } from '@/shared/types';
 import { useRef } from 'react';
-import { COMMENT_EMOJI_FONT_SIZE, MAIL_COMMENT_EMOJIS } from '@/features/mail/model/mail-comment-emojis';
+import {
+  COMMENT_EMOJI_FONT_SIZE,
+  MAIL_COMMENT_EMOJIS,
+} from '@/features/mail/model/mail-comment-emojis';
 import { dateKeyToLocalDate, localDateToDateKey } from '@/features/mail/model/mail-date';
 import {
   MAIL_COUNTERPARTY_FIELD_LABELS,
@@ -250,10 +253,7 @@ export function MailFormModalFields({
             overflow: 'hidden',
           }}
         >
-          <Group
-            gap="xs"
-            p="xs"
-          >
+          <Group gap="xs">
             {MAIL_COMMENT_EMOJIS.map(({ emoji, label }) => (
               <Button
                 key={emoji}
@@ -265,7 +265,11 @@ export function MailFormModalFields({
                 title={label}
                 aria-label={label}
               >
-                <span role="img" aria-label={label} style={{ fontSize: COMMENT_EMOJI_FONT_SIZE, lineHeight: 1 }}>
+                <span
+                  role="img"
+                  aria-label={label}
+                  style={{ fontSize: COMMENT_EMOJI_FONT_SIZE, lineHeight: 1 }}
+                >
                   {emoji}
                 </span>
               </Button>

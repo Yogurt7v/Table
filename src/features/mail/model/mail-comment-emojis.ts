@@ -14,11 +14,11 @@ export interface MailCommentEmoji {
 export const COMMENT_EMOJI_FONT_SIZE = '1.5rem';
 
 export const MAIL_COMMENT_EMOJIS: MailCommentEmoji[] = [
+  { emoji: '📌', label: 'Важно' },
   { emoji: '❗', label: 'Внимание' },
   { emoji: '❓', label: 'Вопрос' },
   { emoji: '✅', label: 'Сделано' },
-  { emoji: 'ℹ️', label: 'Инфо' },
   { emoji: '🚫', label: 'Неважно' },
+  { emoji: 'ℹ️', label: 'Инфо' },
   // { emoji: '🔴', label: 'Срочно' },
-  { emoji: '📌', label: 'Важно' },
 ];
