@@ -31,6 +31,7 @@ test.describe('Документы: создание', () => {
     const marker = uniqueMarker('ДокРуч');
     await loginViaUi(page, 'admin');
     await page.goto('http://localhost:5173/docs');
+    await expect(page.getByRole('button', { name: 'Добавить документ' })).toBeVisible();
     await page.getByRole('button', { name: 'Добавить документ' }).click();
 
     const modal = page.getByRole('dialog');

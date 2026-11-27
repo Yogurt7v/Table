@@ -84,7 +84,7 @@ export function useDocumentCardModal({
   const canEdit = !!document && !isBoss && (isAdmin || isResponsible) && !document.is_deleted;
   const canEditPaymentDate = canEdit && isAdmin;
   const canEditResponsible = canEdit && isAdmin;
-  const canMove = !!document && role !== 'guest' && !document.is_deleted;
+  const canMove = !!document && !isBoss && role !== 'guest' && !document.is_deleted;
   const canToggleProvided = canEdit && isAdmin;
   const canToggleConfirmed = canEdit && isAdmin;
   const canArchive = !!document && isAdmin && !document.is_deleted;

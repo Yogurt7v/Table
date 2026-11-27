@@ -83,6 +83,9 @@ test.describe('Документы: отмена оплаты', () => {
 
     await modal.getByRole('button', { name: 'Возобновить оплату' }).click();
     await expect(page.getByText('Оплата возобновлена')).toBeVisible();
-    await expect(modal.getByText('Оплата отменена')).toHaveCount(0);
+    await expect(modal.getByRole('button', { name: 'Отменить оплату' })).toBeVisible();
+    await expect(
+      modal.locator('.mantine-Badge-root').filter({ hasText: /^Оплата отменена$/ }),
+    ).toHaveCount(0);
   });
 });
