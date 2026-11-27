@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MantineProvider } from '@mantine/core';
 import { MemoryRouter } from 'react-router-dom';
 import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { AccountList } from './AccountList';
 import { bankAcc1, bankAcc2 } from '@/mocks/seed';
 import type { IAccountWithBalance } from '@/shared/types';
@@ -93,6 +94,7 @@ function renderAccountList(
 
 describe('AccountList', () => {
   beforeEach(() => {
+    localStorage.clear();
     mockHooks.setRole('admin');
   });
 
@@ -112,6 +114,29 @@ describe('AccountList', () => {
     renderAccountList(undefined, true);
 
     expect(screen.getAllByText('Расчётные счета').length).toBeGreaterThan(0);
+  });
+
+  it('сворачивает секцию по клику на заголовок и сохраняет выбор', async () => {
+    const user = userEvent.setup();
+    renderAccountList(accounts);
+
+    const header = screen.getAllByRole('button', { name: 'Расчётные счета' })[0]!;
+    expect(header).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(header);
+
+    expect(header).toHaveAttribute('aria-expanded', 'false');
+    expect(localStorage.getItem('account-list-collapsed')).toBe('true');
+  });
+
+  it('восстанавливает свёрнутое состояние из localStorage', () => {
+    localStorage.setItem('account-list-collapsed', 'true');
+    renderAccountList(accounts);
+
+    for (const header of screen.getAllByRole('button', { name: 'Расчётные счета' })) {
+      expect(header).toHaveAttribute('aria-expanded', 'false');
+    }
+    expect(document.getElementById('account-list-desktop')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('hidden for guest role', async () => {

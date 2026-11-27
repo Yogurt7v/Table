@@ -10,8 +10,16 @@ import {
   Skeleton,
   Box,
   Divider,
+  Collapse,
+  UnstyledButton,
 } from '@mantine/core';
-import { IconPencil, IconCheck, IconX } from '@tabler/icons-react';
+import {
+  IconPencil,
+  IconCheck,
+  IconX,
+  IconChevronDown,
+  IconChevronRight,
+} from '@tabler/icons-react';
 import { useUpdateBalance } from '@/features/accounts/hooks/useBankAccounts';
 import type { IAccountWithBalance } from '@/shared/types';
 import {
@@ -26,9 +34,18 @@ interface AccountListMobileProps {
   loading: boolean;
   date: string;
   canEdit: boolean;
+  collapsed: boolean;
+  onToggle: () => void;
 }
 
-export function AccountListMobile({ accounts, loading, date, canEdit }: AccountListMobileProps) {
+export function AccountListMobile({
+  accounts,
+  loading,
+  date,
+  canEdit,
+  collapsed,
+  onToggle,
+}: AccountListMobileProps) {
   const updateBalance = useUpdateBalance();
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -66,138 +83,151 @@ export function AccountListMobile({ accounts, loading, date, canEdit }: AccountL
         boxShadow: 'var(--mantine-shadow-sm)',
       }}
     >
-      <Title order={6} mb="xs" px="xs">
-        Расчётные счета
-      </Title>
-      {loading ? (
-        <Stack gap="xs">
-          <Skeleton height={44} radius="sm" />
-          <Skeleton height={44} radius="sm" />
-        </Stack>
-      ) : (
-        <Stack gap={2}>
-          {accounts?.map((item) => (
-            <Box
-              key={item.account.id}
-              py="sm"
-              px="xs"
-              style={{
-                borderRadius: 8,
-                transition: 'background-color 0.15s',
-                cursor: canEdit ? 'pointer' : 'default',
-                ...(editingId === item.account.id && {
-                  backgroundColor: 'var(--mantine-color-blue-light)',
-                  boxShadow: 'inset 0 0 0 1px var(--mantine-color-blue-3)',
-                }),
-              }}
-            >
-              {editingId === item.account.id ? (
-                <Group gap="xs" wrap="nowrap">
-                  <TextInput
-                    ref={inputRef}
-                    size="xs"
-                    value={formatForDisplay(editInput)}
-                    onChange={(e) => {
-                      const pos = e.target.selectionStart ?? editInput.length;
-                      const raw = e.currentTarget.value;
-                      const oldRaw = editInput;
-                      const cleaned = cleanInput(raw);
-                      if (cleaned === oldRaw) {
-                        requestAnimationFrame(() => {
-                          inputRef.current?.setSelectionRange(pos, pos);
-                        });
-                        return;
-                      }
-
-                      const oldFormatted = formatForDisplay(oldRaw);
-                      const newFormatted = formatForDisplay(cleaned);
-                      let nonSpace = 0;
-                      for (let i = 0; i < oldFormatted.length && i < pos; i++) {
-                        if (oldFormatted[i] !== ' ') nonSpace++;
-                      }
-
-                      setEditInput(cleaned);
-
-                      requestAnimationFrame(() => {
-                        if (!inputRef.current) return;
-                        let count = 0;
-                        let newPos = newFormatted.length;
-                        for (let i = 0; i < newFormatted.length; i++) {
-                          if (newFormatted[i] !== ' ') count++;
-                          if (count > nonSpace) {
-                            newPos = i;
-                            break;
-                          }
+      <UnstyledButton
+        onClick={onToggle}
+        aria-expanded={!collapsed}
+        aria-controls="account-list-mobile"
+        w="100%"
+        px="xs"
+        py={4}
+        mb="xs"
+      >
+        <Group gap={4} wrap="nowrap">
+          {collapsed ? <IconChevronRight size={18} /> : <IconChevronDown size={18} />}
+          <Title order={6}>Расчётные счета</Title>
+        </Group>
+      </UnstyledButton>
+      <Collapse in={!collapsed} id="account-list-mobile">
+        {loading ? (
+          <Stack gap="xs">
+            <Skeleton height={44} radius="sm" />
+            <Skeleton height={44} radius="sm" />
+          </Stack>
+        ) : (
+          <Stack gap={2}>
+            {accounts?.map((item) => (
+              <Box
+                key={item.account.id}
+                py="sm"
+                px="xs"
+                style={{
+                  borderRadius: 8,
+                  transition: 'background-color 0.15s',
+                  cursor: canEdit ? 'pointer' : 'default',
+                  ...(editingId === item.account.id && {
+                    backgroundColor: 'var(--mantine-color-blue-light)',
+                    boxShadow: 'inset 0 0 0 1px var(--mantine-color-blue-3)',
+                  }),
+                }}
+              >
+                {editingId === item.account.id ? (
+                  <Group gap="xs" wrap="nowrap">
+                    <TextInput
+                      ref={inputRef}
+                      size="xs"
+                      value={formatForDisplay(editInput)}
+                      onChange={(e) => {
+                        const pos = e.target.selectionStart ?? editInput.length;
+                        const raw = e.currentTarget.value;
+                        const oldRaw = editInput;
+                        const cleaned = cleanInput(raw);
+                        if (cleaned === oldRaw) {
+                          requestAnimationFrame(() => {
+                            inputRef.current?.setSelectionRange(pos, pos);
+                          });
+                          return;
                         }
-                        inputRef.current.setSelectionRange(newPos, newPos);
-                      });
-                    }}
-                    styles={{ input: { textAlign: 'right' } }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') saveEdit();
-                      if (e.key === 'Escape') cancelEdit();
-                    }}
-                  />
-                  <ActionIcon
-                    size="sm"
-                    color="green"
-                    variant="light"
-                    aria-label="Сохранить остаток"
-                    onClick={saveEdit}
-                    loading={updateBalance.isPending}
-                  >
-                    <IconCheck size={14} />
-                  </ActionIcon>
-                  <ActionIcon
-                    size="sm"
-                    color="gray"
-                    variant="subtle"
-                    aria-label="Отмена"
-                    onClick={cancelEdit}
-                  >
-                    <IconX size={14} />
-                  </ActionIcon>
-                </Group>
-              ) : (
-                <Group justify="space-between" wrap="nowrap" gap="xs">
-                  <Text size="sm" tt="uppercase" c="dimmed" truncate>
-                    {item.account.account_number}
-                  </Text>
-                  <Group gap={4} wrap="nowrap" justify="flex-end" style={{ flexShrink: 0 }}>
-                    <Text
+
+                        const oldFormatted = formatForDisplay(oldRaw);
+                        const newFormatted = formatForDisplay(cleaned);
+                        let nonSpace = 0;
+                        for (let i = 0; i < oldFormatted.length && i < pos; i++) {
+                          if (oldFormatted[i] !== ' ') nonSpace++;
+                        }
+
+                        setEditInput(cleaned);
+
+                        requestAnimationFrame(() => {
+                          if (!inputRef.current) return;
+                          let count = 0;
+                          let newPos = newFormatted.length;
+                          for (let i = 0; i < newFormatted.length; i++) {
+                            if (newFormatted[i] !== ' ') count++;
+                            if (count > nonSpace) {
+                              newPos = i;
+                              break;
+                            }
+                          }
+                          inputRef.current.setSelectionRange(newPos, newPos);
+                        });
+                      }}
+                      styles={{ input: { textAlign: 'right' } }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') saveEdit();
+                        if (e.key === 'Escape') cancelEdit();
+                      }}
+                    />
+                    <ActionIcon
                       size="sm"
-                      fw={700}
-                      style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}
+                      color="green"
+                      variant="light"
+                      aria-label="Сохранить остаток"
+                      onClick={saveEdit}
+                      loading={updateBalance.isPending}
                     >
-                      {toFixed2(item.balance)}
-                    </Text>
-                    {canEdit && (
-                      <ActionIcon
-                        size="sm"
-                        color="blue"
-                        variant="subtle"
-                        aria-label="Редактировать остаток"
-                        onClick={() => startEdit(item)}
-                      >
-                        <IconPencil size={14} />
-                      </ActionIcon>
-                    )}
+                      <IconCheck size={14} />
+                    </ActionIcon>
+                    <ActionIcon
+                      size="sm"
+                      color="gray"
+                      variant="subtle"
+                      aria-label="Отмена"
+                      onClick={cancelEdit}
+                    >
+                      <IconX size={14} />
+                    </ActionIcon>
                   </Group>
-                </Group>
-              )}
+                ) : (
+                  <Group justify="space-between" wrap="nowrap" gap="xs">
+                    <Text size="sm" tt="uppercase" c="dimmed" truncate>
+                      {item.account.account_number}
+                    </Text>
+                    <Group gap={4} wrap="nowrap" justify="flex-end" style={{ flexShrink: 0 }}>
+                      <Text
+                        size="sm"
+                        fw={700}
+                        style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}
+                      >
+                        {toFixed2(item.balance)}
+                      </Text>
+                      {canEdit && (
+                        <ActionIcon
+                          size="sm"
+                          color="blue"
+                          variant="subtle"
+                          aria-label="Редактировать остаток"
+                          onClick={() => startEdit(item)}
+                        >
+                          <IconPencil size={14} />
+                        </ActionIcon>
+                      )}
+                    </Group>
+                  </Group>
+                )}
+              </Box>
+            ))}
+            <Divider my={4} />
+            <Box ta="right" py="xs" px="xs">
+              <Group justify="space-between" gap="xs" wrap="nowrap">
+                <Text fw={400}>ИТОГО</Text>
+                <Text fw={400} style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                  {toFixed2(total)}
+                </Text>
+              </Group>
             </Box>
-          ))}
-          <Divider my={4} />
-          <Box ta="right" py="xs" px="xs">
-            <Group justify="space-between" gap="xs" wrap="nowrap">
-              <Text fw={400}>ИТОГО</Text>
-              <Text fw={400} style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                {toFixed2(total)}
-              </Text>
-            </Group>
-          </Box>
-        </Stack>
-      )}
+          </Stack>
+        )}
+      </Collapse>
     </Paper>
   );
 }
