@@ -189,7 +189,7 @@ describe('DocumentCardModal', () => {
     expect(screen.getByText('Документ №5')).toBeInTheDocument();
   });
 
-  it('boss cannot see edit controls', async () => {
+  it('boss can change accounting object but cannot edit other controls', async () => {
     const queryClient = makeQueryClient();
     const user = userEvent.setup();
     renderModal({ role: 'boss' as OrgRole, currentUserId: 'u9' }, queryClient);
@@ -197,7 +197,7 @@ describe('DocumentCardModal', () => {
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Документ' })).toBeInTheDocument());
     await user.click(screen.getByRole('tab', { name: 'Документ' }));
 
-    expect(screen.queryByRole('button', { name: 'Редактировать' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Редактировать' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'В архив' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Новый комментарий')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Добавить комментарий' })).not.toBeInTheDocument();
@@ -255,5 +255,28 @@ describe('DocumentCardModal', () => {
       'a.pdf',
       'b.pdf',
     ]);
+  });
+
+  it('allows any role to change accounting object and save it', async () => {
+    const queryClient = makeQueryClient();
+    const moveAsync = vi.fn().mockResolvedValue({ ...document, accounting_object_id: 'obj2' });
+    api.useMoveDocument.mockReturnValue({ mutateAsync: moveAsync, isPending: false });
+    const user = userEvent.setup();
+    renderModal({ role: 'user' as OrgRole, currentUserId: 'u9' }, queryClient);
+
+    await user.click(screen.getByRole('button', { name: 'Редактировать' }));
+    const objectInput = screen.getByRole('textbox', { name: 'Объект' });
+    await user.click(objectInput);
+    await user.click(await screen.findByRole('option', { name: 'Объект 2' }));
+    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+
+    await waitFor(() => expect(moveAsync).toHaveBeenCalledTimes(1));
+    expect(moveAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        document: expect.objectContaining({ id: 'doc1' }),
+        accountingObjectId: 'obj2',
+        labels: { fromObjectName: 'Объект 1', toObjectName: 'Объект 2' },
+      }),
+    );
   });
 });

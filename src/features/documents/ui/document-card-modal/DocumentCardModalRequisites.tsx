@@ -65,7 +65,7 @@ export function DocumentCardModalRequisites({
         <Text fw={600} size="sm" c="dimmed" tt="uppercase">
           Реквизиты
         </Text>
-        {canEdit && !editing && (
+        {(canEdit || canMove) && !editing && (
           <Button
             variant="light"
             size="xs"

@@ -78,14 +78,13 @@ export function useDocumentCardModal({
     setCommentText('');
   }, [document, initialTab]);
 
-  // Права: босс только читает, ответственный правит свой документ, админ/модератор — всё
   const isAdmin = role === 'admin' || role === 'moderator';
   const isBoss = role === 'boss';
   const isResponsible = !!document && document.responsible_id === currentUserId;
   const canEdit = !!document && !isBoss && (isAdmin || isResponsible) && !document.is_deleted;
   const canEditPaymentDate = canEdit && isAdmin;
   const canEditResponsible = canEdit && isAdmin;
-  const canMove = canEdit;
+  const canMove = !!document && role !== 'guest' && !document.is_deleted;
   const canToggleProvided = canEdit && isAdmin;
   const canToggleConfirmed = canEdit && isAdmin;
   const canArchive = !!document && isAdmin && !document.is_deleted;
@@ -124,43 +123,68 @@ export function useDocumentCardModal({
     if (!document || !form) return;
     const objectChanged = form.accounting_object_id !== document.accounting_object_id;
     const data: Partial<IDocument> = {};
+    const changes: Array<{ field: string; from: unknown; to: unknown; from_label?: string; to_label?: string }> = [];
 
     if (canEdit) {
-      if (form.counterparty !== document.counterparty) data.counterparty = form.counterparty;
-      if (form.purpose !== document.purpose) data.purpose = form.purpose;
-      if (form.contract_no !== document.contract_no) data.contract_no = form.contract_no;
-      if (form.invoice_no !== document.invoice_no) data.invoice_no = form.invoice_no;
-      if (form.amount !== document.amount) data.amount = form.amount;
+      if (form.counterparty !== document.counterparty) {
+        data.counterparty = form.counterparty;
+        changes.push({ field: 'counterparty', from: document.counterparty, to: form.counterparty });
+      }
+      if (form.purpose !== document.purpose) {
+        data.purpose = form.purpose;
+        changes.push({ field: 'purpose', from: document.purpose, to: form.purpose });
+      }
+      if (form.contract_no !== document.contract_no) {
+        data.contract_no = form.contract_no;
+        changes.push({ field: 'contract_no', from: document.contract_no, to: form.contract_no });
+      }
+      if (form.invoice_no !== document.invoice_no) {
+        data.invoice_no = form.invoice_no;
+        changes.push({ field: 'invoice_no', from: document.invoice_no, to: form.invoice_no });
+      }
+      if (form.amount !== document.amount) {
+        data.amount = form.amount;
+        changes.push({ field: 'amount', from: document.amount, to: form.amount });
+      }
     }
     if (canEditPaymentDate && form.payment_date !== document.payment_date) {
       data.payment_date = form.payment_date;
+      changes.push({ field: 'payment_date', from: document.payment_date, to: form.payment_date });
     }
     if (canEditResponsible && form.responsible_id !== document.responsible_id) {
       data.responsible_id = form.responsible_id;
       const selected = users.find((user) => user.id === form.responsible_id);
-      data.responsible_name = selected?.name || selected?.login || selected?.email || '';
+      const toLabel = selected?.name || selected?.login || selected?.email || '';
+      data.responsible_name = toLabel;
+      changes.push({
+        field: 'responsible_id',
+        from: document.responsible_id,
+        to: form.responsible_id,
+        from_label: document.responsible_name || '',
+        to_label: toLabel,
+      });
     }
 
     try {
       if (objectChanged) {
+        const fromObject = objects.find((o) => o.id === document.accounting_object_id);
+        const toObject = objects.find((o) => o.id === form.accounting_object_id);
         await moveDocument.mutateAsync({
           document,
           accountingObjectId: form.accounting_object_id,
+          labels: { fromObjectName: fromObject?.name, toObjectName: toObject?.name },
         });
       }
       if (Object.keys(data).length > 0) {
+        const type = changes.length === 1 && changes[0]?.field === 'responsible_id'
+          ? 'responsible_changed'
+          : 'document_updated';
+        const current = objectChanged ? { ...document, accounting_object_id: form.accounting_object_id } : document;
         await updateDocument.mutateAsync({
-          document,
+          document: current,
           data,
-          previousData: {
-            payment_date: document.payment_date,
-            counterparty: document.counterparty,
-            purpose: document.purpose,
-            contract_no: document.contract_no,
-            invoice_no: document.invoice_no,
-            amount: document.amount,
-            responsible_id: document.responsible_id,
-          },
+          type,
+          previousData: { v: 2, source: 'ui', changes, meta: {} },
         });
       }
       setEditing(false);
