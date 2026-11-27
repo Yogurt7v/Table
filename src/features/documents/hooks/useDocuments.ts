@@ -258,8 +258,11 @@ export function useRestoreDocument(organizationId: string) {
 export function useMoveDocument(organizationId: string) {
   const invalidate = useInvalidateDocuments(organizationId);
   return useMutation({
-    mutationFn: (vars: { document: IDocument; accountingObjectId: string }) =>
-      moveDocument(vars.document, vars.accountingObjectId),
+    mutationFn: (vars: {
+      document: IDocument;
+      accountingObjectId: string;
+      labels?: { fromObjectName?: string; toObjectName?: string };
+    }) => moveDocument(vars.document, vars.accountingObjectId, vars.labels),
     onSuccess: invalidate,
   });
 }

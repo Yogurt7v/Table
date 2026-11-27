@@ -280,6 +280,7 @@ describe('InvoiceHistoryModal', () => {
   });
 
   it('shows error state when loading fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.mocked(getInvoiceHistoryChain).mockRejectedValue(new Error('401 Unauthorized'));
 
     renderWithProviders(
@@ -293,6 +294,9 @@ describe('InvoiceHistoryModal', () => {
     await waitFor(() => {
       expect(screen.getByText(/401 Unauthorized/)).toBeInTheDocument();
     });
+
+    expect(consoleError).toHaveBeenCalledWith('[InvoiceHistoryModal]', expect.any(Error));
+    consoleError.mockRestore();
   });
 
   it('shows copy created event', async () => {

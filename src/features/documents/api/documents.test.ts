@@ -344,7 +344,11 @@ describe('uploadDocumentFile', () => {
     const histories = h.stub.creates.get('document_history')!;
     const history = histories[histories.length - 1]!;
     expect(history).toMatchObject({ type: 'file_added' });
-    expect(history.previous_data).toMatchObject({ name: 'Скан' });
+    expect(history.previous_data).toMatchObject({
+      v: 2,
+      source: 'ui',
+      meta: { file: { id: 'document_files_new', name: 'Скан' } },
+    });
   });
 });
 
@@ -416,13 +420,18 @@ describe('comments', () => {
     expect(h.stub.deletes).toContain('document_comments/comment1');
     expect(created('document_history')).toMatchObject({
       type: 'comment_deleted',
-      previous_data: expect.objectContaining({ text: 'Удалить' }),
+      previous_data: expect.objectContaining({
+        v: 2,
+        meta: expect.objectContaining({
+          comment: expect.objectContaining({ text: 'Удалить', author_name: 'Автор' }),
+        }),
+      }),
     });
   });
 });
 
 describe('archive and restore', () => {
-  it('archives a document with reason and history', async () => {
+  it('archives a document and delegates history to pb hook', async () => {
     const document = documentFixture();
 
     await archiveDocument(document, '  причина  ');
@@ -434,18 +443,18 @@ describe('archive and restore', () => {
       deleted_by_name: 'Модератор',
       deletion_reason: '  причина  ',
     });
-    expect(created('document_history')).toMatchObject({ type: 'document_archived' });
+    expect(created('document_history')).toBeUndefined();
   });
 
-  it('restores with a new seq and writes history', async () => {
+  it('restores a document and delegates history/seq to pb hook', async () => {
     const document = documentFixture({ seq: 3 });
-    putList('documents', [documentFixture({ id: 'other', seq: 9 })]);
 
     await restoreDocument(document);
 
     const body = updated('documents');
-    expect(body).toMatchObject({ is_deleted: false, seq: 10, deletion_reason: '' });
-    expect(created('document_history')).toMatchObject({ type: 'document_restored' });
+    expect(body).toMatchObject({ is_deleted: false });
+    expect(body).not.toHaveProperty('seq');
+    expect(created('document_history')).toBeUndefined();
   });
 });
 
@@ -477,7 +486,17 @@ describe('moveDocument and markPaymentCancelled', () => {
       confirmed: false,
       confirmed_file_id: '',
     });
-    expect(created('document_history')).toMatchObject({ type: 'payment_cancelled' });
+    expect(created('document_history')).toMatchObject({
+      type: 'payment_cancelled',
+      previous_data: expect.objectContaining({
+        v: 2,
+        source: 'ui',
+        changes: expect.arrayContaining([
+          expect.objectContaining({ field: 'payment_cancelled', from: false, to: true }),
+          expect.objectContaining({ field: 'provided', from: true, to: false }),
+        ]),
+      }),
+    });
   });
 
   it('resumes payment without resetting statuses', async () => {
@@ -488,7 +507,14 @@ describe('moveDocument and markPaymentCancelled', () => {
     const body = updated('documents');
     expect(body).toMatchObject({ payment_cancelled: false });
     expect(body).not.toHaveProperty('provided');
-    expect(created('document_history')).toMatchObject({ type: 'payment_resumed' });
+    expect(created('document_history')).toMatchObject({
+      type: 'payment_resumed',
+      previous_data: expect.objectContaining({
+        v: 2,
+        source: 'ui',
+        changes: [expect.objectContaining({ field: 'payment_cancelled', from: true, to: false })],
+      }),
+    });
   });
 });
 

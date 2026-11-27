@@ -24,7 +24,7 @@ export {
   searchDocumentIdsByComment,
 } from './reads.ts';
 
-export { createDocumentHistory } from './history.ts';
+export { createDocumentHistory, buildDocumentHistoryPayload } from './history.ts';
 
 export type { CreateDocumentInput } from './writes.ts';
 export {

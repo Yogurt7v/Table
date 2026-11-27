@@ -27,13 +27,27 @@ export const DOCUMENT_FIELD_LABELS: Record<string, string> = {
   payment_date: 'Дата оплаты',
   responsible_id: 'Ответственный',
   accounting_object_id: 'Объект учёта',
-  source_invoice_no: 'Номер счёта',
+  source_invoice_no: 'Счёт-источник',
   provided: 'Предоставлен',
   confirmed: 'Подтверждён',
+  confirmed_file_id: 'Подтверждающий файл',
   payment_cancelled: 'Оплата отменена',
   payment_resumed: 'Оплата возобновлена',
   deletion_reason: 'Причина удаления',
+  seq: '№ в объекте',
+  previous_seq: 'Предыдущий №',
+  is_deleted: 'В архиве',
+  creation_mode: 'Режим создания',
+  reason: 'Причина',
+  trigger: 'Триггер',
 };
 
 /** Служебные поля: в деталях истории они только засоряют вывод. */
-export const HIDDEN_FIELDS = new Set(['source_invoice_id', 'automatic', 'is_deleted', 'file_id']);
+export const HIDDEN_FIELDS = new Set(['source_invoice_id', 'automatic', 'is_deleted', 'file_id', 'v', 'source']);
+
+export const HISTORY_TRIGGER_LABELS: Record<string, string> = {
+  invoice_paid: 'счёт оплачен',
+  invoice_paid_again: 'счёт снова оплачен',
+  invoice_unpaid: 'счёт стал неоплаченным',
+  invoice_updated: 'счёт обновлён',
+};

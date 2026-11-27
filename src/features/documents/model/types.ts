@@ -20,6 +20,25 @@ export type DocumentHistoryType =
   | 'payment_cancelled'
   | 'payment_resumed';
 
+export type DocumentHistorySource = 'ui' | 'system' | 'sync';
+
+/** Одно изменение поля в записи истории v2. */
+export interface DocumentHistoryChange {
+  field: string;
+  from?: unknown;
+  to?: unknown;
+  from_label?: string;
+  to_label?: string;
+}
+
+/** Payload истории документа v2, хранится в previous_data. */
+export interface DocumentHistoryPayloadV2 {
+  v: 2;
+  source: DocumentHistorySource;
+  changes: DocumentHistoryChange[];
+  meta: Record<string, unknown>;
+}
+
 export interface IDocument {
   id: string;
   organization_id: string;

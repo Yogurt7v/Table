@@ -41,7 +41,6 @@ export function DocumentCardModalHistory({ history, loading }: DocumentCardModal
       <Stack gap="xs">
         {history.map((record) => {
           const details = historyDetails(record.previous_data, record.type);
-          console.log(details);
           return (
             <Paper key={record.id} withBorder p="sm" radius="md">
               <Group justify="space-between" mb={4} align="flex-start" wrap="nowrap">
@@ -58,11 +57,9 @@ export function DocumentCardModalHistory({ history, loading }: DocumentCardModal
                 </Text>
               </Group>
               {details && (
-                <ScrollArea mt={6} mah={160}>
-                  <Text size="xs" ff="monospace" style={{ whiteSpace: 'pre-wrap' }}>
-                    {details}
-                  </Text>
-                </ScrollArea>
+                <Text size="xs" mt={6} style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {details}
+                </Text>
               )}
             </Paper>
           );

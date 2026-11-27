@@ -178,15 +178,14 @@ describe('document integration: archive and restore', () => {
     expect(body.deleted_by).toBe('u1');
   });
 
-  it('restores a document with new seq', async () => {
+  it('restores a document and delegates seq/history to pb hook', async () => {
     const document = documentFixture({ seq: 3 });
-    putList('documents', [documentFixture({ id: 'other', seq: 9 })]);
     const { restoreDocument } = await import('@/api/documents');
     await restoreDocument(document);
     const body = updated('documents')!;
     expect(body.is_deleted).toBe(false);
-    expect(body.seq).toBe(10);
-    expect(body.deletion_reason).toBe('');
+    expect(body.seq).toBeUndefined();
+    expect(body.deletion_reason).toBeUndefined();
   });
 });
 

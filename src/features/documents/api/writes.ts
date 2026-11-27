@@ -2,6 +2,9 @@
 
 import { pb } from '@/api/client';
 import type {
+  DocumentHistoryChange,
+  DocumentHistoryPayloadV2,
+  DocumentHistorySource,
   DocumentHistoryType,
   IDocument,
   IDocumentComment,
@@ -16,6 +19,40 @@ import { createDocumentHistory } from './history.ts';
 import { normalizeDocument, normalizeDocumentComment, normalizeDocumentFile } from './normalize.ts';
 import { getDocumentFiles, getNextDocumentSeq } from './reads.ts';
 import { currentActorId, currentActorName } from './shared.ts';
+
+interface HistoryWriteOptions {
+  source?: DocumentHistorySource;
+  changes?: DocumentHistoryChange[];
+  meta?: Record<string, unknown>;
+}
+
+function historyPayload(options: HistoryWriteOptions): DocumentHistoryPayloadV2 {
+  return {
+    v: 2,
+    source: options.source ?? 'ui',
+    changes: options.changes ?? [],
+    meta: options.meta ?? {},
+  };
+}
+
+function changedValue(before: unknown, after: unknown): boolean {
+  if (before === after) return false;
+  return String(before ?? '') !== String(after ?? '') || Number.isNaN(before as number);
+}
+
+function pushChange(
+  changes: DocumentHistoryChange[],
+  field: string,
+  from: unknown,
+  to: unknown,
+  labels?: { from_label?: string; to_label?: string },
+): void {
+  if (!changedValue(from, to)) return;
+  const change: DocumentHistoryChange = { field, from, to };
+  if (labels?.from_label !== undefined) change.from_label = labels.from_label;
+  if (labels?.to_label !== undefined) change.to_label = labels.to_label;
+  changes.push(change);
+}
 
 /** Входные данные для создания документа вручную. */
 export interface CreateDocumentInput {
@@ -60,14 +97,27 @@ export async function createManualDocument(input: CreateDocumentInput): Promise<
     is_deleted: false,
   });
   const normalized = normalizeDocument(created);
-  await createDocumentHistory(normalized.id, normalized.organization_id, 'document_created', {
-    creation_mode: 'manual',
-    seq: normalized.seq,
-    payment_date: normalized.payment_date,
-    counterparty: normalized.counterparty,
-    amount: normalized.amount,
-    responsible_id: normalized.responsible_id,
-  });
+  await createDocumentHistory(
+    normalized.id,
+    normalized.organization_id,
+    'document_created',
+    historyPayload({
+      source: 'ui',
+      changes: [
+        { field: 'accounting_object_id', to: normalized.accounting_object_id },
+        { field: 'seq', to: normalized.seq },
+        { field: 'payment_date', to: normalized.payment_date },
+        { field: 'counterparty', to: normalized.counterparty },
+        { field: 'amount', to: normalized.amount },
+        {
+          field: 'responsible_id',
+          to: normalized.responsible_id,
+          to_label: normalized.responsible_name || '',
+        },
+      ],
+      meta: { creation_mode: 'manual' },
+    }),
+  );
   return normalized;
 }
 
@@ -85,11 +135,12 @@ export async function updateDocumentWithHistory(
   document: IDocument,
   data: Partial<IDocument>,
   type: DocumentHistoryType,
-  previousData: Record<string, unknown>,
+  previousData: Record<string, unknown> | DocumentHistoryPayloadV2,
+  options: HistoryWriteOptions = {},
 ): Promise<IDocument> {
   const shouldLock = Object.keys(data).some((key) => SYNCED_FIELDS.has(key));
   const payload = shouldLock ? { ...data, sync_locked: true } : data;
-  await createDocumentHistory(document.id, document.organization_id, type, previousData);
+  await createDocumentHistory(document.id, document.organization_id, type, previousData, options);
   const updated = await pb.collection(DOCUMENTS_COLLECTION).update<IDocument>(document.id, payload);
   return normalizeDocument(updated);
 }
@@ -112,11 +163,28 @@ export async function updateDocumentStatus(
   if (data.confirmed === false) {
     payload.confirmed_file_id = '';
   }
+  let confirmedFileLabel = '';
   if (data.confirmed === true && !document.confirmed_file_id) {
     const files = await getDocumentFiles(document.id);
     payload.confirmed_file_id = files[0]?.id ?? '';
+    confirmedFileLabel = files[0]?.name ?? '';
   }
-  return updateDocumentWithHistory(document, payload, 'status_changed', previous);
+
+  const changes: DocumentHistoryChange[] = [];
+  pushChange(changes, 'provided', previous.provided, payload.provided ?? previous.provided);
+  pushChange(changes, 'confirmed', previous.confirmed, payload.confirmed ?? previous.confirmed);
+  pushChange(
+    changes,
+    'confirmed_file_id',
+    previous.confirmed_file_id,
+    payload.confirmed_file_id ?? previous.confirmed_file_id,
+    {
+      from_label: previous.confirmed_file_id ? previous.confirmed_file_id : '',
+      to_label: confirmedFileLabel || (payload.confirmed_file_id ?? previous.confirmed_file_id),
+    },
+  );
+
+  return updateDocumentWithHistory(document, payload, 'status_changed', historyPayload({ source: 'ui', changes }));
 }
 
 /** Загружает файл документа, при необходимости отмечает документ предоставленным. */
@@ -141,15 +209,21 @@ export async function uploadDocumentFile(
   const payload: Partial<IDocument> = {};
   if (!document.provided) payload.provided = true;
   if (Object.keys(payload).length > 0) {
-    await updateDocumentWithHistory(document, payload, 'status_changed', {
-      provided: document.provided,
-      confirmed: document.confirmed,
-    });
+    await pb.collection(DOCUMENTS_COLLECTION).update<IDocument>(document.id, payload);
   }
-  await createDocumentHistory(document.id, document.organization_id, 'file_added', {
-    file_id: created.id,
-    name: created.name,
-  });
+
+  const changes: DocumentHistoryChange[] = [];
+  pushChange(changes, 'provided', document.provided, payload.provided ?? document.provided);
+  await createDocumentHistory(
+    document.id,
+    document.organization_id,
+    'file_added',
+    historyPayload({
+      source: 'ui',
+      changes,
+      meta: { file: { id: created.id, name: created.name } },
+    }),
+  );
   return created;
 }
 
@@ -172,19 +246,41 @@ export async function deleteDocumentFile(
     payload.confirmed_file_id = '';
   }
 
-  const updated =
-    Object.keys(payload).length > 0
-      ? await updateDocumentWithHistory(document, payload, 'status_changed', {
-          provided: document.provided,
-          confirmed: document.confirmed,
-          confirmed_file_id: document.confirmed_file_id ?? '',
-        })
-      : document;
+  const changes: DocumentHistoryChange[] = [];
+  pushChange(changes, 'provided', document.provided, payload.provided ?? document.provided);
+  pushChange(changes, 'confirmed', document.confirmed, payload.confirmed ?? document.confirmed);
+  pushChange(
+    changes,
+    'confirmed_file_id',
+    document.confirmed_file_id ?? '',
+    payload.confirmed_file_id ?? document.confirmed_file_id ?? '',
+    {
+      from_label: document.confirmed_file_id === file.id ? file.name : document.confirmed_file_id ?? '',
+      to_label: payload.confirmed_file_id ?? '',
+    },
+  );
 
-  await createDocumentHistory(document.id, document.organization_id, 'file_removed', {
-    file_id: file.id,
-    name: file.name,
-  });
+  let updated = document;
+  if (Object.keys(payload).length > 0) {
+    updated = normalizeDocument(
+      await pb.collection(DOCUMENTS_COLLECTION).update<IDocument>(document.id, payload),
+    );
+  }
+
+  await createDocumentHistory(
+    document.id,
+    document.organization_id,
+    'file_removed',
+    historyPayload({
+      source: 'ui',
+      changes,
+      meta: {
+        file: { id: file.id, name: file.name },
+        was_confirmed_file: document.confirmed_file_id === file.id,
+        was_last_file: remaining.length === 0,
+      },
+    }),
+  );
   return updated;
 }
 
@@ -202,10 +298,15 @@ export async function addDocumentComment(
       text,
     }),
   );
-  await createDocumentHistory(document.id, document.organization_id, 'comment_added', {
-    comment_id: comment.id,
-    text: comment.text,
-  });
+  await createDocumentHistory(
+    document.id,
+    document.organization_id,
+    'comment_added',
+    historyPayload({
+      source: 'ui',
+      meta: { comment: { id: comment.id, text: comment.text } },
+    }),
+  );
   return comment;
 }
 
@@ -215,12 +316,21 @@ export async function deleteDocumentComment(
   comment: IDocumentComment,
 ): Promise<void> {
   await pb.collection(DOCUMENT_COMMENTS_COLLECTION).delete(comment.id);
-  await createDocumentHistory(document.id, document.organization_id, 'comment_deleted', {
-    comment_id: comment.id,
-    author: comment.author,
-    author_name: comment.author_name,
-    text: comment.text,
-  });
+  await createDocumentHistory(
+    document.id,
+    document.organization_id,
+    'comment_deleted',
+    historyPayload({
+      source: 'ui',
+      meta: {
+        comment: {
+          id: comment.id,
+          text: comment.text,
+          author_name: comment.author_name,
+        },
+      },
+    }),
+  );
 }
 
 /** Архивирует (помечает удалённым) документ с указанием причины. */
@@ -232,28 +342,16 @@ export async function archiveDocument(document: IDocument, reason: string): Prom
     deleted_at: new Date().toISOString(),
     deletion_reason: reason,
   });
-  await createDocumentHistory(document.id, document.organization_id, 'document_archived', {
-    reason,
-    deleted_by_name: currentActorName(),
-  });
+  // Историю archive/restore пишет PB hook document-archive.pb.js, чтобы не было дублей.
   return normalizeDocument(updated);
 }
 
 /** Восстанавливает документ из архива и назначает новый seq в объекте учёта. */
 export async function restoreDocument(document: IDocument): Promise<IDocument> {
-  const seq = await getNextDocumentSeq(document.organization_id, document.accounting_object_id);
   const updated = await pb.collection(DOCUMENTS_COLLECTION).update<IDocument>(document.id, {
     is_deleted: false,
-    deleted_by: '',
-    deleted_by_name: '',
-    deleted_at: '',
-    deletion_reason: '',
-    seq,
   });
-  await createDocumentHistory(document.id, document.organization_id, 'document_restored', {
-    previous_seq: document.seq,
-    seq,
-  });
+  // Историю archive/restore пишет PB hook document-archive.pb.js, чтобы не было дублей.
   return normalizeDocument(updated);
 }
 
@@ -261,6 +359,7 @@ export async function restoreDocument(document: IDocument): Promise<IDocument> {
 export async function moveDocument(
   document: IDocument,
   accountingObjectId: string,
+  labels?: { fromObjectName?: string; toObjectName?: string },
 ): Promise<IDocument> {
   if (document.accounting_object_id === accountingObjectId) return document;
   const seq = await getNextDocumentSeq(document.organization_id, accountingObjectId);
@@ -268,7 +367,19 @@ export async function moveDocument(
     document,
     { accounting_object_id: accountingObjectId, seq },
     'object_changed',
-    { accounting_object_id: document.accounting_object_id, seq: document.seq },
+    historyPayload({
+      source: 'ui',
+      changes: [
+        {
+          field: 'accounting_object_id',
+          from: document.accounting_object_id,
+          to: accountingObjectId,
+          from_label: labels?.fromObjectName ?? '',
+          to_label: labels?.toObjectName ?? '',
+        },
+        { field: 'seq', from: document.seq, to: seq },
+      ],
+    }),
   );
   return updated;
 }
@@ -278,13 +389,25 @@ export async function markPaymentCancelled(
   document: IDocument,
   cancelled: boolean,
 ): Promise<IDocument> {
+  const payload: Partial<IDocument> = {
+    payment_cancelled: cancelled,
+    ...(cancelled ? { provided: false, confirmed: false, confirmed_file_id: '' } : {}),
+  };
+  const changes: DocumentHistoryChange[] = [
+    { field: 'payment_cancelled', from: document.payment_cancelled, to: cancelled },
+  ];
+  if (cancelled) {
+    pushChange(changes, 'provided', document.provided, false);
+    pushChange(changes, 'confirmed', document.confirmed, false);
+    pushChange(changes, 'confirmed_file_id', document.confirmed_file_id ?? '', '', {
+      from_label: document.confirmed_file_id ?? '',
+      to_label: '',
+    });
+  }
   return updateDocumentWithHistory(
     document,
-    {
-      payment_cancelled: cancelled,
-      ...(cancelled ? { provided: false, confirmed: false, confirmed_file_id: '' } : {}),
-    },
+    payload,
     cancelled ? 'payment_cancelled' : 'payment_resumed',
-    { payment_cancelled: document.payment_cancelled },
+    historyPayload({ source: 'ui', changes }),
   );
 }

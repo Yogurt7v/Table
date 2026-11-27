@@ -50,7 +50,12 @@ onRecordUpdateRequest((e) => {
         historyRecord.set('author_name', actorName);
         historyRecord.set('changed_at', new Date().toISOString());
         historyRecord.set('type', 'document_archived');
-        historyRecord.set('previous_data', { reason: reason });
+        historyRecord.set('previous_data', {
+          v: 2,
+          source: e.auth ? 'ui' : 'system',
+          changes: [{ field: 'is_deleted', from: false, to: true }],
+          meta: { reason: reason },
+        });
         e.app.save(historyRecord);
       } catch (err) {
         console.error('[document-archive:history]', String(err));
@@ -71,6 +76,8 @@ onRecordUpdateRequest((e) => {
       }
     } else {
       // Restoring: assign a new seq in the same object
+      var previousSeq = parseInt(e.record.get('seq') || '0', 10) || 0;
+      var nextSeq = previousSeq;
       try {
         var organizationId = String(e.record.get('organization_id') || '');
         var objectId = String(e.record.get('accounting_object_id') || '');
@@ -82,7 +89,8 @@ onRecordUpdateRequest((e) => {
           0,
         );
         var maxSeq = records.length > 0 ? parseInt(records[0].get('seq') || '0', 10) : 0;
-        e.record.set('seq', maxSeq + 1);
+        nextSeq = maxSeq + 1;
+        e.record.set('seq', nextSeq);
       } catch (err) {
         console.error('[document-archive:seq]', String(err));
       }
@@ -103,7 +111,15 @@ onRecordUpdateRequest((e) => {
         historyRecord.set('author_name', actorName);
         historyRecord.set('changed_at', new Date().toISOString());
         historyRecord.set('type', 'document_restored');
-        historyRecord.set('previous_data', { restored: true });
+        historyRecord.set('previous_data', {
+          v: 2,
+          source: e.auth ? 'ui' : 'system',
+          changes: [
+            { field: 'is_deleted', from: true, to: false },
+            { field: 'seq', from: previousSeq, to: nextSeq },
+          ],
+          meta: {},
+        });
         e.app.save(historyRecord);
       } catch (err) {
         console.error('[document-archive:history-restore]', String(err));

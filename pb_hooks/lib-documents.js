@@ -85,7 +85,11 @@ function writeHistory(app, document, type, data, actorId, actorName) {
     record.set('author_name', actorName || '');
     record.set('changed_at', new Date().toISOString());
     record.set('type', type);
-    record.set('previous_data', data || {});
+    var payload = data || {};
+    if (!payload.v) {
+      payload = { v: 2, source: 'system', changes: [], meta: payload };
+    }
+    record.set('previous_data', payload);
     app.save(record);
   } catch (err) {
     console.error('[documents:history]', String(err));
@@ -160,9 +164,21 @@ function createAutoDocument(app, e, invoice, root, actorId, actorName) {
     document,
     'document_auto_created',
     {
-      source_invoice_id: root.id,
-      source_invoice_no: root.get('invoice_no') || '',
-      amount: Number(root.get('amount')) || 0,
+      v: 2,
+      source: 'system',
+      changes: [
+        { field: 'accounting_object_id', to: objectId, to_label: '' },
+        { field: 'seq', to: document.get('seq') },
+        { field: 'counterparty', to: String(root.get('counterparty') || invoice.get('counterparty') || '') },
+        { field: 'amount', to: Number(root.get('amount')) || 0 },
+        { field: 'responsible_id', to: responsibleId, to_label: document.get('responsible_name') || '' },
+      ],
+      meta: {
+        creation_mode: 'auto',
+        trigger: 'invoice_paid',
+        source_invoice_id: root.id,
+        source_invoice_no: root.get('invoice_no') || '',
+      },
     },
     actorId,
     actorName,
@@ -170,7 +186,7 @@ function createAutoDocument(app, e, invoice, root, actorId, actorName) {
   return document;
 }
 
-function cancelPayment(app, e, document, actorId, actorName) {
+function cancelPayment(app, e, document, actorId, actorName, rootInvoiceNo) {
   var files = app.findRecordsByFilter(
     'document_files',
     'document_id = "' + document.id + '"',
@@ -205,8 +221,18 @@ function cancelPayment(app, e, document, actorId, actorName) {
       document,
       'document_archived',
       {
-        reason: 'Оплата отменена',
-        automatic: true,
+        v: 2,
+        source: 'system',
+        changes: [
+          { field: 'is_deleted', from: false, to: true },
+          { field: 'payment_cancelled', from: false, to: true },
+        ],
+        meta: {
+          reason: 'Оплата отменена',
+          trigger: 'invoice_unpaid',
+          source_invoice_id: document.get('source_invoice_id') || '',
+          source_invoice_no: rootInvoiceNo || document.get('source_invoice_no') || '',
+        },
       },
       actorId,
       actorName,
@@ -228,6 +254,9 @@ function cancelPayment(app, e, document, actorId, actorName) {
     return;
   }
 
+  var oldProvided = document.get('provided') === true;
+  var oldConfirmed = document.get('confirmed') === true;
+  var oldConfirmedFile = String(document.get('confirmed_file_id') || '');
   document.set('payment_cancelled', true);
   document.set('provided', false);
   document.set('confirmed', false);
@@ -238,7 +267,19 @@ function cancelPayment(app, e, document, actorId, actorName) {
     document,
     'payment_cancelled',
     {
-      automatic: true,
+      v: 2,
+      source: 'system',
+      changes: [
+        { field: 'payment_cancelled', from: false, to: true },
+        { field: 'provided', from: oldProvided, to: false },
+        { field: 'confirmed', from: oldConfirmed, to: false },
+        { field: 'confirmed_file_id', from: oldConfirmedFile, to: '' },
+      ],
+      meta: {
+        trigger: 'invoice_unpaid',
+        source_invoice_id: document.get('source_invoice_id') || '',
+        source_invoice_no: rootInvoiceNo || document.get('source_invoice_no') || '',
+      },
     },
     actorId,
     actorName,
@@ -273,21 +314,60 @@ function handleInvoice(app, e, invoice, oldPaid) {
     } else if (active.get('payment_cancelled') === true) {
       active.set('payment_cancelled', false);
       app.save(active);
-      writeHistory(app, active, 'payment_resumed', { automatic: true }, actorId, actorName);
+      writeHistory(
+        app,
+        active,
+        'payment_resumed',
+        {
+          v: 2,
+          source: 'system',
+          changes: [{ field: 'payment_cancelled', from: true, to: false }],
+          meta: {
+            trigger: 'invoice_paid_again',
+            source_invoice_id: root.id,
+            source_invoice_no: root.get('invoice_no') || '',
+          },
+        },
+        actorId,
+        actorName,
+      );
       existing = active.get('creation_mode') === 'auto' ? active : existing;
     }
   }
 
   if (paid && existing && existing.get('sync_locked') !== true) {
+    var beforeSync = {
+      payment_date: String(existing.get('payment_date') || ''),
+      counterparty: String(existing.get('counterparty') || ''),
+      purpose: String(existing.get('purpose') || ''),
+      contract_no: String(existing.get('contract_no') || ''),
+      invoice_no: String(existing.get('invoice_no') || ''),
+      amount: Number(existing.get('amount')) || 0,
+    };
     if (applyInvoiceFields(existing, invoice, root)) {
+      var syncChanges = [];
+      var syncFields = ['payment_date', 'counterparty', 'purpose', 'contract_no', 'invoice_no', 'amount'];
+      for (var si = 0; si < syncFields.length; si++) {
+        var sk = syncFields[si];
+        var afterVal = sk === 'amount' ? Number(existing.get(sk)) || 0 : String(existing.get(sk) || '');
+        if (String(beforeSync[sk]) !== String(afterVal)) {
+          syncChanges.push({ field: sk, from: beforeSync[sk], to: afterVal });
+        }
+      }
       app.save(existing);
       writeHistory(
         app,
         existing,
         'document_synced',
         {
-          source_invoice_id: root.id,
-          automatic: true,
+          v: 2,
+          source: 'sync',
+          changes: syncChanges,
+          meta: {
+            trigger: 'invoice_updated',
+            source_invoice_id: root.id,
+            source_invoice_no: root.get('invoice_no') || '',
+          },
         },
         actorId,
         actorName,
@@ -296,7 +376,7 @@ function handleInvoice(app, e, invoice, oldPaid) {
   }
 
   if (!paid && oldPaid === true && active && active.get('is_deleted') !== true) {
-    cancelPayment(app, e, active, actorId, actorName);
+    cancelPayment(app, e, active, actorId, actorName, String(root.get('invoice_no') || ''));
   }
 }
 
