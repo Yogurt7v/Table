@@ -160,6 +160,10 @@ export async function syncInvoiceCopy(
   const remaining = (Number(source.amount) || 0) - totalPaid;
   if (remaining <= 0) return null;
 
+  const remainderComment = source.comment?.trim()
+    ? `Остаток. см историю.\n${source.comment}`
+    : 'Остаток. см историю.';
+
   return createInvoice({
     organization_id: source.organization_id,
     accounting_object_id: source.accounting_object_id,
@@ -169,7 +173,7 @@ export async function syncInvoiceCopy(
     contract_no: source.contract_no,
     invoice_no: source.invoice_no,
     amount: remaining,
-    comment: source.comment,
+    comment: remainderComment,
     original_invoice_id: source.id,
     source_paid_amount: totalPaid,
     source_paid_date: payDate || source.date,

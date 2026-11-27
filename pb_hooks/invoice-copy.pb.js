@@ -8,6 +8,9 @@
 // копия-счёт уже сохранена в БД). Создание записей-потомков из before-хука
 // (onRecordCreate) не срабатывает корректно.
 //
+// Надёжность: H1+H2+H4 — повторы копирования, сбор ошибок, уведомление
+// пользователю после исчерпания попыток; дедуп по name+size.
+//
 // ВАЖНО: в этом окружении JSVM нельзя вызывать функцию, объявленную на
 // верхнем уровне, из колбэка хука — поэтому логика продублирована внутри
 // каждого обработчика (см. notify.pb.js).
@@ -25,54 +28,203 @@ onRecordAfterCreateSuccess((e) => {
     var fCol = $app.findCollectionByNameOrId('invoice_files');
     var srcFiles = $app.findRecordsByFilter(
       'invoice_files',
-      'invoice_id = "' + origId + '"',
+      'invoice_id = "' + origId + '" && is_deleted != true',
       '',
       0,
       0,
     );
 
-    // Имена уже прикреплённых файлов копии (чтобы не дублировать).
-    var existing = {};
-    var current = $app.findRecordsByFilter(
-      'invoice_files',
-      'invoice_id = "' + copy.id + '"',
-      '',
-      0,
-      0,
-    );
-    for (var ci = 0; ci < current.length; ci++) {
-      existing[current[ci].get('name')] = true;
+    function fileDedupKey(name, size) {
+      return String(name || '') + '::' + String(size == null ? '' : size);
     }
 
-    for (var i = 0; i < srcFiles.length; i++) {
+    function getFileSize(fileCollectionId, recordId, filename) {
+      var fs = $app.newFilesystem();
       try {
-        var src = srcFiles[i];
-        var filename = src.get('file');
-        if (!filename) continue;
-        if (existing[src.get('name')]) continue;
-
-        var fs = $app.newFilesystem();
-        try {
-          var fileKey = fCol.id + '/' + src.id + '/' + filename;
-          var reuploadableFile = fs.getReuploadableFile(fileKey, true);
-
-          var newFile = new Record(fCol);
-          newFile.set('invoice_id', copy.id);
-          newFile.set('organization_id', invOrgId);
-          newFile.set('name', src.get('name'));
-          newFile.set('file', reuploadableFile);
-          $app.save(newFile);
-        } finally {
-          fs.close();
-        }
-      } catch (err) {
-        console.error(
-          '[invoices:file-copy] copy ' + copy.id + ' from ' + srcFiles[i].id + ': ' + String(err),
-        );
+        var attrs = fs.attributes(fileCollectionId + '/' + recordId + '/' + filename);
+        return attrs && typeof attrs.size === 'number' ? attrs.size : -1;
+      } catch (_) {
+        return -1;
+      } finally {
+        fs.close();
       }
     }
+
+    function buildExistingMap(invoiceId) {
+      var existing = {};
+      var current = $app.findRecordsByFilter(
+        'invoice_files',
+        'invoice_id = "' + invoiceId + '" && is_deleted != true',
+        '',
+        0,
+        0,
+      );
+      for (var ci = 0; ci < current.length; ci++) {
+        var cur = current[ci];
+        var curName = cur.get('name');
+        var curFile = cur.get('file');
+        if (!curFile) continue;
+        var curSize = getFileSize(fCol.id, cur.id, curFile);
+        existing[fileDedupKey(curName, curSize)] = true;
+        // Фолбэк по имени, если размер не удалось получить.
+        if (curSize < 0) existing[fileDedupKey(curName, -1)] = true;
+      }
+      return existing;
+    }
+
+    function copyOneFile(src, targetInvoiceId, targetOrgId, existingMap) {
+      var filename = src.get('file');
+      var srcName = src.get('name') || filename || 'файл';
+      if (!filename) return { ok: false, name: srcName, error: 'empty filename' };
+
+      var srcSize = getFileSize(fCol.id, src.id, filename);
+      var key = fileDedupKey(srcName, srcSize);
+      var nameOnlyKey = fileDedupKey(srcName, -1);
+      if (existingMap[key] || (srcSize < 0 && existingMap[nameOnlyKey])) {
+        return { ok: true, skipped: true, name: srcName };
+      }
+
+      var maxAttempts = 3;
+      var lastErr = null;
+      for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          var fs = $app.newFilesystem();
+          try {
+            var fileKey = fCol.id + '/' + src.id + '/' + filename;
+            var reuploadableFile = fs.getReuploadableFile(fileKey, true);
+            var newFile = new Record(fCol);
+            newFile.set('invoice_id', targetInvoiceId);
+            newFile.set('organization_id', targetOrgId);
+            newFile.set('name', srcName);
+            newFile.set('file', reuploadableFile);
+            $app.save(newFile);
+            existingMap[key] = true;
+            existingMap[nameOnlyKey] = true;
+            return { ok: true, name: srcName };
+          } finally {
+            fs.close();
+          }
+        } catch (err) {
+          lastErr = err;
+          console.error(
+            '[invoices:file-copy] attempt ' +
+              attempt +
+              '/' +
+              maxAttempts +
+              ' copy=' +
+              targetInvoiceId +
+              ' src=' +
+              src.id +
+              ' name=' +
+              srcName +
+              ': ' +
+              String(err),
+          );
+        }
+      }
+      return { ok: false, name: srcName, error: String(lastErr) };
+    }
+
+    function notifyCopyFailure(targetInvoice, failedNames, context) {
+      var actorId = String(
+        targetInvoice.get('created_by') || targetInvoice.get('updated_by') || '',
+      );
+      var orgId = String(targetInvoice.get('organization_id') || '');
+      if (!actorId || !orgId) {
+        console.error(
+          '[invoices:file-copy][LOUD] cannot notify: missing actor/org ' +
+            context +
+            ' actor=' +
+            actorId +
+            ' org=' +
+            orgId +
+            ' failed=' +
+            failedNames.join(', '),
+        );
+        return;
+      }
+
+      var actorName = 'Пользователь';
+      try {
+        actorName =
+          require(__hooks + '/lib-actor.js').resolveActorName($app, [actorId]) || actorName;
+      } catch (_) {}
+
+      var uniqueNames = [];
+      var seenNames = {};
+      for (var ni = 0; ni < failedNames.length; ni++) {
+        var n = String(failedNames[ni] || 'файл');
+        if (seenNames[n]) continue;
+        seenNames[n] = true;
+        uniqueNames.push(n);
+      }
+      var eventText =
+        'Не удалось скопировать файлы в копию счёта: ' +
+        uniqueNames.join(', ') +
+        '. Прикрепите их вручную.';
+      var messageText = eventText;
+
+      var maxAttempts = 3;
+      var lastErr = null;
+      for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          var notifCol = $app.findCollectionByNameOrId('notifications');
+          var notifRec = new Record(notifCol);
+          notifRec.set('organization_id', orgId);
+          notifRec.set('user_id', actorId);
+          notifRec.set('invoice_id', targetInvoice.id);
+          notifRec.set('type', 'invoice_file_copy_failed');
+          notifRec.set('event', eventText);
+          notifRec.set('message', messageText);
+          notifRec.set('actor_name', actorName);
+          notifRec.set('read', false);
+          $app.save(notifRec);
+          console.error(
+            '[invoices:file-copy][NOTIFIED] ' + context + ' failed=' + uniqueNames.join(', '),
+          );
+          return;
+        } catch (err) {
+          lastErr = err;
+          console.error(
+            '[invoices:file-copy] notify attempt ' +
+              attempt +
+              '/' +
+              maxAttempts +
+              ' ' +
+              context +
+              ': ' +
+              String(err),
+          );
+        }
+      }
+      console.error(
+        '[invoices:file-copy][LOUD] NOTIFICATION FAILED after ' +
+          maxAttempts +
+          ' attempts. ' +
+          context +
+          ' actor=' +
+          actorId +
+          ' org=' +
+          orgId +
+          ' failed=' +
+          uniqueNames.join(', ') +
+          ' lastError=' +
+          String(lastErr),
+      );
+    }
+
+    var existing = buildExistingMap(copy.id);
+    var failed = [];
+    for (var i = 0; i < srcFiles.length; i++) {
+      var result = copyOneFile(srcFiles[i], copy.id, invOrgId, existing);
+      if (!result.ok) failed.push(result.name);
+    }
+
+    if (failed.length > 0) {
+      notifyCopyFailure(copy, failed, 'copy=' + copy.id + ' source=' + origId);
+    }
   } catch (err) {
-    console.error('[invoices:file-copy] ' + String(err));
+    console.error('[invoices:file-copy][LOUD] ' + String(err));
   }
 }, 'invoices');
 
@@ -105,39 +257,84 @@ onRecordAfterCreateSuccess((e) => {
       var copy = copies[i];
       var copyOrg = copy.get('organization_id');
 
-      // Имена уже прикреплённых файлов копии.
-      var existing = {};
-      var curFiles = $app.findRecordsByFilter(
-        'invoice_files',
-        'invoice_id = "' + copy.id + '"',
-        '',
-        0,
-        0,
-      );
-      for (var ci = 0; ci < curFiles.length; ci++) {
-        existing[curFiles[ci].get('name')] = true;
-      }
-      if (existing[fileRec.get('name')]) continue;
-
+    function fileDedupKey(name, size) {
+      return String(name || '') + '::' + String(size == null ? '' : size);
+    }
+    function getFileSize(fileCollectionId, recordId, fname) {
+      var sfs = $app.newFilesystem();
       try {
-        if (!filename) continue;
+        var attrs = sfs.attributes(fileCollectionId + '/' + recordId + '/' + fname);
+        return attrs && typeof attrs.size === 'number' ? attrs.size : -1;
+      } catch (_) {
+        return -1;
+      } finally {
+        sfs.close();
+      }
+    }
+    var existing = {};
+    var curFiles = $app.findRecordsByFilter(
+      'invoice_files',
+      'invoice_id = "' + copy.id + '" && is_deleted != true',
+      '',
+      0,
+      0,
+    );
+    for (var ci = 0; ci < curFiles.length; ci++) {
+      var cur = curFiles[ci];
+      var curFile = cur.get('file');
+      if (!curFile) continue;
+      var curSize = getFileSize(fCol.id, cur.id, curFile);
+      existing[fileDedupKey(cur.get('name'), curSize)] = true;
+      if (curSize < 0) existing[fileDedupKey(cur.get('name'), -1)] = true;
+    }
+    var srcName = fileRec.get('name') || filename || 'файл';
+    var srcSize = getFileSize(fCol.id, fileRec.id, filename);
+    var key = fileDedupKey(srcName, srcSize);
+    if (existing[key] || (srcSize < 0 && existing[fileDedupKey(srcName, -1)])) continue;
+
+    var copied = false;
+    var lastErr = null;
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
         var fs = $app.newFilesystem();
         try {
           var fileKey = fCol.id + '/' + fileRec.id + '/' + filename;
           var reuploadableFile = fs.getReuploadableFile(fileKey, true);
-
           var newFile = new Record(fCol);
           newFile.set('invoice_id', copy.id);
           newFile.set('organization_id', copyOrg);
-          newFile.set('name', fileRec.get('name'));
+          newFile.set('name', srcName);
           newFile.set('file', reuploadableFile);
           $app.save(newFile);
+          copied = true;
+          break;
         } finally {
           fs.close();
         }
       } catch (err) {
-        console.error('[invoices:file-copy] sync to ' + copy.id + ': ' + String(err));
+        lastErr = err;
+        console.error(
+          '[invoices:file-copy] sync attempt ' +
+            attempt +
+            '/3 to=' +
+            copy.id +
+            ' name=' +
+            srcName +
+            ': ' +
+            String(err),
+        );
       }
+    }
+    if (!copied) {
+      console.error(
+        '[invoices:file-copy][LOUD] sync failed copy=' +
+          copy.id +
+          ' name=' +
+          srcName +
+          ' err=' +
+          String(lastErr),
+      );
+    }
     }
   } catch (err) {
     console.error('[invoices:file-copy] sync ' + String(err));
@@ -172,38 +369,84 @@ onRecordAfterUpdateSuccess((e) => {
       var copy = copies[i];
       var copyOrg = copy.get('organization_id');
 
-      var existing = {};
-      var curFiles = $app.findRecordsByFilter(
-        'invoice_files',
-        'invoice_id = "' + copy.id + '"',
-        '',
-        0,
-        0,
-      );
-      for (var ci = 0; ci < curFiles.length; ci++) {
-        existing[curFiles[ci].get('name')] = true;
-      }
-      if (existing[fileRec.get('name')]) continue;
-
+    function fileDedupKey(name, size) {
+      return String(name || '') + '::' + String(size == null ? '' : size);
+    }
+    function getFileSize(fileCollectionId, recordId, fname) {
+      var sfs = $app.newFilesystem();
       try {
-        if (!filename) continue;
+        var attrs = sfs.attributes(fileCollectionId + '/' + recordId + '/' + fname);
+        return attrs && typeof attrs.size === 'number' ? attrs.size : -1;
+      } catch (_) {
+        return -1;
+      } finally {
+        sfs.close();
+      }
+    }
+    var existing = {};
+    var curFiles = $app.findRecordsByFilter(
+      'invoice_files',
+      'invoice_id = "' + copy.id + '" && is_deleted != true',
+      '',
+      0,
+      0,
+    );
+    for (var ci = 0; ci < curFiles.length; ci++) {
+      var cur = curFiles[ci];
+      var curFile = cur.get('file');
+      if (!curFile) continue;
+      var curSize = getFileSize(fCol.id, cur.id, curFile);
+      existing[fileDedupKey(cur.get('name'), curSize)] = true;
+      if (curSize < 0) existing[fileDedupKey(cur.get('name'), -1)] = true;
+    }
+    var srcName = fileRec.get('name') || filename || 'файл';
+    var srcSize = getFileSize(fCol.id, fileRec.id, filename);
+    var key = fileDedupKey(srcName, srcSize);
+    if (existing[key] || (srcSize < 0 && existing[fileDedupKey(srcName, -1)])) continue;
+
+    var copied = false;
+    var lastErr = null;
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
         var fs = $app.newFilesystem();
         try {
           var fileKey = fCol.id + '/' + fileRec.id + '/' + filename;
           var reuploadableFile = fs.getReuploadableFile(fileKey, true);
-
           var newFile = new Record(fCol);
           newFile.set('invoice_id', copy.id);
           newFile.set('organization_id', copyOrg);
-          newFile.set('name', fileRec.get('name'));
+          newFile.set('name', srcName);
           newFile.set('file', reuploadableFile);
           $app.save(newFile);
+          copied = true;
+          break;
         } finally {
           fs.close();
         }
       } catch (err) {
-        console.error('[invoices:file-copy] sync-upd to ' + copy.id + ': ' + String(err));
+        lastErr = err;
+        console.error(
+          '[invoices:file-copy] sync-upd attempt ' +
+            attempt +
+            '/3 to=' +
+            copy.id +
+            ' name=' +
+            srcName +
+            ': ' +
+            String(err),
+        );
       }
+    }
+    if (!copied) {
+      console.error(
+        '[invoices:file-copy][LOUD] sync-upd failed copy=' +
+          copy.id +
+          ' name=' +
+          srcName +
+          ' err=' +
+          String(lastErr),
+      );
+    }
     }
   } catch (err) {
     console.error('[invoices:file-copy] sync-upd ' + String(err));

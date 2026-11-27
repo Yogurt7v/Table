@@ -5,13 +5,73 @@ import { useUpdateInvoice } from '@/features/invoices/hooks/useUpdateInvoice';
 import { useDeletePaymentMark } from '@/features/invoices/hooks/usePaymentMarks';
 import { useCreatePaymentMark } from '@/features/invoices/hooks/usePaymentMarks';
 import { useApprovePaymentMark } from '@/features/invoices/hooks/usePaymentMarks';
-import { syncInvoiceCopy } from '@/api/collections';
-import type { IInvoice, IPaymentMark } from '@/shared/types';
+import { syncInvoiceCopy, getInvoiceFiles, getInvoiceFileUrl } from '@/api/collections';
+import type { IInvoice, IInvoiceFile, IPaymentMark } from '@/shared/types';
 import {
   PAID_MARK_STATUS,
   APPROVAL_MARK_STATUS,
   PARTIAL_MARK_STATUS,
 } from '@/features/invoices/model/payment-mark-status';
+
+async function getFileSizeByUrl(fileRecord: IInvoiceFile): Promise<number> {
+  try {
+    const url = getInvoiceFileUrl(fileRecord);
+    const response = await fetch(url, { method: 'HEAD' });
+    const contentLength = response.headers.get('content-length');
+    if (contentLength) return Number(contentLength);
+  } catch {
+    /* empty */
+  }
+  try {
+    const url = getInvoiceFileUrl(fileRecord);
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return blob.size;
+  } catch {
+    return -1;
+  }
+}
+
+async function verifyRemainderCopyFiles(sourceInvoiceId: string, copyInvoiceId: string) {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const [sourceFiles, copyFiles] = await Promise.all([
+        getInvoiceFiles(sourceInvoiceId),
+        getInvoiceFiles(copyInvoiceId),
+      ]);
+      const copyKeys = new Set<string>();
+      for (const cf of copyFiles) {
+        const size = await getFileSizeByUrl(cf);
+        copyKeys.add(`${cf.name}::${size}`);
+        if (size < 0) copyKeys.add(`${cf.name}::-1`);
+      }
+      const missing: string[] = [];
+      for (const sf of sourceFiles) {
+        const size = await getFileSizeByUrl(sf);
+        const key = `${sf.name}::${size}`;
+        const nameOnly = `${sf.name}::-1`;
+        if (!copyKeys.has(key) && !(size < 0 && copyKeys.has(nameOnly))) {
+          missing.push(sf.name);
+        }
+      }
+      if (missing.length === 0) return { ok: true as const, missing: [] as string[] };
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 700 * attempt));
+        continue;
+      }
+      return { ok: false as const, missing };
+    } catch (err) {
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 700 * attempt));
+        continue;
+      }
+      console.error('[invoice-copy-verify][LOUD] verification failed', err);
+      return { ok: false as const, missing: ['<не удалось проверить файлы>'] };
+    }
+  }
+  return { ok: false as const, missing: ['<не удалось проверить файлы>'] };
+}
 
 interface UseInvoicePaymentActionsProps {
   orgId: string;
@@ -79,9 +139,18 @@ export function useInvoicePaymentActions({
                 },
               });
             }
-            void syncInvoiceCopy(invoice, newAmounts, true, date.slice(0, 10)).then(() => {
+            void syncInvoiceCopy(invoice, newAmounts, true, date.slice(0, 10)).then(async (copy) => {
               queryClient.invalidateQueries({ queryKey: ['invoices', orgId] });
               queryClient.invalidateQueries({ queryKey: ['invoice_files', orgId] });
+              if (copy) {
+                const check = await verifyRemainderCopyFiles(invoice.id, copy.id);
+                if (!check.ok) {
+                  const names = Array.from(new Set(check.missing)).join(', ');
+                  const msg = `Не удалось скопировать файлы в копию счёта: ${names}. Прикрепите их вручную.`;
+                  console.error('[invoice-copy-verify][LOUD]', msg);
+                  window.alert(msg);
+                }
+              }
             });
             notifications.show({ color: 'green', message: 'Статус счёта обновлён' });
           },
@@ -138,9 +207,18 @@ export function useInvoicePaymentActions({
               newAmounts,
               newAmounts.length > 0,
               invoice.paid_date || date.slice(0, 10),
-            ).then(() => {
+            ).then(async (copy) => {
               queryClient.invalidateQueries({ queryKey: ['invoices', orgId] });
               queryClient.invalidateQueries({ queryKey: ['invoice_files', orgId] });
+              if (copy) {
+                const check = await verifyRemainderCopyFiles(invoice.id, copy.id);
+                if (!check.ok) {
+                  const names = Array.from(new Set(check.missing)).join(', ');
+                  const msg = `Не удалось скопировать файлы в копию счёта: ${names}. Прикрепите их вручную.`;
+                  console.error('[invoice-copy-verify][LOUD]', msg);
+                  window.alert(msg);
+                }
+              }
             });
             notifications.show({ color: 'green', message: 'Оплата снята' });
           },
