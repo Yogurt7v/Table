@@ -18,6 +18,7 @@ import {
   useDocumentCommentSearch,
   useDocuments,
 } from '@/features/documents/hooks/useDocuments';
+import { useDocumentsRealtime } from '@/features/documents/hooks/useDocumentsRealtime';
 import {
   loadDocumentColumnSizing,
   loadDocumentColumns,
@@ -48,6 +49,10 @@ export function useDocsPage() {
   const documentsQuery = useDocuments(currentOrgId, role, user?.id);
   const filesQuery = useAllDocumentFiles(currentOrgId);
   const commentsQuery = useAllDocumentComments(currentOrgId);
+
+  // Изменения других пользователей (файлы, статусы, новые документы) приходят
+  // по realtime и сбрасывают кэш домена; без подписки таблица жила до перезагрузки.
+  useDocumentsRealtime(currentOrgId, !!role && role !== 'guest' && documentPermissions.canView);
 
   const invoiceDatesQuery = useQuery({
     queryKey: ['invoiceDates', currentOrgId],
